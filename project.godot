@@ -28,6 +28,7 @@ AvatarPackLoader="*res://scenes/autoload/avatar_pack_loader.gd"
 GlobalWorldAccess="*res://scenes/autoload/world_access.gd"
 GlobalAPIHandler="*res://scenes/autoload/api_handler.gd"
 GlobalAccountHandler="*res://scenes/autoload/account_handler.gd"
+GlobalPersistanceHandler="*res://scenes/autoload/persistance_handler.gd"
 
 [debug]
 

@@ -2,7 +2,10 @@ extends Node
 class_name APIHandler
 
 const TARGET_HOST:String = "127.0.0.1"
+const TARGET_PORT:int = 23888
+const RECONNECT_DELAY_TIME:float = 3
 
+# contains the request information stored before processing a request
 class Request:
 	var method:HTTPClient.Method
 	var target:String
@@ -17,6 +20,7 @@ class Request:
 		additional_headers = headers
 		if body != "":
 			additional_headers.push_back("Content-Length: " + str(body.length()))
+			additional_headers.push_back("Content-Type: application/json")
 		var singal_name:String = str(randi())
 		add_user_signal(singal_name, [
 		{ "name": "response_code", "type": TYPE_INT},
@@ -26,30 +30,43 @@ class Request:
 		on_complete = Signal(self, singal_name)
 
 var is_ready:bool = false
-var client = HTTPClient.new()
+var client:HTTPClient
 var waiting_requests:Array[Request]
-@onready var tree = get_tree()
+@onready var tree:SceneTree = get_tree()
 
-var headers:PackedStringArray = PackedStringArray(["User-Agent: Pirulo/1.0 (Godot)", "Accept: */*", "Content-Type: application/json"])
+# todo: make readonly once its available
+var headers:PackedStringArray = PackedStringArray(["User-Agent: Pirulo/1.0 (Godot)", "Accept: */*"])
 
-func make_request(method:HTTPClient.Method, target:String, body:String, headers:PackedStringArray = PackedStringArray()) -> Signal:
-	var request:Request = Request.new(method, target, body, headers)
+# makes a request for the handler to process, requests are handled sequentially.
+# returns a signal that can be awaited to get the response (if it is received).
+# user-agent, accept, content-type, and content-length headers are managed automatically.
+func make_request(method:HTTPClient.Method, target:String, request_headers:PackedStringArray = PackedStringArray(), body:String = "") -> Signal:
+	var request:Request = Request.new(method, target, body, request_headers)
 	waiting_requests.push_back(request)
 	return request.on_complete
 
+# request handler, runs forever.
+# will call itself deferred to recreate the connection if it errors out
 func _ready() -> void:
-	push_error("temp code remove this")
-	return
+	client = HTTPClient.new()
+	var err:Error = client.connect_to_host(TARGET_HOST, TARGET_PORT)
+	if err != OK:
+		push_error("error while connecting to api: ", str(err))
+		await tree.create_timer(3).timeout
+		push_warning("retrying connection...")
+		_ready.call_deferred()
+		return
+	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
+		client.poll()
+		await tree.process_frame
+	# main processing loop
 	while true:
-		# cant figure out how to reuse the client so we restart the client after every request here
-		client = HTTPClient.new()
-		var err = client.connect_to_host("127.0.0.1", 23888)
-		assert(err == OK)
-		while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-			client.poll()
-			await tree.process_frame
-		# regular request code from here
-		assert(client.get_status() == HTTPClient.STATUS_CONNECTED)
+		if client.get_status() != HTTPClient.STATUS_CONNECTED:
+			push_error("error in api connection: client state should be connected but was ", client.get_status())
+			await tree.create_timer(3).timeout
+			push_warning("retrying connection...")
+			_ready.call_deferred()
+			return
 		while waiting_requests.is_empty():
 			await tree.physics_frame
 		var request:Request = waiting_requests.pop_back()
@@ -57,14 +74,20 @@ func _ready() -> void:
 		while client.get_status() == HTTPClient.STATUS_REQUESTING:
 			client.poll()
 			await tree.process_frame
-		assert(client.get_status() == HTTPClient.STATUS_BODY or client.get_status() == HTTPClient.STATUS_CONNECTED)
+		if client.get_status() != HTTPClient.STATUS_BODY and client.get_status() != HTTPClient.STATUS_CONNECTED:
+			push_error("error in api connection: expected body or ready connection, got: ", client.get_status())
+			await tree.create_timer(3).timeout
+			push_warning("retrying connection...")
+			_ready.call_deferred()
+			return
 		if !client.has_response():
 			request.on_complete.emit(-1, PackedStringArray(), "")
 		else:
-			var response_headers = client.get_response_headers()
-			var raw_body = PackedByteArray()
+			# body retrival, works for chunked or unchunked responses
+			var response_headers:PackedStringArray = client.get_response_headers()
+			var raw_body:PackedByteArray = PackedByteArray()
 			while client.get_status() == HTTPClient.STATUS_BODY:
-				var chunk = client.read_response_body_chunk()
+				var chunk:PackedByteArray = client.read_response_body_chunk()
 				client.poll()
 				if chunk.size() == 0:
 					await get_tree().process_frame
@@ -73,7 +96,5 @@ func _ready() -> void:
 			if raw_body.is_empty():
 				request.on_complete.emit(client.get_response_code(), response_headers, "")
 			else:
-				var body = raw_body.get_string_from_ascii()
+				var body:String = raw_body.get_string_from_ascii()
 				request.on_complete.emit(client.get_response_code(), response_headers, body)
-		# close the connection so it can be restarted
-		client.close()
