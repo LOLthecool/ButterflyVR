@@ -4,19 +4,11 @@
 [ext_resource type="Script" uid="uid://c2h7be73u7n5c" path="res://scenes/player/ui/menu_selector.gd" id="2_r1u74"]
 [ext_resource type="Script" uid="uid://drofe2xcwpp3x" path="res://scenes/player/ui/chat.gd" id="3_k8goo"]
 [ext_resource type="Script" uid="uid://d3yfk875eci44" path="res://scenes/player/ui/disconnect.gd" id="3_vnics"]
+[ext_resource type="Script" uid="uid://b31ymgsxsxgdl" path="res://scenes/misc/exit.gd" id="3_vskxc"]
 [ext_resource type="Script" uid="uid://ds7hokjkv02bh" path="res://scenes/player/ui/send_message.gd" id="4_dxony"]
 [ext_resource type="Script" uid="uid://ksrjgkewkwkw" path="res://scenes/player/ui/previewer.gd" id="6_0rwa2"]
 [ext_resource type="Script" uid="uid://gpmku2l1rcax" path="res://scenes/player/ui/avatar_list.gd" id="6_cinv8"]
 [ext_resource type="Script" uid="uid://cqan08xhfdo5p" path="res://scenes/player/ui/reload_avatars.gd" id="8_qwn86"]
-
-[sub_resource type="GDScript" id="GDScript_kir8s"]
-resource_name = "mini_exit"
-script/source = "extends Button
-
-func _pressed() -> void:
-	(NetworkManager as NetNodeManager).stop() # disconnect first so the server isnt waiting for timeout
-	get_tree().free() # works? idk i mean it just needs to close the game
-"
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_0rwa2"]
 
@@ -61,11 +53,12 @@ grow_vertical = 2
 [node name="Panel" type="TabContainer" parent="MainMenu/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-current_tab = 0
+current_tab = 1
 tabs_visible = false
 script = ExtResource("2_r1u74")
 
 [node name="Home" type="Control" parent="MainMenu/VBoxContainer/Panel"]
+visible = false
 layout_mode = 2
 metadata/_tab_index = 0
 
@@ -81,7 +74,6 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Exit" type="Control" parent="MainMenu/VBoxContainer/Panel"]
-visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 
@@ -93,8 +85,8 @@ anchor_bottom = 1.0
 offset_top = 338.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "exit"
-script = SubResource("GDScript_kir8s")
+text = "Exit"
+script = ExtResource("3_vskxc")
 
 [node name="Button2" type="Button" parent="MainMenu/VBoxContainer/Panel/Exit"]
 layout_mode = 1
@@ -107,7 +99,7 @@ offset_right = 0.000366211
 offset_bottom = -338.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "disconnect"
+text = "Logout"
 script = ExtResource("3_vnics")
 
 [node name="Chat" type="Control" parent="MainMenu/VBoxContainer/Panel"]

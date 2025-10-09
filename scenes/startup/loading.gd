@@ -1,22 +1,50 @@
-extends Node
-# will later contain login for stuff like auto login, showing the login screen, loading home world, etc
+extends Control
+# handles login and registering
+# once it signs in with a valid token transitions to the home world
+# for a new user their homeworld is the tutorial world
 
-@export var token_box:TextEdit
+const GREETER_TAB:int = 1
+const LOADING_TAB:int = 0
+const SIGNIN_TAB:int = 2
+const REGISTER_TAB:int = 3
+
+@export var last_screen:int
+@export var tab_container:TabContainer
 
 func _ready() -> void:
-	AvatarPackLoader.update_avatar_list()
-	if DisplayServer.get_name() == "headless":
-		get_tree().change_scene_to_file.call_deferred("res://scenes/startup/loading_server.tscn")
-		return
-	for argument:String in OS.get_cmdline_args():
-		if argument == "--server":
-			get_tree().change_scene_to_file.call_deferred("res://scenes/startup/loading_server.tscn")
-			return
-	# client path
-	(get_child(0) as CanvasItem).visible = true
-	@warning_ignore("unsafe_property_access", "unsafe_cast")
-	(token_box.token_entered as Signal).connect(start_client)
+	if GlobalAccountHandler.session_token == []:
+		tab_container.current_tab = GREETER_TAB
+	else:
+		start()
 
-func start_client(token:PackedByteArray) -> void:
-	(NetworkManager as NetNodeManager).start_client(token)
-	get_tree().change_scene_to_file.call_deferred("res://scenes/world/debug_world.tscn")
+# handles initial loading of the homeworld
+func start() -> void:
+	pass
+
+func _on_register_selected() -> void:
+	pass # Replace with function body.
+
+func _on_login_selected() -> void:
+	pass # Replace with function body.
+
+
+func _on_register() -> void:
+	last_screen = tab_container.current_tab
+	pass # Replace with function body.
+
+func _on_login() -> void:
+	last_screen = tab_container.current_tab
+	pass # Replace with function body.
+
+
+func _on_back_button_pressed() -> void:
+	tab_container.current_tab = last_screen
+	last_screen = GREETER_TAB
+
+
+# handle showing the terms of service and privacy policy
+# links starting with .local with no tld are treated as internally available resources
+# otherwise we pass to the browser
+# todo: should probably make a generic popup handler and use that later
+func _on_link_clicked(meta: Variant) -> void:
+	pass # Replace with function body.
