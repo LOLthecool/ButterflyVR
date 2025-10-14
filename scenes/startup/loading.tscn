@@ -1,9 +1,12 @@
-[gd_scene load_steps=3 format=3 uid="uid://dq0jh8bb6ohna"]
+[gd_scene load_steps=4 format=3 uid="uid://dq0jh8bb6ohna"]
 
 [ext_resource type="Script" uid="uid://d3sv3rpa5pvwh" path="res://scenes/startup/loading.gd" id="1_1u0nn"]
 [ext_resource type="Script" uid="uid://b31ymgsxsxgdl" path="res://scenes/misc/exit.gd" id="2_nvabl"]
 
-[node name="Loading" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nvabl"]
+bg_color = Color(0.121569, 0.121569, 0.121569, 1)
+
+[node name="Loading" type="Control" node_paths=PackedStringArray("tab_container", "register_username", "register_email", "register_password", "register_tos", "register_acknowledge", "signin_email", "signin_password", "signin_remember")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,6 +14,15 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_1u0nn")
+tab_container = NodePath("TabContainer")
+register_username = NodePath("TabContainer/Register/LineEdit")
+register_email = NodePath("TabContainer/Register/LineEdit3")
+register_password = NodePath("TabContainer/Register/LineEdit2")
+register_tos = NodePath("TabContainer/Register/CheckBoxRichText/HBoxContainer/CheckBox")
+register_acknowledge = NodePath("TabContainer/Register/CheckBoxRichText2/HBoxContainer/CheckBox")
+signin_email = NodePath("TabContainer/SignIn/LineEdit")
+signin_password = NodePath("TabContainer/SignIn/LineEdit2")
+signin_remember = NodePath("TabContainer/SignIn/CheckBox")
 
 [node name="TabContainer" type="TabContainer" parent="."]
 layout_mode = 1
@@ -32,15 +44,27 @@ metadata/_tab_index = 0
 
 [node name="Label" type="Label" parent="TabContainer/Loading"]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = -1
 anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_bottom = 0.816199
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_font_sizes/font_size = 64
 text = "Loading..."
 horizontal_alignment = 1
 vertical_alignment = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="Button3" type="Button" parent="TabContainer/Loading"]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.816199
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 32
+text = "Cancel"
 metadata/_edit_use_anchors_ = true
 
 [node name="Greeter" type="Control" parent="TabContainer"]
@@ -279,6 +303,43 @@ bbcode_enabled = true
 text = "I understand that ButterflyVR is in a Pre-Alpha state and as such the current state of the game is not representative of the final product. I understand some features may be missing or broken."
 metadata/_edit_use_anchors_ = true
 
+[node name="Popup" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.317708
+anchor_top = 0.212963
+anchor_right = 0.682292
+anchor_bottom = 0.712037
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nvabl")
+metadata/_edit_use_anchors_ = true
+
+[node name="Label" type="Label" parent="Popup"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 0.857401
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 30
+text = "blablablblablablbl"
+horizontal_alignment = 1
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="Button" type="Button" parent="Popup"]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.857401
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+text = "close"
+metadata/_edit_use_anchors_ = true
+
+[connection signal="pressed" from="TabContainer/Loading/Button3" to="." method="_on_load_cancelled"]
 [connection signal="pressed" from="TabContainer/Greeter/Button" to="." method="_on_login_selected"]
 [connection signal="pressed" from="TabContainer/Greeter/Button2" to="." method="_on_register_selected"]
 [connection signal="pressed" from="TabContainer/SignIn/Button2" to="." method="_on_login"]

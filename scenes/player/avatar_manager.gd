@@ -12,11 +12,11 @@ var new_avatar:PackedScene
 func _ready() -> void:
 	@warning_ignore("unsafe_property_access")
 	owner_id = networker.owner_id
-	GlobalWorldAccess.current_world.avatar_change_handler.avatar_changed.connect(change_avatar)
+	GlobalWorldHandler.current_world.avatar_change_handler.avatar_changed.connect(change_avatar)
 	while !(NetworkManager as NetNodeManager).id_ready():
 		await get_tree().physics_frame
 	if owner_id == (NetworkManager as NetNodeManager).get_id():
-		GlobalWorldAccess.current_world.avatar_change_handler.send_message(owner_id, 0)
+		GlobalWorldHandler.current_world.avatar_change_handler.send_message(owner_id, 0)
 
 func change_avatar(target_player:int, avatar:int) -> void:
 	if target_player != owner_id:

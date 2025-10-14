@@ -1,4 +1,4 @@
 extends Node
-class_name WorldAccess
+class_name WorldHandler
 
 var current_world:WorldController

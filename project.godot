@@ -25,7 +25,7 @@ driver/enable_input=true
 
 NetworkManager="*res://scenes/autoload/network_manager.tscn"
 AvatarPackLoader="*res://scenes/autoload/avatar_pack_loader.gd"
-GlobalWorldAccess="*res://scenes/autoload/world_access.gd"
+GlobalWorldHandler="*res://scenes/autoload/world_handler.gd"
 GlobalAPIHandler="*res://scenes/autoload/api_handler.gd"
 GlobalAccountHandler="*res://scenes/autoload/account_handler.gd"
 GlobalPersistanceHandler="*res://scenes/autoload/persistance_handler.gd"

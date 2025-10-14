@@ -10,7 +10,7 @@ func _ready() -> void:
 	player = player_access.player
 	networker = player_access.networker
 	owner_id = networker.owner_id
-	GlobalWorldAccess.current_world.player_grab_handler.player_grabbed.connect(on_grab)
+	GlobalWorldHandler.current_world.player_grab_handler.player_grabbed.connect(on_grab)
 
 func _physics_process(_delta: float) -> void:
 	if grabbed_node != null:

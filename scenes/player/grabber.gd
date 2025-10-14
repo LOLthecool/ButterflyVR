@@ -2,13 +2,13 @@ extends RayCast3D
 
 @onready var grab_target:Node3D = get_child(0)
 
-var grab_handler:PlayerGrabHandler = GlobalWorldAccess.current_world.player_grab_handler
+var grab_handler:PlayerGrabHandler = GlobalWorldHandler.current_world.player_grab_handler
 var is_grabbing:bool = false
 var wants_to_grab:bool = false
 var grabbed_node:Node3D
 
 func _ready() -> void:
-	GlobalWorldAccess.current_world.player_grab_handler.player_grabbed.connect(on_confirmed_grab)
+	GlobalWorldHandler.current_world.player_grab_handler.player_grabbed.connect(on_confirmed_grab)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("player_grab"):

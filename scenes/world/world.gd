@@ -8,7 +8,7 @@ class_name WorldController
 @export var interactable_handler:InteractableHandler
 
 func _init() -> void:
-	GlobalWorldAccess.current_world = self
+	GlobalWorldHandler.current_world = self
 
 func _ready() -> void:
 	while !(NetworkManager as NetNodeManager).id_ready():
