@@ -6,7 +6,7 @@
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nvabl"]
 bg_color = Color(0.121569, 0.121569, 0.121569, 1)
 
-[node name="Loading" type="Control" node_paths=PackedStringArray("tab_container", "register_username", "register_email", "register_password", "register_tos", "register_acknowledge", "signin_email", "signin_password", "signin_remember")]
+[node name="Loading" type="Control" node_paths=PackedStringArray("tab_container", "popup", "popup_text", "popup_button", "loading_text", "register_username", "register_email", "register_password", "register_tos", "register_acknowledge", "signin_email", "signin_password", "signin_remember")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,6 +15,10 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_1u0nn")
 tab_container = NodePath("TabContainer")
+popup = NodePath("Popup")
+popup_text = NodePath("Popup/ScrollContainer/Label")
+popup_button = NodePath("Popup/Button")
+loading_text = NodePath("TabContainer/Loading/Label")
 register_username = NodePath("TabContainer/Register/LineEdit")
 register_email = NodePath("TabContainer/Register/LineEdit3")
 register_password = NodePath("TabContainer/Register/LineEdit2")
@@ -315,18 +319,6 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_nvabl")
 metadata/_edit_use_anchors_ = true
 
-[node name="Label" type="Label" parent="Popup"]
-layout_mode = 1
-anchors_preset = -1
-anchor_right = 1.0
-anchor_bottom = 0.857401
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 30
-text = "blablablblablablbl"
-horizontal_alignment = 1
-vertical_alignment = 1
-metadata/_edit_use_anchors_ = true
-
 [node name="Button" type="Button" parent="Popup"]
 layout_mode = 1
 anchors_preset = -1
@@ -337,6 +329,22 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 40
 text = "close"
+metadata/_edit_use_anchors_ = true
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Popup"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.999998
+anchor_bottom = 0.857143
+grow_horizontal = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="Label" type="Label" parent="Popup/ScrollContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "UNNAMED"
+horizontal_alignment = 1
+vertical_alignment = 1
 metadata/_edit_use_anchors_ = true
 
 [connection signal="pressed" from="TabContainer/Loading/Button3" to="." method="_on_load_cancelled"]
