@@ -10,7 +10,7 @@ env:
   PROJECT_PATH: .
 
 jobs:
-  rust:
+  rust-netnodes:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -26,8 +26,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             rust/butteryfly-rs-module/target
-          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-debug-
+          key: ${{ runner.os }}-cargo-netnodes-debug-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-netnodes-debug-
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -43,12 +43,48 @@ jobs:
       - name: Upload Rust artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rust-${{ matrix.os }}-debug
-          path: rust/butteryfly-rs-module/target/debug/*
+          name: rust-netnodes-${{ matrix.os }}-debug
+          path: rust/butteryfly-rs-module/target/debug/*.*
+
+  rust-godotpass:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/godot-pass/target
+          key: ${{ runner.os }}-cargo-godotpass-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-godotpass-release-
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Build Rust module (debug)
+        working-directory: rust/godot-pass
+        run: cargo build --release
+
+      - name: Upload Rust artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-godotpass-${{ matrix.os }}-release
+          path: rust/godot-pass/target/release/*.*
 
   godot-linux:
     runs-on: ubuntu-22.04
-    needs: rust
+    needs: [rust-netnodes, rust-godotpass]
     container:
       image: barichello/godot-ci:4.4.1
     steps:
@@ -56,11 +92,17 @@ jobs:
         with:
           lfs: true
 
-      - name: Download Linux Rust artifact
+      - name: Download Linux Rust-netnodes artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-ubuntu-latest-debug
+          name: rust-netnodes-ubuntu-latest-debug
           path: rust/butteryfly-rs-module/target/debug
+          
+      - name: Download Linux Rust-godotpass artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-godotpass-ubuntu-latest-release
+          path: rust/godot-pass/target/release
 
       - name: Setup Godot templates
         run: |
@@ -82,7 +124,7 @@ jobs:
 
   godot-windows:
     runs-on: ubuntu-22.04
-    needs: rust
+    needs: [rust-netnodes, rust-godotpass]
     container:
       image: barichello/godot-ci:4.4.1
     steps:
@@ -93,8 +135,14 @@ jobs:
       - name: Download Windows Rust artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-windows-latest-debug
+          name: rust-netnodes-windows-latest-debug
           path: rust/butteryfly-rs-module/target/debug
+          
+      - name: Download Linux Rust-godotpass artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-godotpass-windows-latest-release
+          path: rust/godot-pass/target/release
 
       - name: Setup Godot templates
         run: |
