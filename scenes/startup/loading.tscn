@@ -273,7 +273,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/normal_font_size = 24
 bbcode_enabled = true
-text = "I agree to the ButterflyVR [url={local.TOS}]Terms Of Service[/url] and [url={local.privacy}]Privacy Policy[/url]"
+text = "I agree to the ButterflyVR [url=local.TOS]Terms Of Service[/url] and [url=local.privacy]Privacy Policy[/url]"
 metadata/_edit_use_anchors_ = true
 
 [node name="CheckBoxRichText2" type="Control" parent="TabContainer/Register"]
@@ -308,6 +308,7 @@ text = "I understand that ButterflyVR is in a Pre-Alpha state and as such the cu
 metadata/_edit_use_anchors_ = true
 
 [node name="Popup" type="Panel" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.317708
@@ -339,12 +340,17 @@ anchor_bottom = 0.857143
 grow_horizontal = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="Label" type="Label" parent="Popup/ScrollContainer"]
+[node name="Label" type="RichTextLabel" parent="Popup/ScrollContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
 text = "UNNAMED"
+fit_content = true
 horizontal_alignment = 1
 vertical_alignment = 1
+threaded = true
+progress_bar_delay = 300
 metadata/_edit_use_anchors_ = true
 
 [connection signal="pressed" from="TabContainer/Loading/Button3" to="." method="_on_load_cancelled"]

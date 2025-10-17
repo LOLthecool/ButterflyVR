@@ -7,8 +7,12 @@ const GREETER_TAB:int = 1
 const LOADING_TAB:int = 0
 const SIGNIN_TAB:int = 2
 const REGISTER_TAB:int = 3
+
 const REGISTER_ENDPOINT:String = "API/V0/user"
 const SIGNIN_ENDPOINT:String = "API/V0/token"
+
+const TOSLOCATION:String = "res://scenes/startup/TermsOfService.txt"
+const PRIVACYPOLICYLOCATION:String = "res://scenes/startup/PrivacyPolicy.txt"
 
 ## WARNING: changing the constants in this region could stop all users from signing in
 #region DANGER
@@ -19,8 +23,8 @@ const SIGNIN_ENDPOINT:String = "API/V0/token"
 # this salt is not ideal so we should never store the client side hashed password
 const PASSWORD_SALT_CONST_HALF:String = "ButterflyVR"
 # argon2 parameters
-const MEMORY:int = 48
-const ITERATIONS:int = 16
+const MEMORY:int = 64
+const ITERATIONS:int = 10
 const PARALLELISM:int = 1
 const OUTPUT_LENGTH:int = 64
 #endregion
@@ -29,7 +33,7 @@ const OUTPUT_LENGTH:int = 64
 @export var tab_container:TabContainer
 
 @export var popup:Panel
-@export var popup_text:Label
+@export var popup_text:RichTextLabel
 @export var popup_button:Button
 
 @export var loading_text:Label
@@ -119,7 +123,7 @@ func _on_register() -> void:
 	var body:String = JSON.stringify({"username": username, "email": email, "password_hash": password_hash})
 	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, REGISTER_ENDPOINT, PackedStringArray(), body).connect(on_register_response)
 
-func on_register_response(code:HTTPClient.ResponseCode, headers:PackedStringArray, body:String) -> void:
+func on_register_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
 	if code != HTTPClient.RESPONSE_OK:
 		var message:String = "Invalid response from server: {}".format(code)
 		if body != "":
@@ -161,11 +165,14 @@ func _on_back_button_pressed() -> void:
 
 
 # handle showing the terms of service and privacy policy
-# links starting with .local with no tld are treated as internally available resources
-# otherwise we pass to the browser
 # todo: should probably make a generic popup handler and use that later
 func _on_link_clicked(meta: Variant) -> void:
-	pass # Replace with function body.
+	if meta == "local.privacy":
+		show_popup(FileAccess.get_file_as_string(PRIVACYPOLICYLOCATION))
+	elif meta == "local.TOS":
+		show_popup(FileAccess.get_file_as_string(TOSLOCATION))
+	else:
+		push_warning("got link to unknown content: ", meta)
 
 
 func _on_load_cancelled() -> void:
