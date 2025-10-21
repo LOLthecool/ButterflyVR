@@ -85,7 +85,7 @@ func on_token_request(response_code:HTTPClient.ResponseCode, _headers:PackedStri
 	if response_code != HTTPClient.RESPONSE_OK:
 		push_warning("server error when renewing token. code: ", response_code)
 	var body_json:Dictionary = JSON.parse_string(body)
-	var response_token:Array[int] = body_json["token"].map(func(x:float) -> int: return int(x))
+	var response_token:Array[int] = (body_json["token"] as String).hex_decode() as Array[int]
 	if response_token.size() == 0:
 		push_error("tried to renew token but server did not reply with one")
 		return

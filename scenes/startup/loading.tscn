@@ -350,7 +350,7 @@ fit_content = true
 horizontal_alignment = 1
 vertical_alignment = 1
 threaded = true
-progress_bar_delay = 300
+progress_bar_delay = 500
 metadata/_edit_use_anchors_ = true
 
 [connection signal="pressed" from="TabContainer/Loading/Button3" to="." method="_on_load_cancelled"]

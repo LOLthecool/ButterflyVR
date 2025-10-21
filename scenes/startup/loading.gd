@@ -21,7 +21,7 @@ const PRIVACYPOLICYLOCATION:String = "res://scenes/startup/PrivacyPolicy.txt"
 # we append this application specific value to the salt to ensure different platforms,
 # have different salts for the same user.
 # this salt is not ideal so we should never store the client side hashed password
-const PASSWORD_SALT_CONST_HALF:String = "ButterflyVR"
+const PASSWORD_SALT_CONST_HALF:String = "6uplNKoY38xV81Cl"
 # argon2 parameters
 const MEMORY:int = 64
 const ITERATIONS:int = 10
@@ -64,17 +64,20 @@ func _ready() -> void:
 		tab_container.current_tab = GREETER_TAB
 
 # handles initial loading of the homeworld
+# must have a valid token by this point
 func start() -> void:
 	tab_container.current_tab = LOADING_TAB
-	await get_tree().create_timer(1.2).timeout # give user a chance to cancel load
+	await get_tree().create_timer(1).timeout # give user a chance to cancel load
 	if load_cancelled:
 		tab_container.current_tab = last_screen
 
 func _on_register_selected() -> void:
 	tab_container.current_tab = REGISTER_TAB
+	last_screen = GREETER_TAB
 
 func _on_login_selected() -> void:
 	tab_container.current_tab = SIGNIN_TAB
+	last_screen = GREETER_TAB
 
 func show_popup(text:String, go_last_screen:bool = false) -> void:
 	if go_last_screen:
@@ -82,6 +85,8 @@ func show_popup(text:String, go_last_screen:bool = false) -> void:
 	popup_text.text = text
 	popup.visible = true
 	await popup_button.pressed
+	if go_last_screen:
+		tab_container.current_tab = last_screen
 	popup.visible = false
 
 func _on_register() -> void:
@@ -145,19 +150,78 @@ func on_register_response(code:HTTPClient.ResponseCode, _headers:PackedStringArr
 		return
 	var data:Dictionary = decoder.data as Dictionary
 	if !data.get("account_created", false):
-		var message:String = "Failed to create account"
+		var message:String = "Failed to create account."
 		if data.has("error_message"):
 			message += "\nserver response: " + data["error_message"]
 		await show_popup(message, true)
 		return
 	last_screen = SIGNIN_TAB
 	await show_popup("Account created. Click the verify link in your emails before signing in.", true)
-	return
 
 func _on_login() -> void:
+	# matches "1 or more characters, '@', 1 or more characters, '.', 1 or more characters"
+	if !signin_email.text.match("?*@?*.?*"):
+		await show_popup("Invalid email")
+		return
+	if signin_password.text.length() < 6:
+		await show_popup("Invalid password")
+		return
+	
 	last_screen = tab_container.current_tab
-	pass # Replace with function body.
+	tab_container.current_tab = LOADING_TAB
+	
+	loading_text.text = "Hashing password..."
+	await get_tree().physics_frame
+	
+	var email:String = signin_email.text
+	var password:String = signin_password.text
+	var remember:bool = signin_remember.button_pressed
+	
+	## WARNING: changing this code could prevent users from logging in
+	var client_salt:String = PASSWORD_SALT_CONST_HALF + email
+	var password_hash:PackedByteArray = Argon2Hasher.hash(MEMORY, ITERATIONS, PARALLELISM, password, client_salt, OUTPUT_LENGTH)
+	
+	loading_text.text = "Contacting server..."
+	await get_tree().physics_frame
+	
+	var body:String = JSON.stringify({"email": email, "password_hash": password_hash, "allow_renew": remember})
+	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, SIGNIN_ENDPOINT, PackedStringArray(), body).connect(on_login_response)
 
+func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
+	if code != HTTPClient.RESPONSE_OK:
+		var message:String = "Invalid response from server: {}".format(code)
+		if body != "":
+			var decoder:JSON = JSON.new()
+			if decoder.parse(body) == OK and decoder.data is Dictionary and (decoder.data as Dictionary).has("error_message"):
+				message += "\nserver response: " + (decoder.data as Dictionary)["error_message"]
+			else:
+				message += "\nmessage body:\n" + body
+		await show_popup(message, true)
+		return
+	if body == "":
+		await show_popup("Server responded OK but didnt provide a body. (bug?)", true)
+		return
+	var decoder:JSON = JSON.new()
+	if decoder.parse(body) != OK or decoder.data is not Dictionary:
+		var message:String = "Failed to parse response from the server. (bug?)"
+		message += "\nresponse body:\n" + body
+		await show_popup(message, true)
+		return
+	var data:Dictionary = decoder.data as Dictionary
+	if !data.get("login_success", false):
+		var message:String = "Failed to login."
+		if data.has("error_message"):
+			message += "\nserver response: " + data["error_message"]
+		await show_popup(message, true)
+		return
+	if !(data.has("token") and data.has("token_expiry") and data.has("renewable")):
+		var message:String = "Failed to login, invalid response."
+		if data.has("error_message"):
+			message += "\nserver response: " + data["error_message"]
+		await show_popup(message, true)
+		return
+	GlobalAccountHandler.set_token((data["token"] as String).hex_decode() as Array[int], data["token_expiry"], data["renewable"])
+	start()
 
 func _on_back_button_pressed() -> void:
 	tab_container.current_tab = last_screen
