@@ -80,8 +80,7 @@ func _on_login_selected() -> void:
 	last_screen = GREETER_TAB
 
 func show_popup(text:String, go_last_screen:bool = false) -> void:
-	if go_last_screen:
-		tab_container.current_tab = last_screen
+	push_warning(text)
 	popup_text.text = text
 	popup.visible = true
 	await popup_button.pressed

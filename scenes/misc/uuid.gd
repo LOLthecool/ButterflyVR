@@ -14,7 +14,7 @@ func _init(init:bool = true) -> void:
 func _to_string() -> String:
 	return '%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x' % (backing_storage as Array[int])
 
-func from_String(uuid:String) -> UUID:
+static func from_String(uuid:String) -> UUID:
 	var result:UUID = UUID.new(false)
 	uuid = uuid.replace("-", "")
 	if len(uuid) != 32: # 32 nibbles / 32 hex characters
@@ -23,7 +23,6 @@ func from_String(uuid:String) -> UUID:
 	for i:int in range(0, 16):
 		# every 2 hex character make a byte
 		var byte:int = uuid.substr(i * 2, 2).hex_to_int()
-		@warning_ignore("integer_division")
 		result.backing_storage[i] = byte
 	return result
 

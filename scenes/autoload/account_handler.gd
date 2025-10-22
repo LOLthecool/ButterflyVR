@@ -10,6 +10,7 @@ const TOKEN_RENEWAL_CHECK_RATE:int = 1800 # 30 minutes
 
 const TOKEN_RENEW_ENDPOINT:String = "API/V0/token/"
 const TOKEN_VERIFY_ENDPOINT:String = "API/V0/token/validate"
+const TOKEN_USER_ENDPOINT:String = "API/V0/token/user"
 
 var session_token:Array[int] = []
 # expiry time in seconds since epoch, -1 indicates no token or a token that never expires
@@ -18,17 +19,15 @@ var token_expiry_utc:int = -1
 var token_renewable:bool = false
 var token_valid:bool = false
 var persist_token:bool = true
+var user_id:UUID = UUID.new(false)
 var renew_timer:Timer = Timer.new()
-
-class APIPlayer:
-	var id:UUID
 
 func _enter_tree() -> void:
 	var saved_token:Array[int] = []
 	saved_token.assign(GlobalPersistanceHandler.register_value("user_login", "token", "token", []))
 	var expiry:int = GlobalPersistanceHandler.register_value("user_login", "token", "expiry", -1)
 	var renewable:bool = GlobalPersistanceHandler.register_value("user_login", "token", "renewable", false)
-	if await is_token_valid(saved_token):
+	if await is_token_valid(saved_token, expiry):
 		token_valid = true
 		set_token(saved_token, expiry, renewable)
 		check_renew()
@@ -51,9 +50,29 @@ func set_token(token:Array[int], expiry_utc:int, renewable:bool) -> void:
 		GlobalPersistanceHandler.set_value("user_login", "token", "token", token)
 		GlobalPersistanceHandler.set_value("user_login", "token", "expiry", expiry_utc)
 		GlobalPersistanceHandler.set_value("user_login", "token", "renewable", renewable)
+	if await is_token_valid(session_token, token_expiry_utc):
+		user_id = await get_uuid()
 
-func is_token_valid(token:Array[int]) -> bool:
+func get_uuid() -> UUID:
+	var token_header:PackedStringArray = PackedStringArray(["token: " + str(session_token)])
+	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, TOKEN_USER_ENDPOINT, token_header)
+	if response[0] != HTTPClient.RESPONSE_OK:
+		push_warning("Failed to get uuid, is the token valid?")
+		if response[2] != "":
+			var decoder:JSON = JSON.new()
+			if decoder.parse(response[2]) == OK and decoder.data is Dictionary and (decoder.data as Dictionary).has("error_message"):
+				push_warning("server response: " + (decoder.data as Dictionary)["error_message"])
+		return UUID.new(false)
+	var decoder:JSON = JSON.new()
+	if decoder.parse(response[2]) != OK or decoder.data is not Dictionary or !(decoder.data.has("uuid")):
+		push_warning("Failed to parse response from the server. (bug?)")
+		return UUID.new(false)
+	return UUID.from_String(decoder.data["uuid"])
+
+func is_token_valid(token:Array[int], expiry_utc:int) -> bool:
 	if token == []:
+		return false
+	if expiry_utc != -1 and Time.get_unix_time_from_system() > expiry_utc:
 		return false
 	var token_header:PackedStringArray = PackedStringArray(["token: " + str(token)])
 	# response = [response_code, response_headers, response_body]
