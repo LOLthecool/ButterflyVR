@@ -51,9 +51,11 @@ func set_token(token:Array[int], expiry_utc:int, renewable:bool) -> void:
 		GlobalPersistanceHandler.set_value("user_login", "token", "expiry", expiry_utc)
 		GlobalPersistanceHandler.set_value("user_login", "token", "renewable", renewable)
 	if await is_token_valid(session_token, token_expiry_utc):
-		user_id = await get_uuid()
+		user_id = await get_uuid(false)
 
-func get_uuid() -> UUID:
+func get_uuid(use_cached_value:bool = true) -> UUID:
+	if use_cached_value and user_id != UUID.new(false):
+		return user_id
 	var token_header:PackedStringArray = PackedStringArray(["token: " + str(session_token)])
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, TOKEN_USER_ENDPOINT, token_header)
 	if response[0] != HTTPClient.RESPONSE_OK:

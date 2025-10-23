@@ -70,6 +70,8 @@ func start() -> void:
 	await get_tree().create_timer(1).timeout # give user a chance to cancel load
 	if load_cancelled:
 		tab_container.current_tab = last_screen
+		return
+	GlobalWorldHandler.load_homeworld()
 
 func _on_register_selected() -> void:
 	tab_container.current_tab = REGISTER_TAB
@@ -128,34 +130,27 @@ func _on_register() -> void:
 	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, REGISTER_ENDPOINT, PackedStringArray(), body).connect(on_register_response)
 
 func on_register_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
-	if code != HTTPClient.RESPONSE_OK:
-		var message:String = "Invalid response from server: {}".format(code)
-		if body != "":
-			var decoder:JSON = JSON.new()
-			if decoder.parse(body) == OK and decoder.data is Dictionary and (decoder.data as Dictionary).has("error_message"):
-				message += "\nserver response: " + (decoder.data as Dictionary)["error_message"]
+	var result:Array = GlobalAPIHandler.handle_response(code, body, [HTTPClient.RESPONSE_OK], ["account_created"])
+	var account_created:bool = (result[4] as Dictionary).get("account_created", false)
+	if account_created:
+		last_screen = SIGNIN_TAB
+		await show_popup("Account created. Click the verify link in your emails before signing in.", true)
+	else:
+		var response_code:int = result[1]
+		var error_code:int = result[2]
+		var error_message:String = result[3]
+		var message = "Failed to create account."
+		if response_code != HTTPClient.RESPONSE_OK:
+			if response_code == -1:
+				message += "\nServer did not send a response."
 			else:
-				message += "\nmessage body:\n" + body
-		await show_popup(message, true)
-		return
-	if body == "":
-		await show_popup("Server responded OK but didnt provide a body. (bug?)", true)
-		return
-	var decoder:JSON = JSON.new()
-	if decoder.parse(body) != OK or decoder.data is not Dictionary:
-		var message:String = "Failed to parse response from the server. (bug?)"
-		message += "\nresponse body:\n" + body
-		await show_popup(message, true)
-		return
-	var data:Dictionary = decoder.data as Dictionary
-	if !data.get("account_created", false):
-		var message:String = "Failed to create account."
-		if data.has("error_message"):
-			message += "\nserver response: " + data["error_message"]
-		await show_popup(message, true)
-		return
-	last_screen = SIGNIN_TAB
-	await show_popup("Account created. Click the verify link in your emails before signing in.", true)
+				message += "\nResponse code: {0}".format(response_code)
+			if error_code != -1:
+				message += "\nError code: {0}".format(error_code)
+			if error_message != "":
+				message += "\nError message: \n{0}".format(error_message)
+			await show_popup(message, true)
+			return
 
 func _on_login() -> void:
 	# matches "1 or more characters, '@', 1 or more characters, '.', 1 or more characters"
@@ -187,40 +182,37 @@ func _on_login() -> void:
 	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, SIGNIN_ENDPOINT, PackedStringArray(), body).connect(on_login_response)
 
 func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
-	if code != HTTPClient.RESPONSE_OK:
-		var message:String = "Invalid response from server: {}".format(code)
-		if body != "":
-			var decoder:JSON = JSON.new()
-			if decoder.parse(body) == OK and decoder.data is Dictionary and (decoder.data as Dictionary).has("error_message"):
-				message += "\nserver response: " + (decoder.data as Dictionary)["error_message"]
+	var result:Array = GlobalAPIHandler.handle_response(code, body, [HTTPClient.RESPONSE_OK], [
+			"login_success",
+			"token",
+			"token_expiry",
+			"renewable"
+			])
+	var login_success:bool = (result[4] as Dictionary).get("login_success", false)
+	if login_success:
+		var data:Dictionary = result[4]
+		GlobalAccountHandler.set_token(
+				(data["token"] as String).hex_decode() as Array[int],
+				data["token_expiry"],
+				data["renewable"]
+				)
+		start()
+	else:
+		var response_code:int = result[1]
+		var error_code:int = result[2]
+		var error_message:String = result[3]
+		var message = "Failed to log in."
+		if response_code != HTTPClient.RESPONSE_OK:
+			if response_code == -1:
+				message += "\nServer did not send a response."
 			else:
-				message += "\nmessage body:\n" + body
-		await show_popup(message, true)
-		return
-	if body == "":
-		await show_popup("Server responded OK but didnt provide a body. (bug?)", true)
-		return
-	var decoder:JSON = JSON.new()
-	if decoder.parse(body) != OK or decoder.data is not Dictionary:
-		var message:String = "Failed to parse response from the server. (bug?)"
-		message += "\nresponse body:\n" + body
-		await show_popup(message, true)
-		return
-	var data:Dictionary = decoder.data as Dictionary
-	if !data.get("login_success", false):
-		var message:String = "Failed to login."
-		if data.has("error_message"):
-			message += "\nserver response: " + data["error_message"]
-		await show_popup(message, true)
-		return
-	if !(data.has("token") and data.has("token_expiry") and data.has("renewable")):
-		var message:String = "Failed to login, invalid response."
-		if data.has("error_message"):
-			message += "\nserver response: " + data["error_message"]
-		await show_popup(message, true)
-		return
-	GlobalAccountHandler.set_token((data["token"] as String).hex_decode() as Array[int], data["token_expiry"], data["renewable"])
-	start()
+				message += "\nResponse code: {0}".format(response_code)
+			if error_code != -1:
+				message += "\nError code: {0}".format(error_code)
+			if error_message != "":
+				message += "\nError message: \n{0}".format(error_message)
+			await show_popup(message, true)
+			return
 
 func _on_back_button_pressed() -> void:
 	tab_container.current_tab = last_screen

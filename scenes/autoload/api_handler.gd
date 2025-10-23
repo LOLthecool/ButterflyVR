@@ -45,6 +45,43 @@ func make_request(method:HTTPClient.Method, target:String, request_headers:Packe
 	waiting_requests.push_back(request)
 	return request.on_complete
 
+# generic handler for api responses, 
+# can check that specific response codes are sent or that specific values are in the response body
+# returns a bool indicating sucess, the response code, an error code or message if one was sent by the server, and an array of the requested values
+func handle_response(code:HTTPClient.ResponseCode, body:String, expected_codes:Array[int], expected_body_keys:Array[String]) -> Array[Variant]:
+	var success:bool = false
+	var response_code:int = code
+	var error_code:int = -1
+	var error_message:String = ""
+	var response_values:Array[Variant] = []
+	
+	if !(code in expected_codes):
+		if body != "":
+			var decoder:JSON = JSON.new()
+			if decoder.data is Dictionary and "error_code" in (decoder.data as Dictionary):
+				error_code = (decoder.data as Dictionary)["error_code"]
+			if decoder.data is Dictionary and "error_message" in (decoder.data as Dictionary):
+				error_message = (decoder.data as Dictionary)["error_message"]
+		return [success, response_code, error_code, error_string, response_values]
+	
+	var decoder:JSON = JSON.new()
+	if decoder.data is not Dictionary:
+		return [success, response_code, error_code, error_string, response_values]
+	var data:Dictionary = decoder.data as Dictionary
+	
+	if "error_code" in data:
+		error_code = data["error_code"]
+	if "error_message" in data:
+		error_message = data["error_message"]
+	
+	if !(expected_body_keys.all(func(x:String) -> bool: return x in data)):
+		return [success, response_code, error_code, error_string, response_values]
+	
+	success = true
+	for x:String in expected_body_keys:
+		response_values.push_back(data[x])
+	return [success, response_code, error_code, error_string, response_values]
+
 # request handler, runs forever.
 # will call itself deferred to recreate the connection if it errors out
 func _ready() -> void:
