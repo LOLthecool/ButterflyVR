@@ -8,9 +8,22 @@ enum ObjectType{
 	component
 }
 
-# handles downloads seperately from api since api handler cant download to file
-var downloaders:Array[HTTPRequest]
 var cache:CacheLinkedHashSet
+
+class PackIdentifier:
+	var uuid:UUID
+	var object_type:ObjectType
+	func _init(uuid:UUID, object_type:ObjectType) -> void:
+		self.uuid = uuid
+		self.object_type = object_type
+
+class Pack:
+	var identifier:PackIdentifier
+	var cache_time_utc:int
+	var size_KB:int
+	
+	var next:Pack
+	var last:Pack
 
 class CacheLinkedHashSet:
 	var cached_objects:Dictionary[PackIdentifier, Pack]
@@ -54,21 +67,6 @@ class CacheLinkedHashSet:
 		cached_objects.erase(tail.identifier)
 		return tail
 
-class PackIdentifier:
-	var uuid:UUID
-	var object_type:ObjectType
-	func _init(uuid:UUID, object_type:ObjectType) -> void:
-		self.uuid = uuid
-		self.object_type = object_type
-
-class Pack:
-	var identifier:PackIdentifier
-	var cache_time_utc:int
-	var size_KB:int
-	
-	var next:Pack
-	var last:Pack
-
 func get_object(uuid:UUID, type:ObjectType, last_update_utc:int) -> PackedScene:
 	return null
 
@@ -77,3 +75,10 @@ func preload_object(uuid:UUID, last_update_utc:int) -> void:
 
 func remove_if_expired(uuid:UUID, last_update_utc:int) -> void:
 	pass
+
+func download_object(url:String, file_path:String) -> void:
+	var downloader:HTTPRequest = HTTPRequest.new()
+	#FileAccess.open(file_path, FileAccess.WRITE).close()
+	downloader.download_file = file_path
+	downloader.request(url, PackedStringArray([GlobalAccountHandler.session_token]))
+	await downloader.request_completed
