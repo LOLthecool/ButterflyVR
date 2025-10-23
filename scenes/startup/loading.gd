@@ -71,6 +71,8 @@ func start() -> void:
 	if load_cancelled:
 		tab_container.current_tab = last_screen
 		return
+	loading_text.text = "Loading homeworld..."
+	await get_tree().physics_frame
 	GlobalWorldHandler.load_homeworld()
 
 func _on_register_selected() -> void:
@@ -144,11 +146,11 @@ func on_register_response(code:HTTPClient.ResponseCode, _headers:PackedStringArr
 			if response_code == -1:
 				message += "\nServer did not send a response."
 			else:
-				message += "\nResponse code: {0}".format(response_code)
+				message += "\nResponse code: %s" % (response_code)
 			if error_code != -1:
-				message += "\nError code: {0}".format(error_code)
+				message += "\nError code: %s" % (error_code)
 			if error_message != "":
-				message += "\nError message: \n{0}".format(error_message)
+				message += "\nError message: \n%s" % (error_message)
 			await show_popup(message, true)
 			return
 
@@ -206,11 +208,11 @@ func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray,
 			if response_code == -1:
 				message += "\nServer did not send a response."
 			else:
-				message += "\nResponse code: {0}".format(response_code)
+				message += "\nResponse code: %s" % (response_code)
 			if error_code != -1:
-				message += "\nError code: {0}".format(error_code)
+				message += "\nError code: %s" % (error_code)
 			if error_message != "":
-				message += "\nError message: \n{0}".format(error_message)
+				message += "\nError message: \n%s" % (error_message)
 			await show_popup(message, true)
 			return
 

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://yolmyvdi0j54"]
 
-[ext_resource type="PackedScene" uid="uid://2p2of86uosap" path="res://scenes/player/avatars/built in avatars/humanoid/humanoid.glb" id="1_5mlco"]
+[ext_resource type="PackedScene" uid="uid://2p2of86uosap" path="res://scenes/player/avatars/builtin/humanoid/humanoid.glb" id="1_5mlco"]
 
 [node name="Humanoid" type="Node3D"]
 

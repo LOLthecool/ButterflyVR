@@ -3,8 +3,8 @@ class_name UUID
 
 var backing_storage:PackedByteArray
 
-func _init(init:bool = true) -> void:
-	if init:
+func _init(randomize:bool = false) -> void:
+	if randomize:
 		for _x:int in range(16):
 			backing_storage.push_back(randi() % 256)
 	else:
@@ -15,7 +15,7 @@ func _to_string() -> String:
 	return '%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x' % (backing_storage as Array[int])
 
 static func from_String(uuid:String) -> UUID:
-	var result:UUID = UUID.new(false)
+	var result:UUID = UUID.new()
 	uuid = uuid.replace("-", "")
 	if len(uuid) != 32: # 32 nibbles / 32 hex characters
 		push_error("tried to parse invalid uuid")

@@ -14,7 +14,7 @@ func _physics_process(_delta: float) -> void:
 		@warning_ignore("unsafe_property_access")
 		avatar = list.selected_avatar
 		if avatar == 0:
-			new_avatar = preload("res://scenes/player/avatars/built in avatars/humanoid/humanoid.tscn")
+			new_avatar = preload("res://scenes/player/avatars/builtin/humanoid/humanoid.tscn")
 		else:
 			AvatarPackLoader.update_avatar_list()
 			var thread:Thread = Thread.new()
@@ -24,16 +24,12 @@ func _physics_process(_delta: float) -> void:
 		add_child(new_avatar.instantiate())
 
 func load_avatar_on_thread(new_avatar_idx:int) -> void:
-	if !AvatarPackLoader.avatars.has(new_avatar_idx):
-		new_avatar = preload("res://scenes/player/avatars/built in avatars/missing_avatar.tscn")
-		avatar_preview_loaded.emit()
-		return
 	new_avatar = load(AvatarPackLoader.avatars[new_avatar_idx].scene_path)
 	# abort if source avatar is unsafe unless unsafe loading is enabled
 	if (!check_safe(new_avatar.get_state())):
 		if !OS.get_cmdline_args().has("--unsafe-load"):
 			push_warning("***DANGER*** tried to load unsafe avatar! aborting. to override this run with \"--unsafe-load\"")
-			new_avatar = preload("res://scenes/player/avatars/built in avatars/missing_avatar.tscn")
+			new_avatar = preload("res://scenes/player/avatars/builtin/humanoid/humanoid.tscn")
 		else:
 			push_warning("safety check disabled: loading unsafe avatar, this is very dangerous!")
 	avatar_preview_loaded.emit.call_deferred()

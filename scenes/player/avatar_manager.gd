@@ -24,9 +24,9 @@ func change_avatar(target_player:int, avatar:int) -> void:
 	if equiped_avatar != null:
 		equiped_avatar.queue_free()
 	if avatar == 0:
-		new_avatar = preload("res://scenes/player/avatars/built in avatars/humanoid/humanoid.tscn")
+		new_avatar = preload("res://scenes/player/avatars/builtin/humanoid/humanoid.tscn")
 	else:
-		new_avatar = preload("res://scenes/player/avatars/built in avatars/loading_avatar.tscn")
+		new_avatar = preload("res://scenes/player/avatars/builtin/loading_avatar.tscn")
 		current_avatar = avatar
 		equiped_avatar = new_avatar.instantiate()
 		get_parent().add_child(equiped_avatar)
@@ -45,16 +45,12 @@ func change_avatar(target_player:int, avatar:int) -> void:
 	player.avatar_changed.emit()
 
 func load_avatar_on_thread(avatar:int) -> void:
-	if !AvatarPackLoader.avatars.has(avatar):
-		new_avatar = preload("res://scenes/player/avatars/built in avatars/missing_avatar.tscn")
-		avatar_loaded.emit()
-		return
 	new_avatar = load(AvatarPackLoader.avatars[avatar].scene_path)
 	# abort if source avatar is unsafe unless unsafe loading is enabled
 	if (!check_safe(new_avatar.get_state())):
 		if !OS.get_cmdline_args().has("--unsafe-load"):
 			push_warning("***DANGER*** tried to load unsafe avatar! aborting. to override this run with \"--unsafe-load\"")
-			new_avatar = preload("res://scenes/player/avatars/built in avatars/missing_avatar.tscn")
+			new_avatar = preload("res://scenes/player/avatars/builtin/humanoid/humanoid.tscn")
 		else:
 			push_warning("safety check disabled: loading unsafe avatar, this is very dangerous!")
 	avatar_loaded.emit.call_deferred()

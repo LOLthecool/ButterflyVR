@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://2p2of86uosap"
-path="res://.godot/imported/humanoid.glb-4faaac1f61821c2fe2cd64095fa085f4.scn"
+path="res://.godot/imported/humanoid.glb-7c455c134775abd879904c039ee30510.scn"
 
 [deps]
 
-source_file="res://scenes/player/avatars/built in avatars/humanoid/humanoid.glb"
-dest_files=["res://.godot/imported/humanoid.glb-4faaac1f61821c2fe2cd64095fa085f4.scn"]
+source_file="res://scenes/player/avatars/builtin/humanoid/humanoid.glb"
+dest_files=["res://.godot/imported/humanoid.glb-7c455c134775abd879904c039ee30510.scn"]
 
 [params]
 
