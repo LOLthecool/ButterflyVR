@@ -39,6 +39,18 @@ func get_value(file_name:String, catagory:String, key:String) -> Variant:
 	var file:String = CONFIG_PATH + file_name + CONFIG_FILE_EXTENSION
 	return config_files[file].get_value(catagory, key)
 
+func get_catagory(file_name:String, catagory:String) -> Dictionary[String, Variant]:
+	var file:String = CONFIG_PATH + file_name + CONFIG_FILE_EXTENSION
+	
+	if !config_files.has(file) or !config_files[file].has_section(catagory):
+		return {}
+	
+	var result:Dictionary[String, Variant]
+	for key:String in config_files[file].get_section_keys(catagory):
+		result[key] = config_files[file].get_value(catagory, key)
+	
+	return result
+
 # changes the value of an existing key
 # errors if the specified key does not exist (create with register_value)
 func set_value(file_name:String, catagory:String, key:String, value:Variant) -> void:

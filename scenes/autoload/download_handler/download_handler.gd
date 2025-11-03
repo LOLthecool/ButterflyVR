@@ -6,10 +6,7 @@ class_name DownloadHandler
 const OBJECT_INFO_ENDPOINT:String = "api/v0/%s/%s"
 const OBJECT_DOWNLOAD_ENDPOINT:String = "api/v0/%s/%s/download"
 
-var cache:LRUCache
-
-func _ready() -> void:
-	cache = GlobalPersistanceHandler.register_value("cache_meta", "cache", "data", LRUCache.new())
+var cache:LRUCache = LRUCache.load_cache()
 
 func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 	if !await preload_object(uuid, type):
