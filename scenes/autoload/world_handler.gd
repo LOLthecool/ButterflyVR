@@ -2,6 +2,7 @@ extends Node
 class_name WorldHandler
 
 const HOMEWORLD_REQUEST_ENDPOINT:String = "api/v0/users/{0}/home"
+const WORLD_INFO_ENDPOINT:String = "api/v0/world/{0}"
 
 var current_world:WorldController
 
@@ -15,12 +16,21 @@ func load_homeworld() -> void:
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
+		# todo: dump in some kinda of fallback world
 		push_error("no error handling here, exiting")
 		get_tree().free() # this is fine since we should disconnect before this point
 	load_world(values[0])
 
-func load_world(world_id:UUID) -> void:
+func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	pass
+	# todo:
+	# get world info
+	# verify we can access world
+	# load world pack
+	# call setup / validate for world pack
+	# change scene to world pack
+	# if instance id != null call instance handler with instance id
+	# else create new offline instance
 
 func disconnect_from_world(go_home:bool = true) -> void:
 	pass
