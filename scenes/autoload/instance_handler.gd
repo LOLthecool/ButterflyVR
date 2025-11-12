@@ -35,8 +35,8 @@ func create_online_instance(
 	return result[4][0]
 
 func create_and_join_offline_instance(world_uuid:UUID) -> void:
-	var world_argument:String = "--world=%s" % world_uuid
 	var arguments:PackedStringArray = PackedStringArray(OFFLINE_INSTANCE_CMD_ARGUMENTS)
+	var world_argument:String = "--world=%s" % world_uuid
 	arguments.push_back(world_argument)
 	local_server_pid = OS.create_instance(arguments)
 	while !FileAccess.file_exists(LOCAL_SERVER_KEY_LOCATION):

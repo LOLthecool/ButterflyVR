@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://do1488h54fo8r"]
+
+[node name="SettingsPage" type="VBoxContainer"]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+text = "coming soon: settings"
