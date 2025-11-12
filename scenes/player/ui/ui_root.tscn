@@ -1,6 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://dv5d7diocohlq"]
+[gd_scene load_steps=5 format=3 uid="uid://dv5d7diocohlq"]
+
+[ext_resource type="Script" uid="uid://bqbnorj2ewbsm" path="res://scenes/player/ui/page_handler.gd" id="1_ab8o1"]
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_jhacy"]
+color = Color(0.096204735, 0.09620475, 0.096204735, 1)
 thickness = 4
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jhacy"]
@@ -26,6 +29,7 @@ size_flags_vertical = 3
 
 [node name="PageHandler" type="VBoxContainer" parent="menuRoot/PanelContainer"]
 layout_mode = 2
+script = ExtResource("1_ab8o1")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="menuRoot/PanelContainer/PageHandler"]
 layout_mode = 2
