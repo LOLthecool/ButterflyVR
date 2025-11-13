@@ -2,8 +2,22 @@
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_naylq"]
 
-[node name="ChatPage" type="VBoxContainer"]
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="ChatPage" type="HBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource("1_naylq")
 page_name = "Chat"
+
+[node name="ChatList" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Messager" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Messages" type="VBoxContainer" parent="Messager"]
+layout_mode = 2

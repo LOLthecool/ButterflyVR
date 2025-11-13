@@ -1,9 +1,121 @@
-[gd_scene load_steps=2 format=3 uid="uid://knr0y1g4146x"]
+[gd_scene load_steps=7 format=3 uid="uid://knr0y1g4146x"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_slst4"]
+[ext_resource type="Script" uid="uid://hwo6nplapqi" path="res://scenes/player/ui/page_exit/go_home.gd" id="2_mbn70"]
+[ext_resource type="Script" uid="uid://b24ykxdb5mcdg" path="res://scenes/player/ui/page_exit/disconnect.gd" id="3_h8cqy"]
+[ext_resource type="Script" uid="uid://bq563anqf5pef" path="res://scenes/player/ui/page_exit/logout.gd" id="4_ifso3"]
+[ext_resource type="Script" uid="uid://bd823s6v7nrfi" path="res://scenes/player/ui/page_exit/exit.gd" id="5_ap3h0"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_slst4"]
+size = Vector2(64, 64)
 
 [node name="ExitPage" type="VBoxContainer"]
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource("1_slst4")
 page_name = "Exit"
+
+[node name="Button2" type="Button" parent="." node_paths=PackedStringArray("popup", "popup_text", "confirm_button", "cancel_button")]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "go home"
+icon = SubResource("PlaceholderTexture2D_slst4")
+icon_alignment = 1
+vertical_icon_alignment = 0
+script = ExtResource("2_mbn70")
+popup = NodePath("../CanvasLayer/Panel")
+popup_text = NodePath("../CanvasLayer/Panel/VBoxContainer/Label2")
+confirm_button = NodePath("../CanvasLayer/Panel/VBoxContainer/HBoxContainer/Button2")
+cancel_button = NodePath("../CanvasLayer/Panel/VBoxContainer/HBoxContainer/Button")
+popup_dialogue = "Are you sure you want to go home?"
+
+[node name="Button" type="Button" parent="." node_paths=PackedStringArray("popup", "popup_text", "confirm_button", "cancel_button")]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "disconnect"
+icon = SubResource("PlaceholderTexture2D_slst4")
+icon_alignment = 1
+vertical_icon_alignment = 0
+script = ExtResource("3_h8cqy")
+popup = NodePath("../CanvasLayer/Panel")
+popup_text = NodePath("../CanvasLayer/Panel/VBoxContainer/Label2")
+confirm_button = NodePath("../CanvasLayer/Panel/VBoxContainer/HBoxContainer/Button2")
+cancel_button = NodePath("../CanvasLayer/Panel/VBoxContainer/HBoxContainer/Button")
+popup_dialogue = "Are you sure you want to disconnect? You will remain in the world."
+
+[node name="Button3" type="Button" parent="." node_paths=PackedStringArray("popup", "popup_text", "confirm_button", "cancel_button")]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "log out"
+icon = SubResource("PlaceholderTexture2D_slst4")
+icon_alignment = 1
+vertical_icon_alignment = 0
+script = ExtResource("4_ifso3")
+popup = NodePath("../CanvasLayer/Panel")
+popup_text = NodePath("../CanvasLayer/Panel/VBoxContainer/Label2")
+confirm_button = NodePath("../CanvasLayer/Panel/VBoxContainer/HBoxContainer/Button2")
+cancel_button = NodePath("../CanvasLayer/Panel/VBoxContainer/HBoxContainer/Button")
+popup_dialogue = "Are you sure you want to log out?"
+
+[node name="Button4" type="Button" parent="." node_paths=PackedStringArray("popup", "popup_text", "confirm_button", "cancel_button")]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "quit"
+icon = SubResource("PlaceholderTexture2D_slst4")
+icon_alignment = 1
+vertical_icon_alignment = 0
+script = ExtResource("5_ap3h0")
+popup = NodePath("../CanvasLayer/Panel")
+popup_text = NodePath("../CanvasLayer/Panel/VBoxContainer/Label2")
+confirm_button = NodePath("../CanvasLayer/Panel/VBoxContainer/HBoxContainer/Button2")
+cancel_button = NodePath("../CanvasLayer/Panel/VBoxContainer/HBoxContainer/Button")
+popup_dialogue = "Are you sure you want to quit?"
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 3
+
+[node name="Panel" type="Panel" parent="CanvasLayer"]
+visible = false
+anchors_preset = -1
+anchor_left = 0.31018516
+anchor_top = 0.3101852
+anchor_right = 0.6898148
+anchor_bottom = 0.6898148
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label2" type="Label" parent="CanvasLayer/Panel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 28
+text = "UNNAMED"
+autowrap_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="CanvasLayer/Panel/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "cancel"
+
+[node name="Button2" type="Button" parent="CanvasLayer/Panel/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "OK"
