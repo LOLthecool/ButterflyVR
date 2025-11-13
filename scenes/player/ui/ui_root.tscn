@@ -1,6 +1,14 @@
-[gd_scene load_steps=5 format=3 uid="uid://dv5d7diocohlq"]
+[gd_scene load_steps=13 format=3 uid="uid://dv5d7diocohlq"]
 
 [ext_resource type="Script" uid="uid://bqbnorj2ewbsm" path="res://scenes/player/ui/page_handler.gd" id="1_ab8o1"]
+[ext_resource type="Script" uid="uid://c1bcblnqwgcuc" path="res://scenes/player/ui/quick_button.gd" id="2_4flen"]
+[ext_resource type="PackedScene" uid="uid://cgkfp1njd0s5g" path="res://scenes/player/ui/page_home/home_page.tscn" id="3_vskxc"]
+[ext_resource type="PackedScene" uid="uid://bw1xhp1qer3a" path="res://scenes/player/ui/page_worlds/world_page.tscn" id="4_rd5lu"]
+[ext_resource type="PackedScene" uid="uid://c2qdpk6unaxgl" path="res://scenes/player/ui/page_avatars/avatar_page.tscn" id="5_gfrqc"]
+[ext_resource type="PackedScene" uid="uid://cf3xpf7ycv3jl" path="res://scenes/player/ui/page_chat/chat_page.tscn" id="6_3ikpl"]
+[ext_resource type="PackedScene" uid="uid://opg2daisj1fm" path="res://scenes/player/ui/page_notifications/notifications_page.tscn" id="7_jcrsv"]
+[ext_resource type="PackedScene" uid="uid://do1488h54fo8r" path="res://scenes/player/ui/page_settings/settings_page.tscn" id="8_6roop"]
+[ext_resource type="PackedScene" uid="uid://knr0y1g4146x" path="res://scenes/player/ui/page_exit/exit_page.tscn" id="9_b1c3u"]
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_jhacy"]
 color = Color(0.096204735, 0.09620475, 0.096204735, 1)
@@ -27,9 +35,11 @@ metadata/_edit_use_anchors_ = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PageHandler" type="VBoxContainer" parent="menuRoot/PanelContainer"]
+[node name="PageHandler" type="VBoxContainer" parent="menuRoot/PanelContainer" node_paths=PackedStringArray("page_root", "tab_container")]
 layout_mode = 2
 script = ExtResource("1_ab8o1")
+page_root = NodePath("PageRoot")
+tab_container = NodePath("ScrollContainer/PageNavigation/TabContainer")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="menuRoot/PanelContainer/PageHandler"]
 layout_mode = 2
@@ -55,6 +65,8 @@ theme_override_styles/separator = SubResource("StyleBoxLine_jhacy")
 [node name="PageRoot" type="ScrollContainer" parent="menuRoot/PanelContainer/PageHandler"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 4
 
 [node name="HSeparator" type="HSeparator" parent="menuRoot"]
 layout_mode = 2
@@ -67,61 +79,82 @@ layout_mode = 2
 [node name="HBoxContainer" type="HBoxContainer" parent="menuRoot/QuickButtons"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="menuRoot/QuickButtons/HBoxContainer"]
+[node name="Button" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "home"
 icon = SubResource("PlaceholderTexture2D_ab8o1")
 icon_alignment = 1
 vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("3_vskxc")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button2" type="Button" parent="menuRoot/QuickButtons/HBoxContainer"]
+[node name="Button2" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "worlds"
 icon = SubResource("PlaceholderTexture2D_ab8o1")
 icon_alignment = 1
 vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("4_rd5lu")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button3" type="Button" parent="menuRoot/QuickButtons/HBoxContainer"]
+[node name="Button3" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "avatars"
 icon = SubResource("PlaceholderTexture2D_ab8o1")
 icon_alignment = 1
 vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("5_gfrqc")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button4" type="Button" parent="menuRoot/QuickButtons/HBoxContainer"]
+[node name="Button4" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "chat"
 icon = SubResource("PlaceholderTexture2D_ab8o1")
 icon_alignment = 1
 vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("6_3ikpl")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button5" type="Button" parent="menuRoot/QuickButtons/HBoxContainer"]
+[node name="Button5" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "notifications"
 icon = SubResource("PlaceholderTexture2D_ab8o1")
 icon_alignment = 1
 vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("7_jcrsv")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button6" type="Button" parent="menuRoot/QuickButtons/HBoxContainer"]
+[node name="Button6" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "settings"
 icon = SubResource("PlaceholderTexture2D_ab8o1")
 icon_alignment = 1
 vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("8_6roop")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button7" type="Button" parent="menuRoot/QuickButtons/HBoxContainer"]
+[node name="Button7" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "exit"
 icon = SubResource("PlaceholderTexture2D_ab8o1")
 icon_alignment = 1
 vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("9_b1c3u")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
 
 [node name="HudRoot" type="Control" parent="."]
 z_index = -1
@@ -131,3 +164,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+
+[connection signal="pressed" from="menuRoot/PanelContainer/PageHandler/ScrollContainer/PageNavigation/NewTab" to="menuRoot/PanelContainer/PageHandler" method="create_tab"]

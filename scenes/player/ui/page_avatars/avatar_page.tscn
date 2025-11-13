@@ -1,5 +1,9 @@
-[gd_scene format=3 uid="uid://c2qdpk6unaxgl"]
+[gd_scene load_steps=2 format=3 uid="uid://c2qdpk6unaxgl"]
+
+[ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_awhje"]
 
 [node name="AvatarPage" type="VBoxContainer"]
 offset_right = 40.0
 offset_bottom = 40.0
+script = ExtResource("1_awhje")
+page_name = "Avatars"

@@ -1,5 +1,9 @@
-[gd_scene format=3 uid="uid://knr0y1g4146x"]
+[gd_scene load_steps=2 format=3 uid="uid://knr0y1g4146x"]
+
+[ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_slst4"]
 
 [node name="ExitPage" type="VBoxContainer"]
 offset_right = 40.0
 offset_bottom = 40.0
+script = ExtResource("1_slst4")
+page_name = "Exit"

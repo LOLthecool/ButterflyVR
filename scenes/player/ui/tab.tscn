@@ -2,11 +2,13 @@
 
 [ext_resource type="Script" uid="uid://bbu1yg2ttmywc" path="res://scenes/player/ui/tab.gd" id="1_v2tug"]
 
-[node name="Tab" type="PanelContainer"]
+[node name="Tab" type="PanelContainer" node_paths=PackedStringArray("tab_button", "overlay")]
 custom_minimum_size = Vector2(192, 0)
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_v2tug")
+tab_button = NodePath("HBoxContainer/Button")
+overlay = NodePath("Panel")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 2
@@ -14,7 +16,7 @@ layout_mode = 2
 [node name="Button" type="Button" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "UNNAMED"
+text = "New Tab"
 flat = true
 alignment = 0
 text_overrun_behavior = 3
@@ -24,6 +26,10 @@ layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
 text = "X"
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 2
+mouse_filter = 2
 
 [connection signal="pressed" from="HBoxContainer/Button" to="." method="_on_tab_clicked"]
 [connection signal="pressed" from="HBoxContainer/Button2" to="." method="_on_close"]

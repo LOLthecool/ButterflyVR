@@ -73,8 +73,11 @@ static func load_cache() -> LRUCache:
 	var head:Pack
 	var tail:Pack
 	
-	var stored_values:Dictionary[String, String] = GlobalPersistanceHandler.get_catagory("cache_meta", "values")
+	var stored_values:Dictionary[String, String] = {}
+	
 	var stored_size:int = GlobalPersistanceHandler.register_value("cache_meta", "metadata", "sizeKB", 0)
+	
+	stored_values.assign(GlobalPersistanceHandler.get_catagory("cache_meta", "values"))
 	
 	for key:PackIdentifier in stored_values.keys().map(func(x:String) -> PackIdentifier: return PackIdentifier.from_string(x)):
 		new_backing_store[key] = Pack.from_json(key, stored_values[key.to_string()])
