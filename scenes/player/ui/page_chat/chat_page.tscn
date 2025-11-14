@@ -77,3 +77,22 @@ size_flags_horizontal = 3
 [node name="Messages" type="VBoxContainer" parent="PanelContainer2/Messager"]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer2/Messager"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="PanelContainer2/Messager/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = " + "
+
+[node name="LineEdit" type="LineEdit" parent="PanelContainer2/Messager/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 48
+placeholder_text = "..."
+
+[node name="Button2" type="Button" parent="PanelContainer2/Messager/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "  Send  "
