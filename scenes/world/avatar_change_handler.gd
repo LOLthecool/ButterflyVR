@@ -1,10 +1,10 @@
 extends MessageHandler
 class_name AvatarChangeHandler
 
-signal avatar_changed(player:int, avatar:int)
+signal avatar_changed(player:int, avatar:UUID)
 
-func send_message(player:int, avatar:int) -> void:
-	var values:Array = [player, avatar]
+func send_message(player:int, avatar:UUID) -> void:
+	var values:Array = [player, avatar.backing_storage]
 	var types:Array[int] = []
 	
 	types.push_back(_get_value_type(null, 0))
@@ -17,8 +17,8 @@ func _get_value_type(_previous_value: Variant, idx: int) -> int:
 		0:
 			return 2
 		1:
-			return 2
+			return 8
 	return -1
 
 func _process_message(values: Array) -> void:
-	avatar_changed.emit(values[0], values[1])
+	avatar_changed.emit(values[0], UUID.from_bytes(values[1]))

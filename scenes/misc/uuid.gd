@@ -26,5 +26,13 @@ static func from_String(uuid:String) -> UUID:
 		result.backing_storage[i] = byte
 	return result
 
+static func from_bytes(bytes:PackedByteArray) -> UUID:
+	var result = UUID.new()
+	if bytes.size() != 16:
+		push_error("uuid bytes array was wrong size")
+		return result
+	result.backing_storage = bytes
+	return result
+
 func as_array() -> Array[int]:
 	return backing_storage as Array[int]
