@@ -17,11 +17,12 @@ func create_tab() -> void:
 	tab.tab_clicked.connect(on_tab_clicked)
 	tab.tab_destroyed.connect(on_tab_destroyed)
 	tab_container.add_child(tab)
-	if current_page == null:
-		current_tab = tab
-		tab.hide_overlay()
-		current_page = page
-		page_root.add_child(current_page)
+	if current_page != null:
+		current_tab.show_overlay()
+	current_tab = tab
+	tab.hide_overlay()
+	current_page = page
+	page_root.add_child(current_page)
 
 func change_current_page(page:Page) -> void:
 	if current_tab == null:
