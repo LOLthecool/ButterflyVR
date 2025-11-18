@@ -99,7 +99,14 @@ func _ready() -> void:
 	# main processing loop
 	while true:
 		if client.get_status() != HTTPClient.STATUS_CONNECTED:
-			push_error("error in api connection: client state should be connected but was ", client.get_status())
+			if client.get_status() == 4:
+				push_error("couldnt connect: server unavailable?")
+				push_error("failing all active requests, then retrying")
+				for request:Request in waiting_requests:
+					request.on_complete.emit(-1, PackedStringArray(), "")
+				waiting_requests.clear()
+			else:
+				push_error("error in api connection: client state should be connected but was ", client.get_status())
 			await tree.create_timer(3).timeout
 			push_warning("retrying connection...")
 			_ready.call_deferred()

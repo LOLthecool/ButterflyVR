@@ -1,12 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://c2qdpk6unaxgl"]
+[gd_scene load_steps=6 format=3 uid="uid://c2qdpk6unaxgl"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_awhje"]
-
-[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_awhje"]
-size = Vector2(256, 256)
+[ext_resource type="Script" uid="uid://dpwxpwh8y3x10" path="res://scenes/player/ui/page_avatars/avatar_list.gd" id="2_2ou7c"]
+[ext_resource type="Script" uid="uid://c2mx38lc3cyb" path="res://scenes/player/ui/page_avatars/avatar_preview.gd" id="3_v5rxm"]
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_2ou7c"]
-viewport_path = NodePath("Control/VBoxContainer/VBoxContainer3/TextureRect/SubViewport")
+viewport_path = NodePath("Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport")
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_v5rxm"]
 
@@ -45,7 +44,7 @@ layout_mode = 2
 [node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Favourites"
@@ -53,7 +52,7 @@ text = "Favourites"
 [node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Owned"
@@ -61,7 +60,7 @@ text = "Owned"
 [node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Shared"
@@ -69,7 +68,7 @@ text = "Shared"
 [node name="PanelContainer4" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Public"
@@ -83,27 +82,11 @@ layout_mode = 2
 [node name="Catagories" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
 layout_mode = 2
 
-[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Catagories"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Catagories/PanelContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 48
-text = "Custom1"
-
-[node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Catagories"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Catagories/PanelContainer2"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 48
-text = "Custom2"
-
 [node name="Adder" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
 
-[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
+[node name="Label" type="Button" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 48
@@ -112,30 +95,28 @@ text = " + "
 [node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2"]
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="Button" type="Button" parent="Control/VBoxContainer2/AvatarList"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Avatar Name The Cool"
-icon = SubResource("PlaceholderTexture2D_awhje")
-clip_text = true
-icon_alignment = 1
-vertical_icon_alignment = 0
+script = ExtResource("2_2ou7c")
 
 [node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.4
+script = ExtResource("3_v5rxm")
 
 [node name="TextureRect" type="TextureRect" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
 texture = SubResource("ViewportTexture_2ou7c")
+expand_mode = 4
+stretch_mode = 5
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect"]
 
-[node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Camera3D"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.6370697)
 mesh = SubResource("CapsuleMesh_v5rxm")
+skeleton = NodePath("../Camera3D")
+
+[node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
 
 [node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2

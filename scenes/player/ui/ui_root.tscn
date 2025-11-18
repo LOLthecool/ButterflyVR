@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://dv5d7diocohlq"]
+[gd_scene load_steps=14 format=3 uid="uid://dv5d7diocohlq"]
 
 [ext_resource type="Script" uid="uid://bqbnorj2ewbsm" path="res://scenes/player/ui/page_handler.gd" id="1_ab8o1"]
 [ext_resource type="Script" uid="uid://c1bcblnqwgcuc" path="res://scenes/player/ui/quick_button.gd" id="2_4flen"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://bw1xhp1qer3a" path="res://scenes/player/ui/page_worlds/world_page.tscn" id="4_rd5lu"]
 [ext_resource type="PackedScene" uid="uid://c2qdpk6unaxgl" path="res://scenes/player/ui/page_avatars/avatar_page.tscn" id="5_gfrqc"]
 [ext_resource type="PackedScene" uid="uid://cf3xpf7ycv3jl" path="res://scenes/player/ui/page_chat/chat_page.tscn" id="6_3ikpl"]
+[ext_resource type="PackedScene" uid="uid://crgxs50860x15" path="res://scenes/player/ui/page_search/search_page.tscn" id="6_rd5lu"]
 [ext_resource type="PackedScene" uid="uid://opg2daisj1fm" path="res://scenes/player/ui/page_notifications/notifications_page.tscn" id="7_jcrsv"]
 [ext_resource type="PackedScene" uid="uid://do1488h54fo8r" path="res://scenes/player/ui/page_settings/settings_page.tscn" id="8_6roop"]
 [ext_resource type="PackedScene" uid="uid://knr0y1g4146x" path="res://scenes/player/ui/page_exit/exit_page.tscn" id="9_b1c3u"]
@@ -110,6 +111,17 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 script = ExtResource("2_4flen")
 page = ExtResource("5_gfrqc")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
+
+[node name="Button8" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "search"
+icon = SubResource("PlaceholderTexture2D_ab8o1")
+icon_alignment = 1
+vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("6_rd5lu")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
 [node name="Button4" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
