@@ -1,8 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://c2qdpk6unaxgl"]
+[gd_scene load_steps=8 format=3 uid="uid://c2qdpk6unaxgl"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_awhje"]
 [ext_resource type="Script" uid="uid://dpwxpwh8y3x10" path="res://scenes/player/ui/page_avatars/avatar_list.gd" id="2_2ou7c"]
 [ext_resource type="Script" uid="uid://c2mx38lc3cyb" path="res://scenes/player/ui/page_avatars/avatar_preview.gd" id="3_v5rxm"]
+[ext_resource type="Script" uid="uid://ksrjgkewkwkw" path="res://scenes/player/ui/previewer.gd" id="4_j5nty"]
+[ext_resource type="Script" uid="uid://cbfejau06v0jn" path="res://scenes/player/ui/page_avatars/flag_list.gd" id="5_m82ti"]
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_2ou7c"]
 viewport_path = NodePath("Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport")
@@ -92,16 +94,23 @@ size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 48
 text = " + "
 
-[node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2"]
+[node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("avatar_previewer")]
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("2_2ou7c")
+avatar_previewer = NodePath("../VBoxContainer3")
 
-[node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2"]
+[node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("previewer", "avatar_name", "avatar_publicity", "flag_list", "details_button", "equip_button")]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.4
 script = ExtResource("3_v5rxm")
+previewer = NodePath("TextureRect/SubViewport/Node3D")
+avatar_name = NodePath("Label")
+avatar_publicity = NodePath("Label2")
+flag_list = NodePath("ScrollContainer/HFlowContainer")
+details_button = NodePath("Button")
+equip_button = NodePath("Button2")
 
 [node name="TextureRect" type="TextureRect" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
@@ -111,12 +120,15 @@ stretch_mode = 5
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect"]
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
+[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
+script = ExtResource("4_j5nty")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.6370697)
 mesh = SubResource("CapsuleMesh_v5rxm")
 skeleton = NodePath("../Camera3D")
 
-[node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
+[node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
 
 [node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
@@ -128,42 +140,16 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "publicity"
 
-[node name="HFlowContainer" type="HFlowContainer" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="ScrollContainer" type="ScrollContainer" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HFlowContainer" type="HFlowContainer" parent="Control/VBoxContainer2/VBoxContainer3/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 8
-
-[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer3/HFlowContainer"]
-layout_mode = 2
-
-[node name="Label3" type="Label" parent="Control/VBoxContainer2/VBoxContainer3/HFlowContainer/PanelContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "content flag"
-
-[node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer3/HFlowContainer"]
-layout_mode = 2
-
-[node name="Label3" type="Label" parent="Control/VBoxContainer2/VBoxContainer3/HFlowContainer/PanelContainer2"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "content flag"
-
-[node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer3/HFlowContainer"]
-layout_mode = 2
-
-[node name="Label3" type="Label" parent="Control/VBoxContainer2/VBoxContainer3/HFlowContainer/PanelContainer3"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "content flag"
-
-[node name="PanelContainer4" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer3/HFlowContainer"]
-layout_mode = 2
-
-[node name="Label3" type="Label" parent="Control/VBoxContainer2/VBoxContainer3/HFlowContainer/PanelContainer4"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "content flag"
+script = ExtResource("5_m82ti")
 
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
