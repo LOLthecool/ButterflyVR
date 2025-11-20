@@ -9,7 +9,10 @@
 [sub_resource type="ViewportTexture" id="ViewportTexture_2ou7c"]
 viewport_path = NodePath("Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport")
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_v5rxm"]
+[sub_resource type="Environment" id="Environment_m82ti"]
+background_mode = 4
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
 
 [node name="AvatarPage" type="VBoxContainer"]
 anchors_preset = 15
@@ -119,26 +122,31 @@ expand_mode = 4
 stretch_mode = 5
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect"]
+render_target_clear_mode = 1
+render_target_update_mode = 1
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
 script = ExtResource("4_j5nty")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.6370697)
-mesh = SubResource("CapsuleMesh_v5rxm")
-skeleton = NodePath("../Camera3D")
+[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
 
-[node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
+[node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
+environment = SubResource("Environment_m82ti")
 
 [node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "name"
+text = "UNNAMED"
 
 [node name="Label2" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "publicity"
+text = "UNNAMED"
+
+[node name="Label3" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "UNNAMED"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2

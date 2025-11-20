@@ -4,6 +4,7 @@ class_name AvatarPreview
 @export var previewer:Previewer
 @export var avatar_name:Label
 @export var avatar_publicity:Label
+@export var avatar_author:Label
 @export var flag_list:FlagList
 @export var details_button:Button
 @export var equip_button:Button
@@ -14,13 +15,14 @@ var avatar:Dictionary[String, Variant]
 func preview_avatar(avatar:Dictionary[String, Variant]) -> void:
 	self.avatar = avatar
 	previewer.create_preview(UUID.from_String(avatar["uuid"]))
-	avatar_name = avatar["name"]
-	avatar_publicity = avatar["privacy"]
+	avatar_name.text = avatar["name"]
+	avatar_publicity.text = "privacy: %s" % avatar["privacy"]
+	avatar_author.text = "created by: " % avatar["author"]
 	flag_list.create_list(avatar["flags"])
-	# todo: handle showing details menu and pass equip to avatar manager
 
 func on_avatar_details() -> void:
 	pass
 
 func on_avatar_equip() -> void:
-	pass
+	var avatar_handler:AvatarChangeHandler = GlobalWorldHandler.current_world.avatar_change_handler
+	avatar_handler.send_message((NetworkManager as NetNodeManager).get_id(), avatar["uuid"])

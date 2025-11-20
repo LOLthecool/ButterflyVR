@@ -3,6 +3,7 @@ extends Node
 # moved to a seperate file to avoid bloat
 class_name LRUCache
 
+# todo: move this somewhere else since its used everywhere
 enum ObjectType{
 	world,
 	avatar,
