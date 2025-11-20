@@ -21,7 +21,7 @@ class PackIdentifier:
 		return "%s - %s" % [object_type, uuid]
 	
 	static func from_string(string:String) -> PackIdentifier:
-		var values = string.split(" - ", false, 1)
+		var values:PackedStringArray = string.split(" - ", false, 1)
 		return PackIdentifier.new(UUID.from_String(values[1]), int(values[0]))
 
 class Pack:
@@ -51,20 +51,25 @@ class Pack:
 				values["cache_time_utc"], 
 				values["size_KB"])
 
-const OBJECT_FILE_PATH:String = "user://cache/%s/%s.epck"
-const MAX_CACHE_SIZE_KB:int = 500 * 1024 # 500MB
+const BASE_OBJECT_FILE_PATH:String = "user://%s/%s/%s.epck"
 
 var cached_objects:Dictionary[PackIdentifier, Pack]
 var cache_head:Pack
 var cache_tail:Pack
 var cache_size_KB:int = 0
+var cache_file:String
+var object_file_path:String
+var max_cache_size:int
 
 func save_self() -> void:
-	GlobalPersistanceHandler.register_value("cache_meta", "metadata", "sizeKB", cache_size_KB)
+	GlobalPersistanceHandler.register_value(cache_file, "metadata", "sizeKB", cache_size_KB)
+	GlobalPersistanceHandler.register_value(cache_file, "metadata", "cache_path", object_file_path)
+	GlobalPersistanceHandler.clear_catagory(cache_file, "values")
 	for key:PackIdentifier in cached_objects.keys():
-		GlobalPersistanceHandler.register_value("cache_meta", "values", key.to_string(), cached_objects[key].as_json())
+		GlobalPersistanceHandler.register_value(cache_file, "values", key.to_string(), cached_objects[key].as_json())
 
-static func load_cache() -> LRUCache:
+# todo: max size changes only take effect next time something is loaded
+static func load_cache(file:String, max_size:int, default_cache_name:String) -> LRUCache:
 	var new_backing_store:Dictionary[PackIdentifier, Pack]
 	
 	var first_map:Dictionary[PackIdentifier, PackIdentifier]
@@ -75,9 +80,11 @@ static func load_cache() -> LRUCache:
 	
 	var stored_values:Dictionary[String, String] = {}
 	
-	var stored_size:int = GlobalPersistanceHandler.register_value("cache_meta", "metadata", "sizeKB", 0)
+	var stored_size:int = GlobalPersistanceHandler.register_value(file, "metadata", "sizeKB", 0)
+	var object_file_path:String = GlobalPersistanceHandler.register_value(
+			file, "metadata", "cache_path", BASE_OBJECT_FILE_PATH % [default_cache_name, "%s", "%s"])
 	
-	stored_values.assign(GlobalPersistanceHandler.get_catagory("cache_meta", "values"))
+	stored_values.assign(GlobalPersistanceHandler.get_catagory(file, "values"))
 	
 	for key:PackIdentifier in stored_values.keys().map(func(x:String) -> PackIdentifier: return PackIdentifier.from_string(x)):
 		new_backing_store[key] = Pack.from_json(key, stored_values[key.to_string()])
@@ -101,6 +108,9 @@ static func load_cache() -> LRUCache:
 	cache.cache_head = head
 	cache.cache_tail = tail
 	cache.cache_size_KB = stored_size
+	cache.cache_file = file
+	cache.object_file_path = object_file_path
+	cache.max_cache_size = max_size
 	return cache
 
 func push_front(item:Pack) -> void:
@@ -114,10 +124,10 @@ func push_front(item:Pack) -> void:
 	cached_objects[item.identifier] = item
 	cache_size_KB += item.size_KB
 	# if head == tail then popping would remove the item we just added
-	while cache_size_KB > MAX_CACHE_SIZE_KB and cache_head != cache_tail:
+	while cache_size_KB > max_cache_size and cache_head != cache_tail:
 		pop_back()
 	
-	GlobalPersistanceHandler.set_value("cache_meta", "cache", "data", self)
+	GlobalPersistanceHandler.set_value(cache_file, "cache", "data", self)
 
 func get_object(uuid:UUID, object_type:ObjectType) -> Pack:
 	var identifier:PackIdentifier = PackIdentifier.new(uuid, object_type)
@@ -136,7 +146,7 @@ func get_object(uuid:UUID, object_type:ObjectType) -> Pack:
 		
 		cached_objects.erase(identifier)
 		
-		GlobalPersistanceHandler.set_value("cache_meta", "cache", "data", self)
+		GlobalPersistanceHandler.set_value(cache_file, "cache", "data", self)
 		
 		return object
 	return null
@@ -157,9 +167,9 @@ func pop_back() -> Pack:
 	if tail:
 		cached_objects.erase(tail.identifier)
 		cache_size_KB -= tail.size_KB
-		DirAccess.remove_absolute(OBJECT_FILE_PATH % [tail.identifier.object_type, tail.identifier.uuid])
+		DirAccess.remove_absolute(object_file_path % [tail.identifier.object_type, tail.identifier.uuid])
 	
-	GlobalPersistanceHandler.set_value("cache_meta", "cache", "data", self)
+	GlobalPersistanceHandler.set_value(cache_file, "cache", "data", self)
 	
 	return tail
 
@@ -176,13 +186,13 @@ func pop_front() -> Pack:
 	if head:
 		cached_objects.erase(head.identifier)
 		cache_size_KB -= head.size_KB
-		DirAccess.remove_absolute(OBJECT_FILE_PATH % [head.identifier.object_type, head.identifier.uuid])
+		DirAccess.remove_absolute(object_file_path % [head.identifier.object_type, head.identifier.uuid])
 	
-	GlobalPersistanceHandler.set_value("cache_meta", "cache", "data", self)
+	GlobalPersistanceHandler.set_value(cache_file, "cache", "data", self)
 	
 	return head
 
 func clear() -> void:
 	while pop_back() != null:
 		pass
-	GlobalPersistanceHandler.set_value("cache_meta", "cache", "data", self)
+	GlobalPersistanceHandler.set_value(cache_file, "cache", "data", self)

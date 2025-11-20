@@ -6,7 +6,8 @@ class_name DownloadHandler
 const OBJECT_INFO_ENDPOINT:String = "api/v0/%s/%s"
 const OBJECT_DOWNLOAD_ENDPOINT:String = "api/v0/%s/%s/download"
 
-var cache:LRUCache = LRUCache.load_cache()
+# max size: 1gb
+var cache:LRUCache = LRUCache.load_cache("cache_meta", 1024 * 1024, "cache")
 
 func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 	if !await preload_object(uuid, type):
@@ -29,7 +30,7 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 			push_error("error message: %s" % error_message)
 		return null
 	
-	var file:FileAccess = FileAccess.open(LRUCache.OBJECT_FILE_PATH % [type, uuid], FileAccess.READ)
+	var file:FileAccess = FileAccess.open(cache.object_file_path % [type, uuid], FileAccess.READ)
 	return decrypt_and_load_object(file, uuid, response_values[0], response_values[1], response_values[2])
 
 func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
@@ -69,7 +70,7 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	var url = OBJECT_DOWNLOAD_ENDPOINT % [uuid, object_type]
 	var downloader:HTTPRequest = HTTPRequest.new()
 	#FileAccess.open(file_path, FileAccess.WRITE).close()
-	downloader.download_file = LRUCache.OBJECT_FILE_PATH % [uuid, object_type]
+	downloader.download_file = cache.object_file_path % [uuid, object_type]
 	downloader.request(url, PackedStringArray([GlobalAccountHandler.session_token]))
 	await downloader.request_completed
 

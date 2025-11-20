@@ -51,6 +51,14 @@ func get_catagory(file_name:String, catagory:String) -> Dictionary[String, Varia
 	
 	return result
 
+func clear_catagory(file_name:String, catagory:String) -> void:
+	var file:String = CONFIG_PATH + file_name + CONFIG_FILE_EXTENSION
+	
+	if !config_files.has(file) or !config_files[file].has_section(catagory):
+		return
+	
+	config_files[file].erase_section(catagory)
+
 # changes the value of an existing key
 # errors if the specified key does not exist (create with register_value)
 func set_value(file_name:String, catagory:String, key:String, value:Variant) -> void:

@@ -29,6 +29,7 @@ GlobalAPIHandler="*res://scenes/autoload/api_handler.gd"
 GlobalAccountHandler="*res://scenes/autoload/account_handler.gd"
 GlobalPersistanceHandler="*res://scenes/autoload/persistance_handler.gd"
 GlobalDownloadHandler="*res://scenes/autoload/download_handler/download_handler.gd"
+GlobalImageDownloadHandler="*res://scenes/autoload/download_handler/image_download_handler.gd"
 
 [debug]
 
