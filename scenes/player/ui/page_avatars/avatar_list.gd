@@ -1,4 +1,5 @@
 extends HFlowContainer
+class_name AvatarList
 
 const SEARCH_ENDPOINT:String = "api/v0/search/%s"
 
@@ -7,9 +8,14 @@ const SEARCH_ENDPOINT:String = "api/v0/search/%s"
 func get_and_show_avatars(search_string:String, filters:Dictionary[String ,String]) -> void:
 	for child:Node in get_children():
 		child.queue_free()
+	
 	var filter_string:String = ""
 	for key:String in filters.keys():
 		filter_string += "%s:%s," % [key, filters[key]]
+	
+	# remove & to stop users accidentally breaking the filters
+	search_string = search_string.remove_char("&".unicode_at(0))
+	
 	var search:String = "%s&%s" % [search_string, filter_string]
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, 
@@ -25,8 +31,13 @@ func get_and_show_avatars(search_string:String, filters:Dictionary[String ,Strin
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
 		return
+	
+	var first_entry:bool = true
 	for avatar:Dictionary in result[4]:
 		var avatar_listing:ObjectListing = ObjectListing.new()
 		avatar_listing.create(avatar, LRUCache.ObjectType.avatar)
 		avatar_listing.object_selected.connect(avatar_previewer.preview_avatar)
 		add_child(avatar_listing)
+		if first_entry:
+			first_entry = false
+			avatar_previewer.preview_avatar(avatar)

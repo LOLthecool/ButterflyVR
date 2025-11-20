@@ -1,7 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://c2qdpk6unaxgl"]
+[gd_scene load_steps=9 format=3 uid="uid://c2qdpk6unaxgl"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_awhje"]
 [ext_resource type="Script" uid="uid://dpwxpwh8y3x10" path="res://scenes/player/ui/page_avatars/avatar_list.gd" id="2_2ou7c"]
+[ext_resource type="Script" uid="uid://byxidffb2k4ao" path="res://scenes/player/ui/page_avatars/owned_filter.gd" id="2_5qthq"]
 [ext_resource type="Script" uid="uid://c2mx38lc3cyb" path="res://scenes/player/ui/page_avatars/avatar_preview.gd" id="3_v5rxm"]
 [ext_resource type="Script" uid="uid://ksrjgkewkwkw" path="res://scenes/player/ui/previewer.gd" id="4_j5nty"]
 [ext_resource type="Script" uid="uid://cbfejau06v0jn" path="res://scenes/player/ui/page_avatars/flag_list.gd" id="5_m82ti"]
@@ -46,13 +47,14 @@ layout_mode = 2
 [node name="VBoxContainer2" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories"]
 layout_mode = 2
 
-[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer5" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
-text = "Favourites"
+disabled = true
+text = "Featured"
 
 [node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
@@ -61,6 +63,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Owned"
+script = ExtResource("2_5qthq")
 
 [node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
@@ -68,7 +71,17 @@ layout_mode = 2
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
+disabled = true
 text = "Shared"
+
+[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Favourites"
 
 [node name="PanelContainer4" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
@@ -76,7 +89,15 @@ layout_mode = 2
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
-text = "Public"
+text = "Popular"
+
+[node name="PanelContainer6" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "New"
 
 [node name="Customs" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer"]
 layout_mode = 2
@@ -89,12 +110,11 @@ layout_mode = 2
 
 [node name="Adder" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
 layout_mode = 2
-size_flags_horizontal = 4
 
 [node name="Label" type="Button" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
 layout_mode = 2
-size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 48
+disabled = true
 text = " + "
 
 [node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("avatar_previewer")]
@@ -126,6 +146,7 @@ render_target_clear_mode = 1
 render_target_update_mode = 1
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
+transform = Transform3D(0.8375995, 0, 0.54628474, 0, 1, 0, -0.54628474, 0, 0.8375995, 0, 0, 0)
 script = ExtResource("4_j5nty")
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
@@ -159,12 +180,26 @@ theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 8
 script = ExtResource("5_m82ti")
 
+[node name="Button3" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "favourite"
+
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
+disabled = true
 text = "details"
 
 [node name="Button2" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "equip"
+
+[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4/Button" to="Control/VBoxContainer2/AvatarList" method="get_and_show_avatars" binds= ["", {
+"sort": "uses_week"
+}]]
+[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6/Button" to="Control/VBoxContainer2/AvatarList" method="get_and_show_avatars" binds= ["", {
+"sort": "date_uploaded"
+}]]

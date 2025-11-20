@@ -21,6 +21,7 @@ func preview_avatar(avatar:Dictionary[String, Variant]) -> void:
 	flag_list.create_list(avatar["flags"])
 
 func on_avatar_details() -> void:
+	# todo: details page with extra info
 	pass
 
 func on_avatar_equip() -> void:
