@@ -1,6 +1,7 @@
-[gd_scene load_steps=14 format=3 uid="uid://dv5d7diocohlq"]
+[gd_scene load_steps=15 format=3 uid="uid://dv5d7diocohlq"]
 
 [ext_resource type="Script" uid="uid://bqbnorj2ewbsm" path="res://scenes/player/ui/page_handler.gd" id="1_ab8o1"]
+[ext_resource type="Script" uid="uid://benj7caxeip7f" path="res://scenes/player/ui/main_menu.gd" id="1_gfrqc"]
 [ext_resource type="Script" uid="uid://c1bcblnqwgcuc" path="res://scenes/player/ui/quick_button.gd" id="2_4flen"]
 [ext_resource type="PackedScene" uid="uid://cgkfp1njd0s5g" path="res://scenes/player/ui/page_home/home_page.tscn" id="3_vskxc"]
 [ext_resource type="PackedScene" uid="uid://bw1xhp1qer3a" path="res://scenes/player/ui/page_worlds/world_page.tscn" id="4_rd5lu"]
@@ -30,6 +31,7 @@ anchor_right = 0.85
 anchor_bottom = 0.9
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_gfrqc")
 metadata/_edit_use_anchors_ = true
 
 [node name="PanelContainer" type="PanelContainer" parent="menuRoot"]
