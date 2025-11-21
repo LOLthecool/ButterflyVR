@@ -1,6 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://bw1xhp1qer3a"]
+[gd_scene load_steps=5 format=3 uid="uid://bw1xhp1qer3a"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_nfh3x"]
+[ext_resource type="Script" uid="uid://byxidffb2k4ao" path="res://scenes/player/ui/page_avatars/owned_filter.gd" id="2_ju76t"]
+[ext_resource type="Script" uid="uid://xo6kpymld7ew" path="res://scenes/player/ui/page_worlds/world_list.gd" id="3_0bqws"]
+[ext_resource type="Script" uid="uid://f2hurcepphnt" path="res://scenes/player/ui/page_worlds/instance_page.gd" id="4_0bqws"]
 
 [node name="WorldPage" type="VBoxContainer"]
 anchors_preset = 15
@@ -12,3 +15,125 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_nfh3x")
 page_name = "Worlds"
+
+[node name="Control" type="TabContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+tabs_visible = false
+
+[node name="VBoxContainer2" type="HBoxContainer" parent="Control"]
+layout_mode = 2
+size_flags_vertical = 3
+metadata/_tab_index = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="FixedCatagories" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories"]
+layout_mode = 2
+
+[node name="PanelContainer5" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Featured"
+
+[node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2" node_paths=PackedStringArray("world_list")]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "Owned"
+script = ExtResource("2_ju76t")
+world_list = NodePath("../../../../../WorldList")
+
+[node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Shared"
+
+[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Favourites"
+
+[node name="PanelContainer4" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "Popular"
+
+[node name="PanelContainer6" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "New"
+
+[node name="Customs" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs"]
+layout_mode = 2
+
+[node name="Catagories" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
+layout_mode = 2
+
+[node name="Adder" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Button" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = " + "
+
+[node name="WorldList" type="HFlowContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("instance_page")]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("3_0bqws")
+instance_page = NodePath("../../InstancePage")
+
+[node name="InstancePage" type="VBoxContainer" parent="Control"]
+visible = false
+layout_mode = 2
+script = ExtResource("4_0bqws")
+metadata/_tab_index = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control/InstancePage"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="Control/InstancePage/HBoxContainer"]
+layout_mode = 2
+text = "todo: world details, instance list, create instance, join instance"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="Control/InstancePage"]
+layout_mode = 2
+
+[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4/Button" to="Control/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
+"sort": "uses_week"
+}]]
+[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6/Button" to="Control/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
+"sort": "date_uploaded"
+}]]

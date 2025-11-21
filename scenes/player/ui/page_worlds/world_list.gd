@@ -1,15 +1,15 @@
 extends HFlowContainer
-class_name AvatarList
+class_name WorldList
 
 const SEARCH_ENDPOINT:String = "api/v0/search/%s"
 
-@export var avatar_previewer:AvatarPreview
+@export var instance_page:InstancePage
 
-func get_and_show_avatars(search_string:String, filters:Dictionary[String ,String]) -> void:
+func get_and_show_worlds(search_string:String, filters:Dictionary[String ,String]) -> void:
 	for child:Node in get_children():
 		child.queue_free()
 	
-	filters["is"] = "avatar"
+	filters["is"] = "world"
 	
 	var filter_string:String = ""
 	for key:String in filters.keys():
@@ -23,23 +23,20 @@ func get_and_show_avatars(search_string:String, filters:Dictionary[String ,Strin
 			HTTPClient.METHOD_GET, 
 			SEARCH_ENDPOINT % search, 
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
-	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["avatars"])
+	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["worlds"])
 	if !result[0]:
 		var error_msg:Label = Label.new()
-		error_msg.text = "error while retriving avatars, please try again"
-		push_error("error while retriving avatars")
+		error_msg.text = "error while retriving worlds, please try again"
+		add_child(error_msg)
+		push_error("error while retriving worlds")
 		if result[2] != -1:
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
 		return
 	
-	var first_entry:bool = true
-	for avatar:Dictionary in result[4]:
+	for world:Dictionary in result[4]:
 		var avatar_listing:ObjectListing = ObjectListing.new()
-		avatar_listing.create(avatar, LRUCache.ObjectType.avatar)
-		avatar_listing.object_selected.connect(avatar_previewer.preview_avatar)
+		avatar_listing.create(world, LRUCache.ObjectType.world)
+		avatar_listing.object_selected.connect(instance_page.show_details)
 		add_child(avatar_listing)
-		if first_entry:
-			first_entry = false
-			avatar_previewer.preview_avatar(avatar)

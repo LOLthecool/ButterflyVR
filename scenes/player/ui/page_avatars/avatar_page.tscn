@@ -146,7 +146,7 @@ render_target_clear_mode = 1
 render_target_update_mode = 1
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
-transform = Transform3D(0.8375995, 0, 0.54628474, 0, 1, 0, -0.54628474, 0, 0.8375995, 0, 0, 0)
+transform = Transform3D(0.4789723, 0, -0.87783, 0, 1, 0, 0.87783, 0, 0.4789723, 0, 0, 0)
 script = ExtResource("4_j5nty")
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]

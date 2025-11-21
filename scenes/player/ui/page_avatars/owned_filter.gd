@@ -1,6 +1,6 @@
 extends Button
 
-@export var avatar_list:AvatarList
+@export var world_list:WorldList
 
 func _pressed() -> void:
-	avatar_list.get_and_show_avatars("", {"author": (await GlobalAccountHandler.get_uuid()).to_string()})
+	world_list.get_and_show_worlds("", {"author": (await GlobalAccountHandler.get_uuid()).to_string()})
