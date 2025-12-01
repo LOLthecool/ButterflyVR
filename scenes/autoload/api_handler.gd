@@ -13,7 +13,8 @@ class Request:
 	var additional_headers:PackedStringArray = PackedStringArray()
 	var on_complete:Signal
 	@warning_ignore("shadowed_variable")
-	func _init(method:HTTPClient.Method, target:String, body:String, headers:PackedStringArray) -> void:
+	func _init(method:HTTPClient.Method, target:String, body:String, 
+			headers:PackedStringArray) -> void:
 		self.method = method
 		self.target = target
 		self.body = body
@@ -40,47 +41,53 @@ var headers:PackedStringArray = PackedStringArray(["User-Agent: Pirulo/1.0 (Godo
 # makes a request for the handler to process, requests are handled sequentially.
 # returns a signal that can be awaited to get the response (if it is received).
 # user-agent, accept, content-type, and content-length headers are managed automatically.
-func make_request(method:HTTPClient.Method, target:String, request_headers:PackedStringArray = PackedStringArray(), body:String = "") -> Signal:
+func make_request(method:HTTPClient.Method, target:String, 
+		request_headers:PackedStringArray = PackedStringArray(), body:String = "") -> Signal:
 	var request:Request = Request.new(method, target, body, request_headers)
 	waiting_requests.push_back(request)
 	return request.on_complete
 
 # generic handler for api responses, 
 # can check that specific response codes are sent or that specific values are in the response body
-# returns a bool indicating sucess, the response code, an error code or message if one was sent by the server, and an array of the requested values
-func handle_response(code:HTTPClient.ResponseCode, body:String, expected_codes:Array[int], expected_body_keys:Array[String]) -> Array[Variant]:
-	var success:bool = false
+# returns a bool indicating sucess, the response code, an error code or message,
+# if one was sent by the server and an dictionary of the requested values
+func handle_response(code:HTTPClient.ResponseCode, body:String, expected_codes:Array[int], 
+		expected_body_keys:Array[String]) -> Array[Variant]:
+	var success:bool = true
 	var response_code:int = code
-	var error_code:int = -1
+	var error_code:String = ""
 	var error_message:String = ""
-	var response_values:Array[Variant] = []
+	var response_values:Dictionary[String, Variant] = {}
 	
 	if !(code in expected_codes):
-		if body != "":
-			var decoder:JSON = JSON.new()
-			if decoder.data is Dictionary and "error_code" in (decoder.data as Dictionary):
-				error_code = (decoder.data as Dictionary)["error_code"]
-			if decoder.data is Dictionary and "error_message" in (decoder.data as Dictionary):
-				error_message = (decoder.data as Dictionary)["error_message"]
-		return [success, response_code, error_code, error_string, response_values]
+		success = false
 	
 	var decoder:JSON = JSON.new()
+	var err:Error = decoder.parse(body)
+	
+	if err != OK:
+		success = false
+		push_error("response parse error: %s" % err)
+	
 	if decoder.data is not Dictionary:
-		return [success, response_code, error_code, error_string, response_values]
+		if !expected_body_keys.is_empty():
+			success = false
+		return [success, response_code, error_code, error_message, response_values]
 	var data:Dictionary = decoder.data as Dictionary
 	
 	if "error_code" in data:
+		success = false
 		error_code = data["error_code"]
 	if "error_message" in data:
+		success = false
 		error_message = data["error_message"]
 	
-	if !(expected_body_keys.all(func(x:String) -> bool: return x in data)):
-		return [success, response_code, error_code, error_string, response_values]
-	
-	success = true
 	for x:String in expected_body_keys:
-		response_values.push_back(data[x])
-	return [success, response_code, error_code, error_string, response_values]
+		if x in data:
+			response_values[x] = data[x]
+		else:
+			success = false
+	return [success, response_code, error_code, error_message, response_values]
 
 # request handler, runs forever.
 # will call itself deferred to recreate the connection if it errors out
@@ -114,6 +121,7 @@ func _ready() -> void:
 		while waiting_requests.is_empty():
 			await tree.physics_frame
 		var request:Request = waiting_requests.pop_back()
+		print(request.method, request.target, headers + request.additional_headers, request.body)
 		client.request(request.method, request.target, headers + request.additional_headers, request.body)
 		while client.get_status() == HTTPClient.STATUS_REQUESTING:
 			client.poll()

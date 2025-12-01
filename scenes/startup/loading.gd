@@ -8,8 +8,8 @@ const LOADING_TAB:int = 0
 const SIGNIN_TAB:int = 2
 const REGISTER_TAB:int = 3
 
-const REGISTER_ENDPOINT:String = "API/V0/user"
-const SIGNIN_ENDPOINT:String = "API/V0/token"
+const REGISTER_ENDPOINT:String = "/api/v0/user"
+const SIGNIN_ENDPOINT:String = "/api/v0/token"
 
 const TOSLOCATION:String = "res://scenes/startup/TermsOfService.txt"
 const PRIVACYPOLICYLOCATION:String = "res://scenes/startup/PrivacyPolicy.txt"
@@ -128,31 +128,27 @@ func _on_register() -> void:
 	loading_text.text = "Contacting server..."
 	await get_tree().physics_frame
 	
-	var body:String = JSON.stringify({"username": username, "email": email, "password_hash": password_hash})
+	var body:String = JSON.stringify({"username": username, "email": email, "password_hash": password_hash as Array[int]})
 	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, REGISTER_ENDPOINT, PackedStringArray(), body).connect(on_register_response)
 
 func on_register_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
-	var result:Array = GlobalAPIHandler.handle_response(code, body, [HTTPClient.RESPONSE_OK], ["account_created"])
-	var account_created:bool = (result[4] as Dictionary).get("account_created", false)
-	if account_created:
+	var result:Array = GlobalAPIHandler.handle_response(code, body, [HTTPClient.RESPONSE_OK], [])
+	if result[0]:
 		last_screen = SIGNIN_TAB
 		await show_popup("Account created. Click the verify link in your emails before signing in.", true)
+		last_screen = GREETER_TAB
 	else:
 		var response_code:int = result[1]
-		var error_code:int = result[2]
+		var error_code:String = result[2]
 		var error_message:String = result[3]
 		var message = "Failed to create account."
-		if response_code != HTTPClient.RESPONSE_OK:
-			if response_code == -1:
-				message += "\nServer did not send a response."
-			else:
-				message += "\nResponse code: %s" % (response_code)
-			if error_code != -1:
-				message += "\nError code: %s" % (error_code)
-			if error_message != "":
-				message += "\nError message: \n%s" % (error_message)
-			await show_popup(message, true)
-			return
+		if response_code != -1:
+			push_error("server response: %s" % response_code)
+		if error_code != "":
+			message += "\nError code: %s" % (error_code)
+		if error_message != "":
+			message += "\nError message: \n%s" % (error_message)
+		await show_popup(message, true)
 
 func _on_login() -> void:
 	# matches "1 or more characters, '@', 1 or more characters, '.', 1 or more characters"
@@ -180,28 +176,28 @@ func _on_login() -> void:
 	loading_text.text = "Contacting server..."
 	await get_tree().physics_frame
 	
-	var body:String = JSON.stringify({"email": email, "password_hash": password_hash, "allow_renew": remember})
+	var body:String = JSON.stringify({"email": email, "password_hash": password_hash as Array[int], "allow_renew": remember})
 	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, SIGNIN_ENDPOINT, PackedStringArray(), body).connect(on_login_response)
 
 func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
 	var result:Array = GlobalAPIHandler.handle_response(code, body, [HTTPClient.RESPONSE_OK], [
-			"login_success",
 			"token",
 			"token_expiry",
 			"renewable"
 			])
-	var login_success:bool = (result[4] as Dictionary).get("login_success", false)
-	if login_success:
+	if result[0]:
 		var data:Dictionary = result[4]
+		var token:Array[int] = []
+		token.assign(data["token"])
 		GlobalAccountHandler.set_token(
-				(data["token"] as String).hex_decode() as Array[int],
+				token,
 				data["token_expiry"],
 				data["renewable"]
 				)
 		start()
 	else:
 		var response_code:int = result[1]
-		var error_code:int = result[2]
+		var error_code:String = result[2]
 		var error_message:String = result[3]
 		var message = "Failed to log in."
 		if response_code != HTTPClient.RESPONSE_OK:
@@ -209,7 +205,7 @@ func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray,
 				message += "\nServer did not send a response."
 			else:
 				message += "\nResponse code: %s" % (response_code)
-			if error_code != -1:
+			if error_code != "":
 				message += "\nError code: %s" % (error_code)
 			if error_message != "":
 				message += "\nError message: \n%s" % (error_message)

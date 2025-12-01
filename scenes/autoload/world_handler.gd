@@ -1,8 +1,8 @@
 extends Node
 class_name WorldHandler
 
-const USER_INFO_ENDPOINT:String = "api/v0/user/{0}"
-const WORLD_INFO_ENDPOINT:String = "api/v0/world/{0}"
+const USER_INFO_ENDPOINT:String = "api/v0/user/%s"
+const WORLD_INFO_ENDPOINT:String = "api/v0/world/%s"
 
 var current_world:WorldController
 
@@ -12,13 +12,13 @@ func load_homeworld() -> void:
 	var values = result[4]
 	if values.is_empty():
 		push_error("failed to aquire homeworld")
-		if result[2] != -1:
+		if result[1] != -1:
+			push_error("server response: %s" % result[1])
+		if result[2] != "":
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
 		# todo: dump in some kinda of fallback world
-		push_error("no error handling here, exiting")
-		get_tree().free() # this is fine since we should disconnect before this point
 	# get default instance type, if offline load_world(uuid, null), 
 	# otherwise create instance then load
 	load_world(values[0])

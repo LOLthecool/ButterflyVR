@@ -4,13 +4,13 @@ class_name AccountHandler
 
 # in long running sessions we may need to renew our token while the game is running
 # the renewal threshold determines the minimum time remaining before renewing
-const TOKEN_RENEWAL_THRESHOLD:int = 60 * 60 * 24 * 7 * 3 # 3 weeks
+const TOKEN_RENEWAL_THRESHOLD:int = 60 * 60 * 24 * 7 # 1 week
 # and the check rate determines how often we check our token expiry time
 const TOKEN_RENEWAL_CHECK_RATE:int = 1800 # 30 minutes
 
-const TOKEN_RENEW_ENDPOINT:String = "API/V0/token/"
-const TOKEN_VERIFY_ENDPOINT:String = "API/V0/token/validate"
-const TOKEN_USER_ENDPOINT:String = "API/V0/token/user"
+const TOKEN_RENEW_ENDPOINT:String = "/api/v0/token/"
+const TOKEN_VERIFY_ENDPOINT:String = "/api/v0/token/validate"
+const TOKEN_USER_ENDPOINT:String = "/api/v0/token/user"
 
 var session_token:Array[int] = []
 # expiry time in seconds since epoch, -1 indicates no token or a token that never expires
@@ -18,7 +18,6 @@ var token_expiry_utc:int = -1
 # tokens for temporary sessions cannot renew themselves, in that case renewal logic is disabled
 var token_renewable:bool = false
 var token_valid:bool = false
-var persist_token:bool = true
 var user_id:UUID = UUID.new()
 var renew_timer:Timer = Timer.new()
 
@@ -46,10 +45,14 @@ func set_token(token:Array[int], expiry_utc:int, renewable:bool) -> void:
 	session_token = token
 	token_expiry_utc = expiry_utc
 	token_renewable = renewable
-	if persist_token:
+	if token_renewable:
 		GlobalPersistanceHandler.set_value("user_login", "token", "token", token)
 		GlobalPersistanceHandler.set_value("user_login", "token", "expiry", expiry_utc)
 		GlobalPersistanceHandler.set_value("user_login", "token", "renewable", renewable)
+	else:
+		GlobalPersistanceHandler.set_value("user_login", "token", "token", [])
+		GlobalPersistanceHandler.set_value("user_login", "token", "expiry", -1)
+		GlobalPersistanceHandler.set_value("user_login", "token", "renewable", false)
 	if await is_token_valid(session_token, token_expiry_utc):
 		token_valid = true
 		user_id = await get_uuid(false)
@@ -68,7 +71,9 @@ func get_uuid(use_cached_value:bool = true) -> UUID:
 	var values:Array[Variant] = result[4]
 	if values.is_empty():
 		push_error("failed to aquire user uuid")
-		if result[2] != -1:
+		if result[1] != -1:
+			push_error("server response: %s" % result[1])
+		if result[2] != "":
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])

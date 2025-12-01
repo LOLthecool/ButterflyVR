@@ -18,13 +18,16 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["root_name", "key", "iv"])
 	
 	var success:bool = result[0]
-	var error_code:int = result[2]
+	var response_code:int = result[1]
+	var error_code:String = result[2]
 	var error_message:String = result[3]
 	var response_values:Array[Variant] = result[4]
 	
 	if (!success):
 		push_warning("failed to aquire object data")
-		if error_code != -1:
+		if response_code != -1:
+			push_error("server response: %s" % response_code)
+		if error_code != "":
 			push_error("error code: %s" % error_code)
 		if error_message != "":
 			push_error("error message: %s" % error_message)
@@ -38,13 +41,16 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["last_update_utc", "size_KB", "can_download"])
 	
 	var success:bool = result[0]
-	var error_code:int = result[2]
+	var response_code:int = result[1]
+	var error_code:String = result[2]
 	var error_message:String = result[3]
 	var response_values:Array[Variant] = result[4]
 	
 	if (!success) or !response_values[2]:
 		push_warning("failed to aquire object data")
-		if error_code != -1:
+		if response_code != -1:
+			push_error("server response: %s" % response_code)
+		if error_code != "":
 			push_error("error code: %s" % error_code)
 		if error_message != "":
 			push_error("error message: %s" % error_message)

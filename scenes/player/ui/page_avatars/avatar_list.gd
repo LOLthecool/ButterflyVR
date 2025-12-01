@@ -28,7 +28,9 @@ func get_and_show_avatars(search_string:String, filters:Dictionary[String ,Strin
 		var error_msg:Label = Label.new()
 		error_msg.text = "error while retriving avatars, please try again"
 		push_error("error while retriving avatars")
-		if result[2] != -1:
+		if result[1] != -1:
+			push_error("server response: %s" % result[1])
+		if result[2] != "":
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])

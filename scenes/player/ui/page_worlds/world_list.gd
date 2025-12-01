@@ -29,7 +29,9 @@ func get_and_show_worlds(search_string:String, filters:Dictionary[String ,String
 		error_msg.text = "error while retriving worlds, please try again"
 		add_child(error_msg)
 		push_error("error while retriving worlds")
-		if result[2] != -1:
+		if result[1] != -1:
+			push_error("server response: %s" % result[1])
+		if result[2] != "":
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
