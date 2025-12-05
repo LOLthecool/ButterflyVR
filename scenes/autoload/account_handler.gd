@@ -12,7 +12,7 @@ const TOKEN_RENEW_ENDPOINT:String = "/api/v0/token/"
 const TOKEN_VERIFY_ENDPOINT:String = "/api/v0/token/validate"
 const TOKEN_USER_ENDPOINT:String = "/api/v0/token/user"
 
-var session_token:Array[int] = []
+var session_token:PackedByteArray = PackedByteArray()
 # expiry time in seconds since epoch, -1 indicates no token or a token that never expires
 var token_expiry_utc:int = -1
 # tokens for temporary sessions cannot renew themselves, in that case renewal logic is disabled
@@ -60,7 +60,7 @@ func set_token(token:Array[int], expiry_utc:int, renewable:bool) -> void:
 		token_valid = false
 
 func get_token_header() -> String:
-	return "token: %s" % session_token
+	return "token: %s" % session_token.hex_encode()
 
 func get_uuid(use_cached_value:bool = true) -> UUID:
 	if use_cached_value and user_id != UUID.new():
@@ -80,12 +80,12 @@ func get_uuid(use_cached_value:bool = true) -> UUID:
 		return UUID.new()
 	return UUID.from_String(values[0])
 
-func is_token_valid(token:Array[int], expiry_utc:int) -> bool:
-	if token == []:
+func is_token_valid(token:PackedByteArray, expiry_utc:int) -> bool:
+	if token == PackedByteArray():
 		return false
 	if expiry_utc != -1 and Time.get_unix_time_from_system() > expiry_utc:
 		return false
-	var token_header:PackedStringArray = PackedStringArray(["token: " + str(token)])
+	var token_header:PackedStringArray = PackedStringArray(["token: %s" % token.hex_encode()])
 	# response = [response_code, response_headers, response_body]
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, TOKEN_VERIFY_ENDPOINT, token_header)
 	if response[0] == HTTPClient.RESPONSE_OK:

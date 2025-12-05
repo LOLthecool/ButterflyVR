@@ -141,6 +141,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_font_sizes/font_size = 32
 placeholder_text = "Password"
+secret = true
 metadata/_edit_use_anchors_ = true
 
 [node name="CheckBox" type="CheckBox" parent="TabContainer/SignIn"]
@@ -219,6 +220,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_font_sizes/font_size = 32
 placeholder_text = "Password"
+secret = true
 metadata/_edit_use_anchors_ = true
 
 [node name="Button2" type="Button" parent="TabContainer/Register"]
