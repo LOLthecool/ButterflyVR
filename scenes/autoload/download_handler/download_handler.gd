@@ -4,10 +4,13 @@ class_name DownloadHandler
 
 
 const OBJECT_INFO_ENDPOINT:String = "api/v0/%s/%s"
-const OBJECT_DOWNLOAD_ENDPOINT:String = "api/v0/%s/%s/download"
+const OBJECT_DOWNLOAD_ENDPOINT:String = "api/v0/%s/%s/epck"
+const MEGABYTE:int = 1024
+const GIGABYTE:int = 1024 * 1024
 
-# max size: 1gb
-var cache:LRUCache = LRUCache.load_cache("cache_meta", 1024 * 1024, "cache")
+
+# max size: 10GB
+var cache:LRUCache = LRUCache.load_cache("cache_meta", GIGABYTE * 10, "cache")
 
 func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 	if !await preload_object(uuid, type):
