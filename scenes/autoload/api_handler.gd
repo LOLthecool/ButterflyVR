@@ -68,7 +68,7 @@ func handle_response(code:HTTPClient.ResponseCode, body:String, expected_codes:A
 	if err != OK and !body.is_empty():
 		push_error("response parse error: %s" % err)
 	
-	if decoder.data is not Dictionary:
+	if decoder.data == null:
 		if !expected_body_keys.is_empty():
 			success = false
 		return [success, response_code, error_code, error_message, response_values]

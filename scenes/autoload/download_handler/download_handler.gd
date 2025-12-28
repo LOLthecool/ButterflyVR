@@ -3,8 +3,8 @@ class_name DownloadHandler
 
 
 
-const OBJECT_INFO_ENDPOINT:String = "api/v0/%s/%s"
-const OBJECT_DOWNLOAD_ENDPOINT:String = "api/v0/%s/%s/epck"
+const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
+const OBJECT_DOWNLOAD_ENDPOINT:String = "/api/v0/%s/%s/epck"
 const MEGABYTE:int = 1024
 const GIGABYTE:int = 1024 * 1024
 
@@ -17,7 +17,17 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 		push_warning("error in preload step, returning null")
 		return null
 	
-	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, OBJECT_INFO_ENDPOINT % [uuid, type])
+	var object_type_string:String = "UNNAMED"
+	match type:
+		LRUCache.ObjectType.world:
+			object_type_string = "World"
+		LRUCache.ObjectType.avatar:
+			object_type_string = "Avatar"
+	
+	var response:Array[Variant] = await GlobalAPIHandler.make_request(
+			HTTPClient.METHOD_GET, 
+			OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
+			PackedStringArray([GlobalAccountHandler.get_token_header()]))
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["root_name", "key", "iv"])
 	
 	var success:bool = result[0]
@@ -40,16 +50,26 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 	return decrypt_and_load_object(file, uuid, response_values[0], response_values[1], response_values[2])
 
 func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
-	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, OBJECT_INFO_ENDPOINT % [uuid, type])
-	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["last_update_utc", "size_KB", "can_download"])
+	var object_type_string:String = "UNNAMED"
+	match type:
+		LRUCache.ObjectType.world:
+			object_type_string = "World"
+		LRUCache.ObjectType.avatar:
+			object_type_string = "Avatar"
+	
+	var response:Array[Variant] = await GlobalAPIHandler.make_request(
+			HTTPClient.METHOD_GET, 
+			OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
+			PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["last_update_utc", "size_KB"])
 	
 	var success:bool = result[0]
 	var response_code:int = result[1]
 	var error_code:String = result[2]
 	var error_message:String = result[3]
-	var response_values:Array[Variant] = result[4]
+	var response_values:Dictionary[String, Variant] = result[4]
 	
-	if (!success) or !response_values[2]:
+	if (!success):
 		push_warning("failed to aquire object data")
 		if response_code != -1:
 			push_error("server response: %s" % response_code)
@@ -60,14 +80,14 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 		return false
 	
 	if cache.has(uuid, type):
-		if cache.get_object(uuid, type).cache_time_utc >= response_values[0]:
+		if cache.get_object(uuid, type).cache_time_utc >= response_values["last_update_utc"]:
 			return true
 		else:
 			cache.pop_front()
 	
 	# cache value didnt exist or was stale so we download
 	download_object(uuid, type)
-	var item = LRUCache.Pack.new(uuid, type, response_values[0], response_values[1])
+	var item = LRUCache.Pack.new(uuid, type, response_values["last_update_utc"], response_values["size_KB"])
 	cache.push_front(item)
 	return true
 
