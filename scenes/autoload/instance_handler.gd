@@ -43,7 +43,7 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 		await get_tree().physics_frame
 	var local_server_token:PackedByteArray = FileAccess.get_file_as_bytes(
 			LOCAL_SERVER_KEY_LOCATION)
-	NetworkManager.start_client(local_server_token)
+	GlobalNetworkManager.start_client(local_server_token)
 
 func join_instance(instance:UUID) -> void:
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
@@ -56,4 +56,4 @@ func join_instance(instance:UUID) -> void:
 	var token:PackedByteArray = PackedByteArray()
 	for idx:int in range(0, token_string.length(), 2):
 		token.push_back(token_string.substr(idx, 2).hex_to_int())
-	NetworkManager.start_client(token)
+	GlobalNetworkManager.start_client(token)

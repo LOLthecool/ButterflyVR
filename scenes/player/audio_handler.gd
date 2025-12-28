@@ -16,5 +16,5 @@ func _physics_process(_delta: float) -> void:
 		var tmp:PackedVector2Array = effect.get_buffer(960)
 		if tmp.size() == 0:
 			break
-		(NetworkManager as NetNodeManager).transmit_audio(tmp)
-	((get_child(1) as AudioStreamPlayer).stream as VoiceStream).get_current_playback().buffer_audio((NetworkManager as NetNodeManager).get_audio())
+		GlobalNetworkManager.transmit_audio(tmp)
+	((get_child(1) as AudioStreamPlayer).stream as VoiceStream).get_current_playback().buffer_audio(GlobalNetworkManager.get_audio())

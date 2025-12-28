@@ -29,9 +29,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.linear_velocity = vel
 		state.angular_velocity = ang
 func on_grab() -> void:
-	(NetworkManager as NetNodeManager).become_object_owner(networker.objectid)
+	GlobalNetworkManager.become_object_owner(networker.objectid)
 func on_release() -> void:
-	(NetworkManager as NetNodeManager).release_object_owner(networker.objectid)
+	GlobalNetworkManager.release_object_owner(networker.objectid)
 
 func start_highlight() -> void:
 	@warning_ignore("unsafe_property_access")

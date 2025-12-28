@@ -23,13 +23,13 @@ driver/enable_input=true
 
 [autoload]
 
-NetworkManager="*res://scenes/autoload/network_manager.tscn"
 GlobalWorldHandler="*res://scenes/autoload/world_handler.gd"
 GlobalAPIHandler="*res://scenes/autoload/api_handler.gd"
 GlobalAccountHandler="*res://scenes/autoload/account_handler.gd"
 GlobalPersistanceHandler="*res://scenes/autoload/persistance_handler.gd"
 GlobalDownloadHandler="*res://scenes/autoload/download_handler/download_handler.gd"
 GlobalImageDownloadHandler="*res://scenes/autoload/download_handler/image_download_handler.gd"
+GlobalNetworkManager="*res://scenes/autoload/network_manager.gd"
 
 [debug]
 

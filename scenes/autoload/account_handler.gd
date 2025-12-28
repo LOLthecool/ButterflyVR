@@ -17,9 +17,9 @@ var session_token:PackedByteArray = PackedByteArray()
 var token_expiry_utc:int = -1
 # tokens for temporary sessions cannot renew themselves, in that case renewal logic is disabled
 var token_renewable:bool = false
-var token_valid:bool = false
 var user_id:UUID = UUID.new()
 var renew_timer:Timer = Timer.new()
+var token_checkable:bool = false
 
 func _enter_tree() -> void:
 	var saved_token:Array[int] = []
@@ -27,9 +27,16 @@ func _enter_tree() -> void:
 	var expiry:int = GlobalPersistanceHandler.register_value("user_login", "token", "expiry", -1)
 	var renewable:bool = GlobalPersistanceHandler.register_value("user_login", "token", "renewable", false)
 	if await is_token_valid(saved_token, expiry):
-		token_valid = true
 		set_token(saved_token, expiry, renewable)
 		check_renew()
+	token_checkable = true
+
+# renew token if game is closing so the user has the full 1 month 
+# to log in again before it expires
+func _exit_tree() -> void:
+	if token_renewable:
+		var token_header:PackedStringArray = PackedStringArray([get_token_header()])
+		GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, TOKEN_RENEW_ENDPOINT, token_header).connect(on_token_request)
 
 func _ready() -> void:
 	renew_timer.autostart = true
@@ -38,7 +45,6 @@ func _ready() -> void:
 	add_child.call_deferred(renew_timer)
 
 func logout() -> void:
-	token_valid = false
 	set_token([], -1, false)
 
 func set_token(token:Array[int], expiry_utc:int, renewable:bool) -> void:
@@ -54,10 +60,12 @@ func set_token(token:Array[int], expiry_utc:int, renewable:bool) -> void:
 		GlobalPersistanceHandler.set_value("user_login", "token", "expiry", -1)
 		GlobalPersistanceHandler.set_value("user_login", "token", "renewable", false)
 	if await is_token_valid(session_token, token_expiry_utc):
-		token_valid = true
 		user_id = await get_uuid(false)
-	else:
-		token_valid = false
+
+func check_token_valid() -> bool:
+	while !token_checkable:
+		await get_tree().physics_frame
+	return await is_token_valid(session_token, token_expiry_utc)
 
 func get_token_header() -> String:
 	return "token: %s" % session_token.hex_encode()
@@ -67,9 +75,9 @@ func get_uuid(use_cached_value:bool = true) -> UUID:
 		return user_id
 	var token_header:PackedStringArray = PackedStringArray([get_token_header()])
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, TOKEN_USER_ENDPOINT, token_header)
-	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["uuid"])
-	var values:Array[Variant] = result[4]
-	if values.is_empty():
+	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["id"])
+	var values:Dictionary[String, Variant] = result[4]
+	if !result[0]:
 		push_error("failed to aquire user uuid")
 		if result[1] != -1:
 			push_error("server response: %s" % result[1])
@@ -78,7 +86,7 @@ func get_uuid(use_cached_value:bool = true) -> UUID:
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
 		return UUID.new()
-	return UUID.from_String(values[0])
+	return UUID.from_String(values["id"])
 
 func is_token_valid(token:PackedByteArray, expiry_utc:int) -> bool:
 	if token == PackedByteArray():
@@ -104,7 +112,6 @@ func check_renew() -> void:
 	# should only happen with non renewable tokens and a session lasting longer than the token expiry time
 	if int(Time.get_unix_time_from_system()) > token_expiry_utc:
 		push_error("token expired! if this is a renewable token (remember me checked when signing in) this is a bug")
-		token_valid = false
 		set_token([], -1, false)
 	
 	if int(Time.get_unix_time_from_system()) + TOKEN_RENEWAL_THRESHOLD > token_expiry_utc:
@@ -119,5 +126,4 @@ func on_token_request(response_code:HTTPClient.ResponseCode, _headers:PackedStri
 	if response_token.size() == 0:
 		push_error("tried to renew token but server did not reply with one")
 		return
-	token_valid = true
 	set_token(response_token, int(body_json["token_expiry_utc"]), true)

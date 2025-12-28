@@ -12,9 +12,9 @@ func _ready() -> void:
 	@warning_ignore("unsafe_property_access")
 	owner_id = networker.owner_id
 	GlobalWorldHandler.current_world.avatar_change_handler.avatar_changed.connect(change_avatar)
-	while !(NetworkManager as NetNodeManager).id_ready():
+	while !GlobalNetworkManager.id_ready():
 		await get_tree().physics_frame
-	if owner_id == (NetworkManager as NetNodeManager).get_id():
+	if owner_id == GlobalNetworkManager.get_id():
 		# todo: get current avatar from api
 		GlobalWorldHandler.current_world.avatar_change_handler.send_message(owner_id, UUID.new())
 

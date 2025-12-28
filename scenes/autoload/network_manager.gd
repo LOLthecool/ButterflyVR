@@ -1,0 +1,2 @@
+extends NetNodeManager
+class_name NetworkManager

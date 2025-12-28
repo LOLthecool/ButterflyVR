@@ -26,4 +26,4 @@ func on_avatar_details() -> void:
 
 func on_avatar_equip() -> void:
 	var avatar_handler:AvatarChangeHandler = GlobalWorldHandler.current_world.avatar_change_handler
-	avatar_handler.send_message((NetworkManager as NetNodeManager).get_id(), avatar["uuid"])
+	avatar_handler.send_message(GlobalNetworkManager.get_id(), avatar["uuid"])

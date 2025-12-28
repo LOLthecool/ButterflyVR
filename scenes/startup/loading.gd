@@ -57,7 +57,7 @@ const OUTPUT_LENGTH:int = 64
 var load_cancelled:bool = false
 
 func _ready() -> void:
-	if GlobalAccountHandler.token_valid:
+	if await GlobalAccountHandler.check_token_valid():
 		loading_text.text = "Logging in with saved account..."
 		start()
 	else:
