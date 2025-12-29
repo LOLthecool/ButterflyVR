@@ -4,14 +4,14 @@ class_name PlayerNetworker
 @export var target:Player
 
 func _ready() -> void:
-	while !GlobalNetworkManager.id_ready():
+	while !NetworkManager.id_ready():
 		await get_tree().physics_frame
-	if owner_id == GlobalNetworkManager.get_id():
+	if owner_id == NetworkManager.get_id():
 		target.init_local()
 	else:
 		target.init_remote()
-	if GlobalNetworkManager.is_server():
-		GlobalNetworkManager.register_player_object(owner_id, target)
+	if NetworkManager.is_server():
+		NetworkManager.register_player_object(owner_id, target)
 
 func _get_networked_values() -> Array:
 	var values:Array = []

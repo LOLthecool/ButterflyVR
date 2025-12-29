@@ -23,9 +23,9 @@ func _ready() -> void:
 			token_number = int(argument.trim_prefix("token_count"))
 	var bind_addr:String = bind_ip + ":" + str(bind_port)
 	print("binding to address: ", bind_addr)
-	GlobalNetworkManager.start_server(bind_addr, key)
+	NetworkManager.start_server(bind_addr, key)
 	print("server started. loading world: <debug>")
 	for i:int in range(token_number):
-		print(GlobalNetworkManager.get_next_client().hex_encode())
+		print(NetworkManager.get_next_client().hex_encode())
 		await get_tree().physics_frame
 	get_tree().change_scene_to_file("res://scenes/world/debug_world.tscn")

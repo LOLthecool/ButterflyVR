@@ -6,7 +6,7 @@ func _pressed() -> void:
 	GlobalWorldHandler.current_world.queue_free()
 	await tree.physics_frame
 	# disconnect first, if connected, so the server isnt waiting for timeout
-	GlobalNetworkManager.stop()
+	NetworkManager.stop()
 	GlobalAccountHandler.logout()
 	tree.change_scene_to_packed(preload("res://scenes/startup/loading.tscn"))
 	queue_free()

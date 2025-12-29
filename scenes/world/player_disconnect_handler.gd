@@ -4,7 +4,7 @@ func on_player_left(player:int) -> void:
 	send_message_final([player], [_get_value_type(null, 0)])
 
 func _ready() -> void:
-	GlobalNetworkManager.player_left.connect(on_player_left)
+	NetworkManager.player_left.connect(on_player_left)
 
 func _get_value_type(_previous_value: Variant, idx: int) -> int:
 	match idx:
@@ -16,6 +16,6 @@ func _process_message(values: Array) -> void:
 
 func handle_on_dc(values: Array) -> void:
 	var player:int = values[0]
-	for node:NetworkedNode in GlobalNetworkManager.get_networked_nodes():
+	for node:NetworkedNode in NetworkManager.get_networked_nodes():
 		if node.owner_id == player:
 			node._on_owner_dc()

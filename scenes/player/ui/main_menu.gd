@@ -1,4 +1,4 @@
-extends Panel
+extends VBoxContainer
 
 var previous_mouse_mode:Input.MouseMode
 

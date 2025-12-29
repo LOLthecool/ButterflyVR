@@ -4,7 +4,7 @@ func on_player_join(player:int) -> void:
 	send_message_final([player], [_get_value_type(null, 0)])
 
 func _ready() -> void:
-	GlobalNetworkManager.player_joined.connect(on_player_join)
+	NetworkManager.player_joined.connect(on_player_join)
 
 func _get_value_type(_previous_value: Variant, idx: int) -> int:
 	match idx:

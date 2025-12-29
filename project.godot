@@ -29,7 +29,7 @@ GlobalAccountHandler="*res://scenes/autoload/account_handler.gd"
 GlobalPersistanceHandler="*res://scenes/autoload/persistance_handler.gd"
 GlobalDownloadHandler="*res://scenes/autoload/download_handler/download_handler.gd"
 GlobalImageDownloadHandler="*res://scenes/autoload/download_handler/image_download_handler.gd"
-GlobalNetworkManager="*res://scenes/autoload/network_manager.gd"
+NetworkManager="*res://scenes/autoload/network_manager.gd"
 GlobalInstanceHandler="*res://scenes/autoload/instance_handler.gd"
 
 [debug]

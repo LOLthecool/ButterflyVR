@@ -1,66 +1,32 @@
-[gd_scene load_steps=15 format=3 uid="uid://dp5npmsern82o"]
+[gd_scene load_steps=8 format=3 uid="uid://dp5npmsern82o"]
 
 [ext_resource type="Script" uid="uid://cunre5bjrn1g" path="res://scenes/world/world.gd" id="1_2wqxu"]
-[ext_resource type="Script" uid="uid://difax78t3iblc" path="res://scenes/world/player_disconnect_handler.gd" id="3_ecjtj"]
-[ext_resource type="PackedScene" uid="uid://dlngg0ky7ua4m" path="res://scenes/objects/physics cube/cube.tscn" id="4_iwaqr"]
-[ext_resource type="Script" uid="uid://8iyqbbtl2uko" path="res://scenes/world/chat_box_manager.gd" id="4_vq23v"]
-[ext_resource type="Script" uid="uid://opmbdqhu8sw6" path="res://scenes/world/player_handler.gd" id="5_hup2d"]
-[ext_resource type="Script" uid="uid://b1mvsa3unehjf" path="res://scenes/world/player_grab_handler.gd" id="8_6jk3k"]
-[ext_resource type="Script" uid="uid://b45wfvomqpb3k" path="res://scenes/world/avatar_change_handler.gd" id="9_owvy0"]
-[ext_resource type="Script" uid="uid://by3rlfc24r7up" path="res://scenes/objects/interactable_message_handler.gd" id="10_hl3hq"]
-
-[sub_resource type="Gradient" id="Gradient_yj1bh"]
-offsets = PackedFloat32Array(0, 0.00793651, 0.015873, 0.0238095, 0.031746, 1)
-colors = PackedColorArray(0, 0, 0, 1, 0.214286, 0.214286, 0.214286, 1, 0.333714, 0.333714, 0.333714, 1, 0.446553, 0.446553, 0.446553, 1, 0.604038, 0.604038, 0.604038, 1, 1, 1, 1, 1)
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_cughl"]
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_6qdlq"]
-noise = SubResource("FastNoiseLite_cughl")
-color_ramp = SubResource("Gradient_yj1bh")
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nsnl1"]
-albedo_texture = SubResource("NoiseTexture2D_6qdlq")
+[ext_resource type="Script" uid="uid://dls14642d2uaa" path="res://scenes/world/fallback world/dummy_grab_handler.gd" id="2_u0bto"]
+[ext_resource type="PackedScene" uid="uid://cn3kl8e8lpqcu" path="res://scenes/player/player.tscn" id="3_exotb"]
+[ext_resource type="Script" uid="uid://bmtfchs21wwn2" path="res://scenes/world/fallback world/dummy_avatar_change_handler.gd" id="3_fl0hp"]
+[ext_resource type="Script" uid="uid://bsslrhuvewjrn" path="res://scenes/world/fallback world/player_init.gd" id="5_76sfd"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_64wdw"]
-material = SubResource("StandardMaterial3D_nsnl1")
 size = Vector2(20, 20)
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_agtxg"]
 
 [node name="World" type="Node" node_paths=PackedStringArray("spawn_point", "chat_box_manager", "player_grab_handler", "avatar_change_handler", "interactable_handler")]
 script = ExtResource("1_2wqxu")
-spawn_point = NodePath("MeshInstance3D/Spawn")
-chat_box_manager = NodePath("WorldComponents/ChatBoxManager")
+spawn_point = NodePath("")
+chat_box_manager = NodePath("")
 player_grab_handler = NodePath("WorldComponents/PlayerGrabHandler")
 avatar_change_handler = NodePath("WorldComponents/AvatarChangeHandler")
-interactable_handler = NodePath("WorldComponents/InteractableMessageHandler")
+interactable_handler = NodePath("")
 
 [node name="WorldComponents" type="Node" parent="."]
 
-[node name="PlayerLeaveHandler" type="MessageHandler" parent="WorldComponents"]
-message_type = 2
-script = ExtResource("3_ecjtj")
-
-[node name="ChatBoxManager" type="MessageHandler" parent="WorldComponents"]
-message_type = 3
-script = ExtResource("4_vq23v")
-
-[node name="PlayerJoinHandler" type="MessageHandler" parent="WorldComponents"]
-message_type = 1
-script = ExtResource("5_hup2d")
-
 [node name="PlayerGrabHandler" type="MessageHandler" parent="WorldComponents"]
 message_type = 5
-script = ExtResource("8_6jk3k")
+script = ExtResource("2_u0bto")
 
 [node name="AvatarChangeHandler" type="MessageHandler" parent="WorldComponents"]
-message_type = 6
-script = ExtResource("9_owvy0")
-
-[node name="InteractableMessageHandler" type="MessageHandler" parent="WorldComponents"]
-message_type = 7
-script = ExtResource("10_hl3hq")
+script = ExtResource("3_fl0hp")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("PlaneMesh_64wdw")
@@ -72,12 +38,20 @@ collision_mask = 17
 [node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/StaticBody3D"]
 shape = SubResource("WorldBoundaryShape3D_agtxg")
 
-[node name="Spawn" type="Node3D" parent="MeshInstance3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.35851, 1.78033, 4.79102)
-
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.88165, -0.211182, 0.422014, -0.117749, 0.767547, 0.630085, -0.456978, -0.605206, 0.651841, 0, 2.35174, 0)
 shadow_enabled = true
 
-[node name="Cube" parent="." instance=ExtResource("4_iwaqr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.50173, 0.775348, 0)
+[node name="Label3D" type="Label3D" parent="."]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 2.4041548, 7.7906075)
+text = "Sorry, something went wrong. 
+You can try joining another instance or filing a bug report."
+font_size = 128
+outline_size = 48
+
+[node name="player" parent="." instance=ExtResource("3_exotb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22542882, 0)
+
+[node name="PlayerInit" type="Node" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("5_76sfd")
+player = NodePath("../player")

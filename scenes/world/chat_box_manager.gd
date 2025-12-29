@@ -11,9 +11,9 @@ class Message:
 
 
 func send_message(message:String) -> void:
-	while !GlobalNetworkManager.id_ready():
+	while !NetworkManager.id_ready():
 		await get_tree().physics_frame
-	var player:int = GlobalNetworkManager.get_id()
+	var player:int = NetworkManager.get_id()
 	send_message_final([player, message], [_get_value_type(null, 0), _get_value_type(player, 1)])
 
 func _get_value_type(_previous_value: Variant, idx: int) -> int:

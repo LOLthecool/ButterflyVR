@@ -42,21 +42,21 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
 	
 	if world == null:
-		load_fallback_world()
-	else:
-		if !SetupHelpers.check_safe(world.get_state()):
-			push_error("tried to load unsafe world, aborting")
-			push_error("no error handling here, exiting")
-			get_tree().free() # this is fine since we should disconnect before this point
-			return
-		
-		get_tree().current_scene.queue_free()
-		
-		await get_tree().physics_frame
-		
-		var root:Node = world.instantiate()
-		SetupHelpers.setup_world(root)
-		get_tree().root.add_child(root) 
+		return load_fallback_world()
+	
+	if !SetupHelpers.check_safe(world.get_state()):
+		push_error("tried to load unsafe world, aborting")
+		push_error("no error handling here, exiting")
+		get_tree().free() # this is fine since we should disconnect before this point
+		return
+	
+	get_tree().current_scene.queue_free()
+	
+	await get_tree().physics_frame
+	
+	var root:Node = world.instantiate()
+	SetupHelpers.setup_world(root)
+	get_tree().root.add_child(root) 
 	
 	# todo:
 	# if instance id != null call instance handler with instance id
@@ -67,6 +67,6 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 		GlobalInstanceHandler.create_and_join_offline_instance(world_id)
 
 func disconnect_from_world(go_home:bool = true) -> void:
-	GlobalNetworkManager.stop()
+	NetworkManager.stop()
 	if go_home:
 		load_homeworld()
