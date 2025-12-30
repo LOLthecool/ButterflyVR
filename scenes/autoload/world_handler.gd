@@ -42,7 +42,8 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
 	
 	if world == null:
-		return load_fallback_world()
+		await load_fallback_world()
+		return
 	
 	if !SetupHelpers.check_safe(world.get_state()):
 		push_error("tried to load unsafe world, aborting")

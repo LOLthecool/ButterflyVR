@@ -31,7 +31,7 @@ static func setup_avatar(root:Node, player:Player) -> void:
 			var aabb:AABB = (node as VisualInstance3D).get_aabb().abs()
 			combined_aabb.merge(aabb)
 		if node.has_meta("IKMarker") and node is Skeleton3D:
-			var ik:AvatarIK = preload("res://scenes/player/avatars/godot_ik.tscn").instantiate()
+			var ik:AvatarIK = preload("res://scenes/player/avatar/godot_ik.tscn").instantiate()
 			var values:Dictionary = node.get_meta("IKMarker")
 			# todo: check marker is valid
 			node.add_child(ik)

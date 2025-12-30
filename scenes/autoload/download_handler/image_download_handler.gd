@@ -31,9 +31,24 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	return Image.load_from_file(cache.object_file_path % [type, uuid])
 
 func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
-	var url = OBJECT_IMAGE_ENDPOINT % [uuid, object_type]
+	var object_type_string:String = "UNNAMED"
+	
+	match object_type:
+		LRUCache.ObjectType.world:
+			object_type_string = "World"
+		LRUCache.ObjectType.avatar:
+			object_type_string = "Avatar"
+	
+	var url = OBJECT_IMAGE_ENDPOINT % [object_type_string, uuid]
+	
 	var downloader:HTTPRequest = HTTPRequest.new()
-	#FileAccess.open(file_path, FileAccess.WRITE).close()
+	add_child(downloader)
+	
 	downloader.download_file = cache.object_file_path % [uuid, object_type]
-	downloader.request(url, PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	downloader.request("http://" +
+			GlobalAPIHandler.TARGET_HOST + ":" + str(GlobalAPIHandler.TARGET_PORT)
+			 + url, PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	
 	await downloader.request_completed
+	
+	downloader.queue_free()

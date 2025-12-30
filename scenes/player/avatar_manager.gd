@@ -24,16 +24,14 @@ func change_avatar(target_player:int, avatar:UUID) -> void:
 		return
 	if equiped_avatar != null:
 		equiped_avatar.queue_free()
-	if avatar == UUID.new():
-		new_avatar = preload("res://scenes/player/avatars/builtin/humanoid/humanoid.tscn")
-	else:
-		new_avatar = preload("res://scenes/player/avatars/builtin/loading_avatar.tscn")
-		equiped_avatar = new_avatar.instantiate()
-		get_parent().add_child(equiped_avatar)
-		var thread:Thread = Thread.new()
-		thread.start(load_avatar_on_thread.bind(avatar, new_avatar))
-		await avatar_loaded
-		thread.wait_to_finish()
+	
+	new_avatar = preload("res://scenes/player/avatar/loading_avatar.tscn")
+	equiped_avatar = new_avatar.instantiate()
+	get_parent().add_child(equiped_avatar)
+	var thread:Thread = Thread.new()
+	thread.start(load_avatar_on_thread.bind(avatar, new_avatar))
+	await avatar_loaded
+	thread.wait_to_finish()
 	current_avatar = avatar
 	if equiped_avatar:
 		equiped_avatar.queue_free()

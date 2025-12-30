@@ -28,13 +28,13 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 			HTTPClient.METHOD_GET, 
 			OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
-	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["root_name", "key", "iv"])
+	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["key", "iv"])
 	
 	var success:bool = result[0]
 	var response_code:int = result[1]
 	var error_code:String = result[2]
 	var error_message:String = result[3]
-	var response_values:Array[Variant] = result[4]
+	var response_values:Dictionary[String, Variant] = result[4]
 	
 	if (!success):
 		push_warning("failed to aquire object data")
@@ -47,10 +47,11 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 		return null
 	
 	var file:FileAccess = FileAccess.open(cache.object_file_path % [type, uuid], FileAccess.READ)
-	return decrypt_and_load_object(file, uuid, response_values[0], response_values[1], response_values[2])
+	return decrypt_and_load_object(file, type, uuid, response_values["key"], response_values["iv"])
 
 func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 	var object_type_string:String = "UNNAMED"
+	
 	match type:
 		LRUCache.ObjectType.world:
 			object_type_string = "World"
@@ -61,7 +62,7 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 			HTTPClient.METHOD_GET, 
 			OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
-	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["last_update_utc", "size_KB"])
+	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["updated_at", "object_size"])
 	
 	var success:bool = result[0]
 	var response_code:int = result[1]
@@ -80,14 +81,14 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 		return false
 	
 	if cache.has(uuid, type):
-		if cache.get_object(uuid, type).cache_time_utc >= response_values["last_update_utc"]:
+		if cache.get_object(uuid, type).cache_time_utc >= response_values["updated_at"]:
 			return true
 		else:
 			cache.pop_front()
 	
 	# cache value didnt exist or was stale so we download
 	download_object(uuid, type)
-	var item = LRUCache.Pack.new(uuid, type, response_values["last_update_utc"], response_values["size_KB"])
+	var item = LRUCache.Pack.new(uuid, type, response_values["updated_at"], response_values["object_size"])
 	cache.push_front(item)
 	return true
 
@@ -96,25 +97,46 @@ func remove_all_expired() -> void:
 	push_error("not yet implemented")
 
 func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
-	var url = OBJECT_DOWNLOAD_ENDPOINT % [uuid, object_type]
+	var object_type_string:String = "UNNAMED"
+	
+	match object_type:
+		LRUCache.ObjectType.world:
+			object_type_string = "World"
+		LRUCache.ObjectType.avatar:
+			object_type_string = "Avatar"
+	
+	var url = OBJECT_DOWNLOAD_ENDPOINT % [object_type_string, uuid]
+	
 	var downloader:HTTPRequest = HTTPRequest.new()
-	#FileAccess.open(file_path, FileAccess.WRITE).close()
+	add_child(downloader)
+	
 	downloader.download_file = cache.object_file_path % [uuid, object_type]
-	downloader.request(url, PackedStringArray([GlobalAccountHandler.session_token]))
+	downloader.request("http://" +
+			GlobalAPIHandler.TARGET_HOST + ":" + str(GlobalAPIHandler.TARGET_PORT)
+			 + url, PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	
 	await downloader.request_completed
+	
+	downloader.queue_free()
 
-func decrypt_and_load_object(object:FileAccess, uuid:UUID, root_name:String, key:PackedByteArray, iv:PackedByteArray) -> PackedScene:
+func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType, uuid:UUID, key:PackedByteArray, iv:PackedByteArray) -> PackedScene:
 	var aes:AESContext = AESContext.new()
 	aes.start(AESContext.MODE_CBC_DECRYPT, key, iv)
+	
 	var decrypted_buffer:PackedByteArray = PackedByteArray()
+	
 	while object.get_position() < object.get_length():
 		# encrypted files should always be a multiple of 16 bytes long
 		decrypted_buffer += aes.update(object.get_buffer(16))
 		object.seek(object.get_position() + 16)
+	
 	object.close()
 	aes.finish()
+	
 	var new_object:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true)
+	
 	# not sure what would happen here if the os clears the temp file while we are running
 	ProjectSettings.load_resource_pack(new_object.get_path(), false)
+	
 	new_object.close()
-	return load("res://_loaded_content/%s/%s" % [uuid, root_name]) as PackedScene
+	return load("res://_loaded_content/%s/%s" % [object_type, uuid]) as PackedScene

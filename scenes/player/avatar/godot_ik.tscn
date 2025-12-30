@@ -1,9 +1,9 @@
 [gd_scene load_steps=5 format=3 uid="uid://iy8dt2wi4cr1"]
 
-[ext_resource type="Script" uid="uid://ba84wt0o12oab" path="res://scenes/player/avatars/head_ik.gd" id="1_a3svs"]
-[ext_resource type="Script" uid="uid://vxxksbehb1wg" path="res://scenes/player/avatars/ik_setup.gd" id="1_u3w4j"]
-[ext_resource type="Script" uid="uid://cjy7aajvmdr7i" path="res://scenes/player/avatars/leg_controller.gd" id="2_qr1mp"]
-[ext_resource type="Script" uid="uid://blcysi2gbtq76" path="res://scenes/player/avatars/ik_follower.gd" id="2_vqhiq"]
+[ext_resource type="Script" uid="uid://ba84wt0o12oab" path="res://scenes/player/avatar/head_ik.gd" id="1_a3svs"]
+[ext_resource type="Script" uid="uid://vxxksbehb1wg" path="res://scenes/player/avatar/ik_setup.gd" id="1_u3w4j"]
+[ext_resource type="Script" uid="uid://cjy7aajvmdr7i" path="res://scenes/player/avatar/leg_controller.gd" id="2_qr1mp"]
+[ext_resource type="Script" uid="uid://blcysi2gbtq76" path="res://scenes/player/avatar/ik_follower.gd" id="2_vqhiq"]
 
 [node name="GodotIK" type="GodotIK" node_paths=PackedStringArray("head", "left_arm", "right_arm", "left_leg", "right_leg", "spine", "hips")]
 script = ExtResource("1_u3w4j")
