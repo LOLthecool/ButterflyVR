@@ -111,7 +111,9 @@ static func load_cache(file:String, max_size:int, default_cache_name:String) -> 
 	
 	for key:PackIdentifier in new_backing_store.keys():
 		if first_map.has(key):
-			new_backing_store[key].next = new_backing_store[first_map[key]].identifier
+			var y = first_map[key]
+			var x = new_backing_store[y]
+			new_backing_store[key].next = x.identifier
 		if last_map.has(key):
 			new_backing_store[key].last = new_backing_store[last_map[key]].identifier
 	
@@ -142,21 +144,32 @@ func push_front(item:Pack) -> void:
 	save_self()
 
 func get_object(uuid:UUID, object_type:ObjectType) -> Pack:
-	var identifier:PackIdentifier = PackIdentifier.new(uuid, object_type)
-	if identifier in cached_objects:
-		var object:Pack = cached_objects[identifier]
+	if has(uuid, object_type):
+		var object:Pack
+		for i:Pack in cached_objects.values():
+			if i.identifier.uuid.equals(uuid) and i.identifier.object_type == object_type:
+				object = i
+				break
 		
 		if object.next:
 			cached_objects[object.next].last = object.last
 		else:
-			cache_head = cached_objects[object.last]
+			if object.last:
+				cache_head = cached_objects[object.last]
+			else:
+				cache_head = null
 		
 		if object.last:
 			cached_objects[object.last].next = object.next
 		else:
-			cache_tail = cached_objects[object.next]
+			if object.next:
+				cache_tail = cached_objects[object.next]
+			else:
+				cache_tail = null
 		
-		cached_objects.erase(identifier)
+		cached_objects.erase(object.identifier)
+		
+		push_front(object)
 		
 		save_self()
 		
@@ -164,7 +177,10 @@ func get_object(uuid:UUID, object_type:ObjectType) -> Pack:
 	return null
 
 func has(uuid:UUID, object_type:ObjectType) -> bool:
-	return cached_objects.has(PackIdentifier.new(uuid, object_type))
+	for object:PackIdentifier in cached_objects.keys():
+		if object.uuid.equals(uuid) and object.object_type == object_type:
+			return true
+	return false
 
 func pop_back() -> Pack:
 	var tail:Pack = cache_tail

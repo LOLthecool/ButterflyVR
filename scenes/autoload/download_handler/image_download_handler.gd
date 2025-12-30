@@ -13,20 +13,20 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, OBJECT_INFO_ENDPOINT % [uuid, type])
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(
-			response[0], response[2], [200], ["last_update_utc", "image_size_KB"])
+			response[0], response[2], [200], ["updated_at", "image_size"])
 	
 	# todo: error handling
-	var response_values:Array[Variant] = result[4]
+	var response_values:Dictionary[String, Variant] = result[4]
 	
 	if cache.has(uuid, type):
-		if cache.get_object(uuid, type).cache_time_utc >= response_values[0]:
+		if cache.get_object(uuid, type).cache_time_utc >= response_values["updated_at"]:
 			return Image.load_from_file(cache.object_file_path % [type, uuid])
 		else:
 			cache.pop_front()
 	
 	# cache value didnt exist or was stale so we download
 	download_object(uuid, type)
-	var item = LRUCache.Pack.new(uuid, type, response_values[0], response_values[1])
+	var item = LRUCache.Pack.new(uuid, type, response_values["updated_at"], response_values["image_size"] / 1024)
 	cache.push_front(item)
 	return Image.load_from_file(cache.object_file_path % [type, uuid])
 
@@ -45,6 +45,14 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	add_child(downloader)
 	
 	downloader.download_file = cache.object_file_path % [uuid, object_type]
+	
+	if !DirAccess.dir_exists_absolute(
+			cache.object_file_path.trim_suffix("%s.epck") % object_type):
+		DirAccess.make_dir_recursive_absolute(
+				cache.object_file_path.trim_suffix("%s.epck") % object_type)
+	
+	FileAccess.open(downloader.download_file, FileAccess.WRITE).close()
+	
 	downloader.request("http://" +
 			GlobalAPIHandler.TARGET_HOST + ":" + str(GlobalAPIHandler.TARGET_PORT)
 			 + url, PackedStringArray([GlobalAccountHandler.get_token_header()]))
