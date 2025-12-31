@@ -5,8 +5,8 @@ class_name DownloadHandler
 
 const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 const OBJECT_DOWNLOAD_ENDPOINT:String = "/api/v0/%s/%s/epck"
-const MEGABYTE:int = 1024
-const GIGABYTE:int = 1024 * 1024
+const MEGABYTE:int = 1024 * 1024
+const GIGABYTE:int = MEGABYTE * 1024
 
 
 # max size: 10GB
@@ -164,7 +164,7 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	decrypted_buffer.resize(decrypted_buffer.size() - (zero_bytes + 1))
 	
 	# todo: include uncompressed size when uploading
-	decrypted_buffer = decrypted_buffer.decompress(MEGABYTE, FileAccess.COMPRESSION_ZSTD)
+	decrypted_buffer = decrypted_buffer.decompress_dynamic(GIGABYTE * 4, FileAccess.COMPRESSION_GZIP)
 	
 	new_object.store_buffer(decrypted_buffer)
 	new_object.flush()
