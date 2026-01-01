@@ -18,3 +18,9 @@ func _ready() -> void:
 
 func log_chat_to_console(message:ChatBoxManager.Message) -> void:
 	print("Player " + str(message.player) + ": " + message.text)
+
+static func setup(spawn_point:Node3D) -> WorldController:
+	var world:WorldController = preload("res://scenes/world/world_controller.tscn").instantiate()
+	world.spawn_point = spawn_point
+	
+	return world

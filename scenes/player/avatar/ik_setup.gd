@@ -28,7 +28,7 @@ var follow_target_right_arm:bool
 var follow_target_left_leg:bool
 var follow_target_right_leg:bool
 
-func setup(is_local:bool) -> void:
+func setup(_is_local:bool) -> void:
 	head.bone_idx = head_bone
 	head.target = head_target
 	head.scale_local()

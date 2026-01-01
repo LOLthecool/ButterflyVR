@@ -42,7 +42,7 @@ func on_confirmed_grab(player:int, target:Node) -> void:
 		return
 	if target is Node3D:
 		is_grabbing = true
-		grab_target.global_position = target.global_position
+		grab_target.global_position = (target as Node3D).global_position
 		grabbed_node = target
 		if grabbed_node is RigidBody3D:
 			(grabbed_node as RigidBody3D).freeze = true

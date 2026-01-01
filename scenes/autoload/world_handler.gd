@@ -39,6 +39,9 @@ func load_fallback_world() -> void:
 	#get_tree().root.add_child(root) 
 
 func load_world(world_id:UUID, instance_id:UUID = null) -> void:
+	if current_world != null:
+		disconnect_from_world(false)
+	
 	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
 	
 	if world == null:
@@ -55,17 +58,15 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	
 	await get_tree().physics_frame
 	
-	var root:Node = world.instantiate()
-	SetupHelpers.setup_world(root)
-	get_tree().root.add_child(root) 
-	
-	# todo:
-	# if instance id != null call instance handler with instance id
-	# else call with null for new offline instance
 	if instance_id != null:
-		GlobalInstanceHandler.join_instance(instance_id)
+		await GlobalInstanceHandler.join_instance(instance_id)
 	else:
-		GlobalInstanceHandler.create_and_join_offline_instance(world_id)
+		await GlobalInstanceHandler.create_and_join_offline_instance(world_id)
+	
+	# client must be started by this point
+	var root:Node = SetupHelpers.setup_world(world.instantiate())
+	get_tree().root.add_child(root) 
+	current_world = root
 
 func disconnect_from_world(go_home:bool = true) -> void:
 	NetworkManager.stop()

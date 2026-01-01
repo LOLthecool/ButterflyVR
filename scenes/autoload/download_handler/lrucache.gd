@@ -39,7 +39,7 @@ class Pack:
 		self.size_KB = size_KB
 	
 	func as_json() -> String:
-		var dict = {
+		var dict:Dictionary[String, Variant] = {
 			"cache_time_utc": cache_time_utc, 
 			"size_KB": size_KB}
 		
@@ -74,8 +74,10 @@ func save_self() -> void:
 	GlobalPersistanceHandler.register_value(cache_file, "metadata", "cache_path", object_file_path)
 	GlobalPersistanceHandler.clear_catagory(cache_file, "values")
 	for key:PackIdentifier in cached_objects.keys():
-		var x = key.to_string()
-		var y = cached_objects[key].as_json()
+		# for some reason these need to be their own variables
+		# if you can remove them without breaking everything feel free
+		var x:String = key.to_string()
+		var y:String = cached_objects[key].as_json()
 		GlobalPersistanceHandler.register_value(cache_file, "values", x, y)
 
 # todo: max size changes only take effect next time something is loaded
@@ -111,8 +113,8 @@ static func load_cache(file:String, max_size:int, default_cache_name:String) -> 
 	
 	for key:PackIdentifier in new_backing_store.keys():
 		if first_map.has(key):
-			var y = first_map[key]
-			var x = new_backing_store[y]
+			var y:PackIdentifier = first_map[key]
+			var x:Pack = new_backing_store[y]
 			new_backing_store[key].next = x.identifier
 		if last_map.has(key):
 			new_backing_store[key].last = new_backing_store[last_map[key]].identifier

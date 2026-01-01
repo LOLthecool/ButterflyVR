@@ -141,7 +141,7 @@ func on_register_response(code:HTTPClient.ResponseCode, _headers:PackedStringArr
 		var response_code:int = result[1]
 		var error_code:String = result[2]
 		var error_message:String = result[3]
-		var message = "Failed to create account."
+		var message:String = "Failed to create account."
 		if response_code != -1:
 			push_error("server response: %s" % response_code)
 		if error_code != "":
@@ -199,7 +199,7 @@ func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray,
 		var response_code:int = result[1]
 		var error_code:String = result[2]
 		var error_message:String = result[3]
-		var message = "Failed to log in."
+		var message:String = "Failed to log in."
 		if response_code != HTTPClient.RESPONSE_OK:
 			if response_code == -1:
 				message += "\nServer did not send a response."

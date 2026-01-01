@@ -3,8 +3,8 @@ class_name UUID
 
 var backing_storage:PackedByteArray
 
-func _init(randomize:bool = false) -> void:
-	if randomize:
+func _init(random_uuid:bool = false) -> void:
+	if random_uuid:
 		for _x:int in range(16):
 			backing_storage.push_back(randi() % 256)
 	else:
@@ -35,7 +35,7 @@ static func from_String(uuid:String) -> UUID:
 	return result
 
 static func from_bytes(bytes:PackedByteArray) -> UUID:
-	var result = UUID.new()
+	var result:UUID = UUID.new()
 	if bytes.size() != 16:
 		push_error("uuid bytes array was wrong size")
 		return result

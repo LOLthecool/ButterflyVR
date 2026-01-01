@@ -26,7 +26,7 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	
 	# cache value didnt exist or was stale so we download
 	download_object(uuid, type)
-	var item = LRUCache.Pack.new(uuid, type, response_values["updated_at"], response_values["image_size"] / 1024)
+	var item:LRUCache.Pack = LRUCache.Pack.new(uuid, type, response_values["updated_at"], response_values["image_size"] / 1024)
 	cache.push_front(item)
 	return Image.load_from_file(cache.object_file_path % [type, uuid])
 
@@ -39,7 +39,7 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 		LRUCache.ObjectType.avatar:
 			object_type_string = "Avatar"
 	
-	var url = OBJECT_IMAGE_ENDPOINT % [object_type_string, uuid]
+	var url:String = OBJECT_IMAGE_ENDPOINT % [object_type_string, uuid]
 	
 	var downloader:HTTPRequest = HTTPRequest.new()
 	add_child(downloader)

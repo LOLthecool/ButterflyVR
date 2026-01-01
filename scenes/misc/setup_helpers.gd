@@ -19,8 +19,18 @@ static func get_node_and_children_recursive(root:Node) -> Array[Node]:
 		nodes.append_array(get_node_and_children_recursive(node))
 	return nodes
 
-static func setup_world(root:Node) -> void:
-	push_error("not implemented")
+static func setup_world(root:Node) -> WorldController:
+	var spawnpoint:Node3D
+	for node:Node in get_node_and_children_recursive(root):
+		# todo: move node setups into its own function
+		if node.has_meta("Spawnpoint"):
+			spawnpoint = node
+			break
+	
+	var world:WorldController = WorldController.setup(spawnpoint)
+	world.add_child(root)
+	
+	return world
 
 # goes through the avatar scene looking for stubs and replaces them with the corrosponding scenes
 static func setup_avatar(root:Node, player:Player) -> void:
