@@ -17,7 +17,7 @@ func _pressed() -> void:
 func on_confirm() -> void:
 	clean_popup()
 	GlobalWorldHandler.disconnect_from_world(false)
-	get_tree().free()
+	get_tree().quit()
 
 func on_cancel() -> void:
 	clean_popup()

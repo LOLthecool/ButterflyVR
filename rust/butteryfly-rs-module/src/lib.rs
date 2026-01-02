@@ -212,6 +212,14 @@ impl NetNodeManager {
             panic!("tried to register_player_object but we are not a server");
         }
     }
+    #[func]
+    fn get_player_count(&self) -> i32 {
+        if self.server.is_some() {
+            return self.server.as_ref().unwrap().bind().get_player_count() as i32;
+        } else {
+            panic!("tried to get_player_count but we are not a server");
+        }
+    }
     fn register_message_handler(&mut self, handler: Gd<MessageHandler>, message_type: u16) {
         if self.client.is_some() {
             return self

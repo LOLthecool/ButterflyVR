@@ -25,7 +25,8 @@ static func setup_world(root:Node) -> WorldController:
 		# todo: move node setups into its own function
 		if node.has_meta("Spawnpoint"):
 			spawnpoint = node
-			break
+		if node is Camera3D:
+			node.queue_free()
 	
 	var world:WorldController = WorldController.setup(spawnpoint)
 	world.add_child(root)

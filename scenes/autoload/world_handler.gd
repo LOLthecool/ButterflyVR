@@ -51,7 +51,7 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	if !SetupHelpers.check_safe(world.get_state()):
 		push_error("tried to load unsafe world, aborting")
 		push_error("no error handling here, exiting")
-		get_tree().free() # this is fine since we should disconnect before this point
+		get_tree().quit() # this is fine since we should disconnect before this point
 		return
 	
 	get_tree().current_scene.queue_free()
@@ -64,6 +64,26 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 		await GlobalInstanceHandler.create_and_join_offline_instance(world_id)
 	
 	# client must be started by this point
+	var root:Node = SetupHelpers.setup_world(world.instantiate())
+	get_tree().root.add_child(root) 
+	current_world = root
+
+# server must be started before this is called
+func load_world_server(world_id:UUID) -> void:
+	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
+	
+	if world == null:
+		push_error("failed to load world")
+		push_error("no error handling here, exiting")
+		get_tree().quit() # this is fine since we should disconnect before this point
+		return
+	
+	if !SetupHelpers.check_safe(world.get_state()):
+		push_error("tried to load unsafe world, aborting")
+		push_error("no error handling here, exiting")
+		get_tree().quit() # this is fine since we should disconnect before this point
+		return
+	
 	var root:Node = SetupHelpers.setup_world(world.instantiate())
 	get_tree().root.add_child(root) 
 	current_world = root

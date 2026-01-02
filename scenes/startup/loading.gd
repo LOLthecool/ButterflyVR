@@ -57,6 +57,10 @@ const OUTPUT_LENGTH:int = 64
 var load_cancelled:bool = false
 
 func _ready() -> void:
+	if OS.get_cmdline_args().has("--server"):
+		get_tree().change_scene_to_file.call_deferred("res://scenes/startup/loading_server.tscn")
+		return
+	
 	if await GlobalAccountHandler.check_token_valid():
 		loading_text.text = "Logging in with saved account..."
 		start()

@@ -3,8 +3,7 @@ class_name InstanceHandler
 
 const INSTANCE_CREATION_ENDPOINT:String = "/api/v0/instance"
 const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instance/%s/join"
-const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--headless", "--server"]
-const LOCAL_SERVER_KEY_LOCATION:String = "user://local_key.tmp"
+const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local"]
 
 enum InstanceJoinPermission{
 	public,
@@ -17,6 +16,10 @@ const STATUS_REFRESH_RATE:int = 30
 
 var current_instance:UUID
 var local_server_pid:int = -1
+
+func _exit_tree() -> void:
+	if local_server_pid != -1:
+		OS.kill(local_server_pid)
 
 func create_online_instance(
 		world_uuid:UUID, join_permission:InstanceJoinPermission, 
@@ -43,17 +46,35 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	var world_argument:String = "--world=%s" % world_uuid
 	arguments.push_back(world_argument)
 	
+	var self_pid_argument:String = "--owner_pid=%s" % OS.get_process_id()
+	arguments.push_back(self_pid_argument)
+	
+	var token_argument:String = "--api_token=%s" % GlobalAccountHandler.session_token.hex_encode()
+	arguments.push_back(token_argument)
+	
+	if FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
+		print("cleaning dirty")
+		DirAccess.remove_absolute(ServerHandler.LOCAL_SERVER_KEY_LOCATION)
+	
+	print("starting local server")
 	local_server_pid = OS.create_instance(arguments)
 	
-	while !FileAccess.file_exists(LOCAL_SERVER_KEY_LOCATION):
+	if local_server_pid == -1:
+		push_error("failed to create local instance")
+	
+	while !FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
 		await get_tree().physics_frame
 	
 	var local_server_token:PackedByteArray = FileAccess.get_file_as_bytes(
-			LOCAL_SERVER_KEY_LOCATION)
+			ServerHandler.LOCAL_SERVER_KEY_LOCATION)
 	
 	NetworkManager.start_client(local_server_token)
 
 func join_instance(instance:UUID) -> void:
+	if local_server_pid != -1:
+		OS.kill(local_server_pid)
+	local_server_pid = -1
+	
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, 
 			INSTANCE_JOIN_ENDPOINT % instance.to_string(), 

@@ -1,6 +1,7 @@
 extends MessageHandler
 
 func on_player_join(player:int) -> void:
+	print("joined")
 	send_message_final([player], [_get_value_type(null, 0)])
 
 func _ready() -> void:
@@ -13,6 +14,7 @@ func _get_value_type(_previous_value: Variant, idx: int) -> int:
 	return -1
 
 func _process_message(values: Array) -> void:
+	print("saw join")
 	var player_owner:int = values[0]
 	var world:WorldController = GlobalWorldHandler.current_world
 	var player:Player = preload("res://scenes/player/player.tscn").instantiate()

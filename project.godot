@@ -31,6 +31,7 @@ GlobalDownloadHandler="*res://scenes/autoload/download_handler/download_handler.
 GlobalImageDownloadHandler="*res://scenes/autoload/download_handler/image_download_handler.gd"
 NetworkManager="*res://scenes/autoload/network_manager.gd"
 GlobalInstanceHandler="*res://scenes/autoload/instance_handler.gd"
+GlobalServerHandler="*res://scenes/autoload/server/server_handler.gd"
 
 [debug]
 

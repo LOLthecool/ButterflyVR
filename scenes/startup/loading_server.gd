@@ -2,30 +2,78 @@ extends Node
 # will later take command arguments / load a config file to control startup
 func _ready() -> void:
 	print("server starting up")
-	if OS.get_name() == "Windows":
-		print("sorry, windows servers are currently non functional and cannot be started, a fix for this will happen eventually")
-		get_tree().free()
+	
+	var key:Array[int] = []
+	key.assign(Crypto.new().generate_random_bytes(32))
+	
 	var bind_ip:String = "127.0.0.1"
 	var bind_port:int = 21442
-	var key_packed:PackedByteArray = Crypto.new().generate_random_bytes(32)
-	var key:Array[int] = []
-	var token_number:int = 1
-	for byte:int in key_packed:
-		key.append(byte)
+	var max_players:int = 1
+	var api_token:PackedByteArray = PackedByteArray()
+	var world:UUID = UUID.new()
+	var owner_pid:int = -1
+	var is_local:bool = false
+	
 	for argument:String in OS.get_cmdline_args():
-		if argument.begins_with("bind_ip=") and argument.trim_prefix("bind_ip=").is_valid_ip_address():
-			bind_ip = argument.trim_prefix("bind_ip=")
-		if argument.begins_with("bind_port=") and argument.trim_prefix("bind_port=").is_valid_int():
-			var port:int = int(argument.trim_prefix("bind_port="))
-			if port >= 1024 and port <= 65535:
-				bind_port = port
-		if argument.begins_with("token_count=") and argument.trim_prefix("token_count=").is_valid_int():
-			token_number = int(argument.trim_prefix("token_count"))
+		if argument == "--local":
+			is_local = true
+			continue
+		
+		var split = argument.split("=")
+		if split.size() != 2:
+			continue
+		
+		var argument_key:String = split[0].trim_prefix("--")
+		var argument_value:String = split[1]
+		
+		match argument_key:
+			"bind_ip":
+				if argument_value.is_valid_ip_address():
+					bind_ip = argument_value
+				else:
+					push_error("invalid ip \"%s\"" % argument_value)
+			"bind_port":
+				if argument_value.is_valid_int():
+					var port_num:int = int(argument_value)
+					if port_num >= 1024 and port_num <= 65535:
+						bind_port = port_num
+					else:
+						push_error("port %s is not a valid port number" % port_num)
+				else:
+					push_error("expected a port number but got \"%s\"" % argument_value)
+			"max_players":
+				if argument_value.is_valid_int():
+					max_players = int(argument_value)
+				else:
+					push_error("expected a max player count but got \"%s\"" % argument_value)
+			"api_token":
+				if argument_value.is_valid_hex_number():
+					var token:PackedByteArray = argument_value.hex_decode()
+					if token.size() == 64:
+						api_token = token
+					else:
+						push_error("expected token of size 64 but got size %s" % token.size)
+				else:
+					push_error("expected an api token but got \"%s\"" % argument_value)
+			"world":
+				var world_uuid:UUID = UUID.from_String(argument_value)
+				if world_uuid:
+					world = world_uuid
+				else:
+					push_error("expected a world UUID but got \"%s\"" % argument_value)
+			"owner_pid":
+				if argument_value.is_valid_int():
+					owner_pid = int(argument_value)
+				else:
+					push_error("expected a pid but got \"%s\"" % argument_value)
+	
 	var bind_addr:String = bind_ip + ":" + str(bind_port)
+	
 	print("binding to address: ", bind_addr)
 	NetworkManager.start_server(bind_addr, key)
-	print("server started. loading world: <debug>")
-	for i:int in range(token_number):
-		print(NetworkManager.get_next_client().hex_encode())
-		await get_tree().physics_frame
-	get_tree().change_scene_to_file("res://scenes/world/debug_world.tscn")
+	
+	print("set token to %s" % api_token)
+	GlobalServerHandler.start(max_players, api_token, owner_pid, is_local)
+	
+	print("server started. loading world: %s" % world)
+	GlobalWorldHandler.load_world_server(world)

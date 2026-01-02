@@ -42,6 +42,9 @@ pub impl NetNodeServer {
     pub fn player_joined(player: u16);
     #[signal]
     pub fn player_left(player: u16);
+    pub fn get_player_count(&self) -> usize {
+        self.server_networker.clients.len()
+    }
     pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &mut NetworkedNode) {
         self.queue_message(MessageHandler::create_id_sync_message(
             new_node_ref.clone().upcast(),
