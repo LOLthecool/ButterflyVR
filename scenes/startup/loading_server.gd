@@ -11,7 +11,6 @@ func _ready() -> void:
 	var max_players:int = 1
 	var api_token:PackedByteArray = PackedByteArray()
 	var world:UUID = UUID.new()
-	var owner_pid:int = -1
 	var is_local:bool = false
 	
 	for argument:String in OS.get_cmdline_args():
@@ -19,7 +18,7 @@ func _ready() -> void:
 			is_local = true
 			continue
 		
-		var split = argument.split("=")
+		var split:PackedStringArray = argument.split("=")
 		if split.size() != 2:
 			continue
 		
@@ -61,19 +60,9 @@ func _ready() -> void:
 					world = world_uuid
 				else:
 					push_error("expected a world UUID but got \"%s\"" % argument_value)
-			"owner_pid":
-				if argument_value.is_valid_int():
-					owner_pid = int(argument_value)
-				else:
-					push_error("expected a pid but got \"%s\"" % argument_value)
 	
 	var bind_addr:String = bind_ip + ":" + str(bind_port)
-	
 	print("binding to address: ", bind_addr)
-	NetworkManager.start_server(bind_addr, key)
 	
 	print("set token to %s" % api_token)
-	GlobalServerHandler.start(max_players, api_token, owner_pid, is_local)
-	
-	print("server started. loading world: %s" % world)
-	GlobalWorldHandler.load_world_server(world)
+	GlobalServerHandler.start(max_players, api_token, is_local, world, bind_addr, key)

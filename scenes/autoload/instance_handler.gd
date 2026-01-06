@@ -53,10 +53,8 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	arguments.push_back(token_argument)
 	
 	if FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
-		print("cleaning dirty")
 		DirAccess.remove_absolute(ServerHandler.LOCAL_SERVER_KEY_LOCATION)
 	
-	print("starting local server")
 	local_server_pid = OS.create_instance(arguments)
 	
 	if local_server_pid == -1:

@@ -270,7 +270,6 @@ pub impl NetNodeServer {
         let new_players = self.server_networker.poll();
         if !new_players.is_empty() {
             for player in new_players {
-                godot_warn!("new player");
                 self.signals().player_joined().emit(player);
             }
         }
@@ -785,7 +784,6 @@ impl ServerNetworker {
                     .unwrap()
                     .last_packet_send_time = Instant::now();
             } else {
-                godot_warn!("new player packet");
                 self.next_client_id += 1;
                 self.clients.insert(
                     packet.1,

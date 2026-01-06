@@ -276,7 +276,6 @@ impl NetNodeManager {
         }
     }
     fn propogate_player_joined(&mut self, player: u16) {
-        godot_warn!("new player propogated");
         self.signals().player_joined().emit(player);
     }
     fn propogate_player_left(&mut self, player: u16) {

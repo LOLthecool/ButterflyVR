@@ -473,9 +473,9 @@ impl INode for NetNodeClient {
                 idx += 1;
             }
         }
-        self.packet_buffers.pop_front();
         self.packet_buffers
             .push_back(Vec::with_capacity(self.packet_buffers[0].len()));
+        self.packet_buffers.pop_front();
         for node in self.owned_nodes.iter_mut() {
             node.1 += node.0.bind().get_priority(self.id);
         }

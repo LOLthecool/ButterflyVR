@@ -3,7 +3,7 @@ extends MessageHandler
 func on_player_left(player:int) -> void:
 	send_message_final([player], [_get_value_type(null, 0)])
 
-func _ready() -> void:
+func _init() -> void:
 	NetworkManager.player_left.connect(on_player_left)
 
 func _get_value_type(_previous_value: Variant, idx: int) -> int:

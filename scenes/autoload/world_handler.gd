@@ -56,6 +56,12 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	
 	get_tree().current_scene.queue_free()
 	
+	# initialization order MUST be:
+	# 1. world instantaited and setup (to connect signals in _init())
+	# 2. instance joined
+	# 3. world added to scene tree (to register with client in _ready())
+	var root:Node = SetupHelpers.setup_world(world.instantiate())
+	
 	await get_tree().physics_frame
 	
 	if instance_id != null:
@@ -64,12 +70,11 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 		await GlobalInstanceHandler.create_and_join_offline_instance(world_id)
 	
 	# client must be started by this point
-	var root:Node = SetupHelpers.setup_world(world.instantiate())
 	get_tree().root.add_child(root) 
 	current_world = root
 
 # server must be started before this is called
-func load_world_server(world_id:UUID) -> void:
+func load_world_server(world_id:UUID, bind_addr:String, key:PackedByteArray) -> void:
 	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
 	
 	if world == null:
@@ -85,6 +90,11 @@ func load_world_server(world_id:UUID) -> void:
 		return
 	
 	var root:Node = SetupHelpers.setup_world(world.instantiate())
+	
+	# todo: this definetly shouldnt be here 
+	# but we need this to happen after the world's _init but before it's _ready
+	NetworkManager.start_server(bind_addr, key)
+	
 	get_tree().root.add_child(root) 
 	current_world = root
 

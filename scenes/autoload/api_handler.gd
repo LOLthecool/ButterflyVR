@@ -116,7 +116,6 @@ func _ready() -> void:
 		while waiting_requests.is_empty():
 			await tree.physics_frame
 		var request:Request = waiting_requests.pop_back()
-		print(request.method, request.target, headers + request.additional_headers, request.body)
 		client.request(request.method, request.target, headers + request.additional_headers, request.body)
 		while client.get_status() == HTTPClient.STATUS_REQUESTING:
 			client.poll()
