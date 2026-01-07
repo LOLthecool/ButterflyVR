@@ -1,8 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://c2qdpk6unaxgl"]
+[gd_scene load_steps=8 format=3 uid="uid://c2qdpk6unaxgl"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_awhje"]
 [ext_resource type="Script" uid="uid://dpwxpwh8y3x10" path="res://scenes/player/ui/page_avatars/avatar_list.gd" id="2_2ou7c"]
-[ext_resource type="Script" uid="uid://byxidffb2k4ao" path="res://scenes/player/ui/page_avatars/owned_filter.gd" id="2_5qthq"]
 [ext_resource type="Script" uid="uid://c2mx38lc3cyb" path="res://scenes/player/ui/page_avatars/avatar_preview.gd" id="3_v5rxm"]
 [ext_resource type="Script" uid="uid://ksrjgkewkwkw" path="res://scenes/player/ui/previewer.gd" id="4_j5nty"]
 [ext_resource type="Script" uid="uid://cbfejau06v0jn" path="res://scenes/player/ui/page_avatars/flag_list.gd" id="5_m82ti"]
@@ -63,7 +62,6 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Owned"
-script = ExtResource("2_5qthq")
 
 [node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
@@ -146,7 +144,7 @@ render_target_clear_mode = 1
 render_target_update_mode = 1
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
-transform = Transform3D(0.4789723, 0, -0.87783, 0, 1, 0, 0.87783, 0, 0.4789723, 0, 0, 0)
+transform = Transform3D(0.8961399, 0, 0.44377154, 0, 1, 0, -0.44377154, 0, 0.8961399, 0, 0, 0)
 script = ExtResource("4_j5nty")
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
