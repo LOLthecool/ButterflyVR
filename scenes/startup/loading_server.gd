@@ -7,7 +7,7 @@ func _ready() -> void:
 	key.assign(Crypto.new().generate_random_bytes(32))
 	
 	var bind_ip:String = "127.0.0.1"
-	var bind_port:int = 21442
+	var bind_port:int = randi_range(20000, 40000)
 	var max_players:int = 1
 	var api_token:PackedByteArray = PackedByteArray()
 	var world:UUID = UUID.new()

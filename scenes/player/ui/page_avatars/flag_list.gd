@@ -25,7 +25,10 @@ const AUTO_LONGRANGEEFFECTS_MSG:String = "Long Range Audio / Visuals"
 const AUTO_LOUD_MSG:String = "Loud Audio"
 const AUTO_SCREENSPACE_MSG:String = "Screenspace Shader"
 
-func create_list(flags:Array[int]) -> void:
+func create_list(flags:Array) -> void:
+	return
+	
+	# none of this is correct, need to redo when flags is implemented probably
 	for child:Node in get_children():
 		child.queue_free()
 	

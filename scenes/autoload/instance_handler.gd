@@ -3,7 +3,7 @@ class_name InstanceHandler
 
 const INSTANCE_CREATION_ENDPOINT:String = "/api/v0/instance"
 const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instance/%s/join"
-const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local"]
+const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless"]
 
 enum InstanceJoinPermission{
 	public,

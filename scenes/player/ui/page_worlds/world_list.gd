@@ -1,9 +1,12 @@
 extends HFlowContainer
 class_name WorldList
 
-const SEARCH_ENDPOINT:String = "api/v0/search/%s"
+const SEARCH_ENDPOINT:String = "/api/v0/search/%s"
 
 @export var instance_page:InstancePage
+
+func _ready() -> void:
+	get_and_show_worlds("", {})
 
 func get_and_show_worlds(search_string:String, filters:Dictionary[String ,String]) -> void:
 	for child:Node in get_children():
@@ -14,6 +17,8 @@ func get_and_show_worlds(search_string:String, filters:Dictionary[String ,String
 	var filter_string:String = ""
 	for key:String in filters.keys():
 		filter_string += "%s:%s," % [key, filters[key]]
+	
+	filter_string = filter_string.trim_suffix(",")
 	
 	# remove & to stop users accidentally breaking the filters
 	search_string = search_string.remove_char("&".unicode_at(0))
@@ -37,8 +42,10 @@ func get_and_show_worlds(search_string:String, filters:Dictionary[String ,String
 			push_error("error message: %s" % result[3])
 		return
 	
-	for world:Dictionary in result[4]:
-		var avatar_listing:ObjectListing = ObjectListing.new()
-		avatar_listing.create(world, LRUCache.ObjectType.world)
-		avatar_listing.object_selected.connect(instance_page.show_details)
-		add_child(avatar_listing)
+	for world_untyped:Dictionary in result[4]["worlds"]:
+		var world:Dictionary[String, Variant] = {}
+		world.assign(world_untyped)
+		var world_listing:ObjectListing = ObjectListing.new()
+		world_listing.create(world, LRUCache.ObjectType.world)
+		world_listing.object_selected.connect(instance_page.show_details)
+		add_child(world_listing)

@@ -10,7 +10,8 @@
 viewport_path = NodePath("Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport")
 
 [sub_resource type="Environment" id="Environment_m82ti"]
-background_mode = 4
+background_mode = 1
+background_color = Color(0, 0, 0, 0)
 ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 
@@ -121,7 +122,7 @@ size_flags_horizontal = 3
 script = ExtResource("2_2ou7c")
 avatar_previewer = NodePath("../VBoxContainer3")
 
-[node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("previewer", "avatar_name", "avatar_publicity", "flag_list", "details_button", "equip_button")]
+[node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("previewer", "avatar_name", "avatar_publicity", "avatar_author", "flag_list", "details_button", "equip_button")]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.4
@@ -129,6 +130,7 @@ script = ExtResource("3_v5rxm")
 previewer = NodePath("TextureRect/SubViewport/Node3D")
 avatar_name = NodePath("Label")
 avatar_publicity = NodePath("Label2")
+avatar_author = NodePath("Label3")
 flag_list = NodePath("ScrollContainer/HFlowContainer")
 details_button = NodePath("Button")
 equip_button = NodePath("Button2")
@@ -140,12 +142,11 @@ expand_mode = 4
 stretch_mode = 5
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect"]
-render_target_clear_mode = 1
-render_target_update_mode = 1
 
-[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
-transform = Transform3D(0.8961399, 0, 0.44377154, 0, 1, 0, -0.44377154, 0, 0.8961399, 0, 0, 0)
+[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" node_paths=PackedStringArray("viewport")]
+transform = Transform3D(-0.40466988, 0, 0.91446275, 0, 1, 0, -0.91446275, 0, -0.40466988, 0, 0, 0)
 script = ExtResource("4_j5nty")
+viewport = NodePath("..")
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
 
@@ -194,10 +195,3 @@ text = "details"
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "equip"
-
-[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4/Button" to="Control/VBoxContainer2/AvatarList" method="get_and_show_avatars" binds= ["", {
-"sort": "uses_week"
-}]]
-[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6/Button" to="Control/VBoxContainer2/AvatarList" method="get_and_show_avatars" binds= ["", {
-"sort": "date_uploaded"
-}]]

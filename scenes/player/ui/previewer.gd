@@ -32,8 +32,6 @@ func create_preview(uuid:UUID) -> void:
 	# with fov / 2 being the angle and aabb.size.y / 2 being the opposite side
 	# solving for the adjacent side should give us the camera distance but it dosent
 	pos.z += (maxf(aabb.size.x, aabb.size.y) / 2) / abs(tan(FOV / 2)) * 1.1
-	
-	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func _process(delta: float) -> void:
 	rotation.y += 0.2 * delta

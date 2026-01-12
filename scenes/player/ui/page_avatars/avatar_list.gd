@@ -1,9 +1,12 @@
 extends HFlowContainer
 class_name AvatarList
 
-const SEARCH_ENDPOINT:String = "api/v0/search/%s"
+const SEARCH_ENDPOINT:String = "/api/v0/search/%s"
 
 @export var avatar_previewer:AvatarPreview
+
+func _ready() -> void:
+	get_and_show_avatars("", {})
 
 func get_and_show_avatars(search_string:String, filters:Dictionary[String ,String]) -> void:
 	for child:Node in get_children():
@@ -14,6 +17,8 @@ func get_and_show_avatars(search_string:String, filters:Dictionary[String ,Strin
 	var filter_string:String = ""
 	for key:String in filters.keys():
 		filter_string += "%s:%s," % [key, filters[key]]
+	
+	filter_string.trim_suffix(",")
 	
 	# remove & to stop users accidentally breaking the filters
 	search_string = search_string.remove_char("&".unicode_at(0))
@@ -37,7 +42,9 @@ func get_and_show_avatars(search_string:String, filters:Dictionary[String ,Strin
 		return
 	
 	var first_entry:bool = true
-	for avatar:Dictionary in result[4]:
+	for avatar_untyped:Dictionary in result[4]["avatars"]:
+		var avatar:Dictionary[String, Variant] = {}
+		avatar.assign(avatar_untyped)
 		var avatar_listing:ObjectListing = ObjectListing.new()
 		avatar_listing.create(avatar, LRUCache.ObjectType.avatar)
 		avatar_listing.object_selected.connect(avatar_previewer.preview_avatar)

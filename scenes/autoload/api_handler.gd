@@ -42,7 +42,7 @@ var headers:PackedStringArray = PackedStringArray(["User-Agent: Pirulo/1.0 (Godo
 # returns a signal that can be awaited to get the response (if it is received).
 # user-agent, accept, content-type, and content-length headers are managed automatically.
 func make_request(method:HTTPClient.Method, target:String, 
-		request_headers:PackedStringArray = PackedStringArray(), body:String = "") -> Signal:
+		request_headers:PackedStringArray, body:String = "") -> Signal:
 	var request:Request = Request.new(method, target, body, request_headers)
 	waiting_requests.push_back(request)
 	return request.on_complete
