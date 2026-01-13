@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://c2qdpk6unaxgl"]
+[gd_scene load_steps=10 format=3 uid="uid://c2qdpk6unaxgl"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_awhje"]
 [ext_resource type="Script" uid="uid://dpwxpwh8y3x10" path="res://scenes/player/ui/page_avatars/avatar_list.gd" id="2_2ou7c"]
@@ -6,8 +6,17 @@
 [ext_resource type="Script" uid="uid://ksrjgkewkwkw" path="res://scenes/player/ui/previewer.gd" id="4_j5nty"]
 [ext_resource type="Script" uid="uid://cbfejau06v0jn" path="res://scenes/player/ui/page_avatars/flag_list.gd" id="5_m82ti"]
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_2ou7c"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_m82ti"]
 viewport_path = NodePath("Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport")
+
+[sub_resource type="Environment" id="Environment_5qthq"]
+background_mode = 1
+background_color = Color(0, 0, 0, 0)
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+
+[sub_resource type="World3D" id="World3D_b27c1"]
+environment = SubResource("Environment_5qthq")
 
 [sub_resource type="Environment" id="Environment_m82ti"]
 background_mode = 1
@@ -52,7 +61,7 @@ layout_mode = 2
 
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Featured"
 
@@ -61,7 +70,7 @@ layout_mode = 2
 
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 32
 text = "Owned"
 
 [node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
@@ -69,7 +78,7 @@ layout_mode = 2
 
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Shared"
 
@@ -78,7 +87,7 @@ layout_mode = 2
 
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Favourites"
 
@@ -87,7 +96,7 @@ layout_mode = 2
 
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 32
 text = "Popular"
 
 [node name="PanelContainer6" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
@@ -95,7 +104,7 @@ layout_mode = 2
 
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 32
 text = "New"
 
 [node name="Customs" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer"]
@@ -112,7 +121,7 @@ layout_mode = 2
 
 [node name="Label" type="Button" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 32
 disabled = true
 text = " + "
 
@@ -136,17 +145,21 @@ details_button = NodePath("Button")
 equip_button = NodePath("Button2")
 
 [node name="TextureRect" type="TextureRect" parent="Control/VBoxContainer2/VBoxContainer3"]
+custom_minimum_size = Vector2(256, 256)
 layout_mode = 2
-texture = SubResource("ViewportTexture_2ou7c")
-expand_mode = 4
+texture = SubResource("ViewportTexture_m82ti")
+expand_mode = 1
 stretch_mode = 5
 
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect"]
+world_3d = SubResource("World3D_b27c1")
+transparent_bg = true
 
-[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" node_paths=PackedStringArray("viewport")]
-transform = Transform3D(0.84206223, 0, 0.53938025, 0, 1, 0, -0.53938025, 0, 0.84206223, 0, 0, 0)
+[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" node_paths=PackedStringArray("viewport", "camera")]
+transform = Transform3D(0.56216776, 0, -0.82702315, 0, 1, 0, 0.82702315, 0, 0.56216776, 0, 0, 0)
 script = ExtResource("4_j5nty")
 viewport = NodePath("..")
+camera = NodePath("../Camera3D")
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
 
@@ -155,18 +168,21 @@ environment = SubResource("Environment_m82ti")
 
 [node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 20
 text = "UNNAMED"
+autowrap_mode = 3
 
 [node name="Label2" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 16
 text = "UNNAMED"
+autowrap_mode = 3
 
 [node name="Label3" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 16
 text = "UNNAMED"
+autowrap_mode = 3
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
@@ -181,17 +197,19 @@ script = ExtResource("5_m82ti")
 
 [node name="Button3" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 28
 disabled = true
 text = "favourite"
 
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 28
 disabled = true
 text = "details"
 
 [node name="Button2" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 32
 text = "equip"
+
+[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer3/Button2" to="Control/VBoxContainer2/VBoxContainer3" method="on_avatar_equip"]
