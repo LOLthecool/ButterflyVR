@@ -36,7 +36,8 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	
 	# cache value didnt exist or was stale so we download
 	await download_object(uuid, type)
-	var item:LRUCache.Pack = LRUCache.Pack.new(uuid, type, response_values["updated_at"], response_values["image_size"] / 1024)
+	var identifier:LRUCache.PackIdentifier = LRUCache.PackIdentifier.new(uuid, type)
+	var item:LRUCache.Pack = LRUCache.Pack.new(identifier, response_values["updated_at"], response_values["image_size"] / 1024)
 	cache.push_front(item)
 	return load_image(cache.object_file_path % [type, uuid])
 

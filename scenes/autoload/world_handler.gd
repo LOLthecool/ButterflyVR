@@ -33,10 +33,7 @@ func load_fallback_world() -> void:
 	
 	await get_tree().physics_frame
 	
-	push_error("todo")
-	#var root:Node = world.instantiate()
-	#SetupHelpers.setup_world(root)
-	#get_tree().root.add_child(root) 
+	get_tree().change_scene_to_file("res://scenes/world/fallback world/debug_world.tscn")
 
 func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	if current_world != null:

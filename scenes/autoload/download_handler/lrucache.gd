@@ -33,8 +33,8 @@ class Pack:
 	var next:PackIdentifier
 	var last:PackIdentifier
 	
-	func _init(uuid:UUID, object_type:ObjectType, cache_time_utc:int, size_KB:int) -> void:
-		identifier = PackIdentifier.new(uuid, object_type)
+	func _init(identifier:PackIdentifier, cache_time_utc:int, size_KB:int) -> void:
+		self.identifier = identifier
 		self.cache_time_utc = cache_time_utc
 		self.size_KB = size_KB
 	
@@ -54,8 +54,7 @@ class Pack:
 		var values:Dictionary[String, Variant] = {}
 		values.assign(JSON.parse_string(json))
 		
-		return Pack.new(identifier.uuid, 
-				identifier.object_type, 
+		return Pack.new(identifier, 
 				values["cache_time_utc"], 
 				values["size_KB"])
 
@@ -70,15 +69,15 @@ var object_file_path:String
 var max_cache_size:int
 
 func save_self() -> void:
-	GlobalPersistanceHandler.register_value(cache_file, "metadata", "sizeKB", cache_size_KB)
-	GlobalPersistanceHandler.register_value(cache_file, "metadata", "cache_path", object_file_path)
+	GlobalPersistanceHandler.save_value(cache_file, "metadata", "sizeKB", cache_size_KB)
+	GlobalPersistanceHandler.save_value(cache_file, "metadata", "cache_path", object_file_path)
 	GlobalPersistanceHandler.clear_catagory(cache_file, "values")
 	for key:PackIdentifier in cached_objects.keys():
 		# for some reason these need to be their own variables
 		# if you can remove them without breaking everything feel free
 		var x:String = key.to_string()
 		var y:String = cached_objects[key].as_json()
-		GlobalPersistanceHandler.register_value(cache_file, "values", x, y)
+		GlobalPersistanceHandler.save_value(cache_file, "values", x, y)
 
 # todo: max size changes only take effect next time something is loaded
 static func load_cache(file:String, max_size:int, default_cache_name:String) -> LRUCache:
@@ -92,22 +91,37 @@ static func load_cache(file:String, max_size:int, default_cache_name:String) -> 
 	
 	var stored_values:Dictionary[String, String] = {}
 	
-	var stored_size:int = GlobalPersistanceHandler.register_value(file, "metadata", "sizeKB", 0)
+	# todo: remove saving of stored size
+	var stored_size:int = 0 # recalculate stored size on load
 	var object_file_path:String = GlobalPersistanceHandler.register_value(
 			file, "metadata", "cache_path", BASE_OBJECT_FILE_PATH % [default_cache_name, "%s", "%s"])
 	
 	stored_values.assign(GlobalPersistanceHandler.get_catagory(file, "values"))
 	
-	for key:PackIdentifier in stored_values.keys().map(func(x:String) -> PackIdentifier: return PackIdentifier.from_string(x)):
+	for pack:String in stored_values.values():
+		stored_size += JSON.parse_string(pack)["size_KB"]
+	
+	var keys:Array[PackIdentifier] = []
+	keys.assign(stored_values.keys().map(
+			func(x:String) -> PackIdentifier: 
+				return PackIdentifier.from_string(x)))
+	
+	for key:PackIdentifier in keys:
 		new_backing_store[key] = Pack.from_json(key, stored_values[key.to_string()])
 		
 		if JSON.parse_string(stored_values[key.to_string()]).has("next"):
-			first_map[key] = PackIdentifier.from_string(JSON.parse_string(stored_values[key.to_string()])["next"])
+			first_map[key] = keys[
+					keys.find_custom(func(x:PackIdentifier) -> bool:
+						return x.to_string() == JSON.parse_string(
+							stored_values[key.to_string()])["next"])]
 		else:
 			head = new_backing_store[key]
 		
 		if JSON.parse_string(stored_values[key.to_string()]).has("last"):
-			last_map[key] = PackIdentifier.from_string(JSON.parse_string(stored_values[key.to_string()])["last"])
+			last_map[key] = keys[
+					keys.find_custom(func(x:PackIdentifier) -> bool:
+						return x.to_string() == JSON.parse_string(
+							stored_values[key.to_string()])["last"])]
 		else:
 			tail = new_backing_store[key]
 	

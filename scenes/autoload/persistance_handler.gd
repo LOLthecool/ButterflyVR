@@ -65,3 +65,8 @@ func set_value(file_name:String, catagory:String, key:String, value:Variant) -> 
 	var file:String = CONFIG_PATH + file_name + CONFIG_FILE_EXTENSION
 	config_files[file].set_value(catagory, key, value)
 	config_files[file].save(file)
+
+# combined register + set value, sets the key to the value and creates it if it dosent exist
+func save_value(file_name:String, catagory:String, key:String, value:Variant) -> void:
+	register_value(file_name, catagory, key, value)
+	set_value(file_name, catagory, key, value)
