@@ -132,8 +132,8 @@ text = "todo: world details, instance list, create instance, join instance"
 layout_mode = 2
 
 [connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4/Button" to="Control/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
-"sort": "uses_week"
+"sort": "weekly_uses"
 }]]
 [connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6/Button" to="Control/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
-"sort": "date_uploaded"
+"sort": "created_at"
 }]]

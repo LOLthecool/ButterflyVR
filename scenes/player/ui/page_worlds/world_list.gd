@@ -6,9 +6,12 @@ const SEARCH_ENDPOINT:String = "/api/v0/search/%s"
 @export var instance_page:InstancePage
 
 func _ready() -> void:
-	get_and_show_worlds("", {})
+	get_and_show_worlds("", {"sort":"weekly_uses"})
 
-func get_and_show_worlds(search_string:String, filters:Dictionary[String ,String]) -> void:
+func get_and_show_worlds(search_string:String, filters_untyped:Dictionary) -> void:
+	var filters:Dictionary[String, String]
+	filters.assign(filters_untyped)
+	
 	for child:Node in get_children():
 		child.queue_free()
 	
