@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [rust-netnodes, rust-godotpass]
     container:
-      image: barichello/godot-ci:4.4.1
+      image: barichello/godot-ci:4.5.1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -126,7 +126,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [rust-netnodes, rust-godotpass]
     container:
-      image: barichello/godot-ci:4.4.1
+      image: barichello/godot-ci:4.5.1
     steps:
       - uses: actions/checkout@v4
         with:
