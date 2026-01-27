@@ -77,7 +77,7 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	
 	FileAccess.open(downloader.download_file, FileAccess.WRITE).close()
 	
-	downloader.request("http://" +
+	downloader.request("https://" +
 			GlobalAPIHandler.TARGET_HOST + ":" + str(GlobalAPIHandler.TARGET_PORT)
 			 + url, PackedStringArray([GlobalAccountHandler.get_token_header()]))
 	
