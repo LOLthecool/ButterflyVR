@@ -1,9 +1,14 @@
-[gd_scene load_steps=5 format=3 uid="uid://bw1xhp1qer3a"]
+[gd_scene load_steps=8 format=3 uid="uid://bw1xhp1qer3a"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_nfh3x"]
 [ext_resource type="Script" uid="uid://byxidffb2k4ao" path="res://scenes/player/ui/page_avatars/owned_filter.gd" id="2_ju76t"]
 [ext_resource type="Script" uid="uid://xo6kpymld7ew" path="res://scenes/player/ui/page_worlds/world_list.gd" id="3_0bqws"]
 [ext_resource type="Script" uid="uid://f2hurcepphnt" path="res://scenes/player/ui/page_worlds/instance_page.gd" id="4_0bqws"]
+[ext_resource type="Script" uid="uid://bke03jxrinrui" path="res://scenes/player/ui/page_worlds/instance_list.gd" id="5_1vkh6"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_1vkh6"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pyqlh"]
 
 [node name="WorldPage" type="VBoxContainer"]
 anchors_preset = 15
@@ -16,124 +21,264 @@ size_flags_vertical = 3
 script = ExtResource("1_nfh3x")
 page_name = "Worlds"
 
-[node name="Control" type="TabContainer" parent="."]
+[node name="TabContainer" type="TabContainer" parent="."]
 layout_mode = 2
 size_flags_vertical = 3
-current_tab = 0
+current_tab = 1
 tabs_visible = false
 
-[node name="VBoxContainer2" type="HBoxContainer" parent="Control"]
+[node name="VBoxContainer2" type="HBoxContainer" parent="TabContainer"]
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
 metadata/_tab_index = 0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/VBoxContainer2"]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="FixedCatagories" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer"]
+[node name="FixedCatagories" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer"]
 layout_mode = 2
 
-[node name="VBoxContainer2" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories"]
+[node name="VBoxContainer2" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories"]
 layout_mode = 2
 
-[node name="PanelContainer5" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer5" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Featured"
 
-[node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer2" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2" node_paths=PackedStringArray("world_list")]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2" node_paths=PackedStringArray("world_list")]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Owned"
 script = ExtResource("2_ju76t")
 world_list = NodePath("../../../../../WorldList")
 
-[node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer3" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Shared"
 
-[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Favourites"
 
-[node name="PanelContainer4" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer4" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Popular"
 
-[node name="PanelContainer6" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer6" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "New"
 
-[node name="Customs" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer"]
+[node name="Customs" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer"]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs"]
 layout_mode = 2
 
-[node name="Catagories" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
+[node name="Catagories" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
 layout_mode = 2
 
-[node name="Adder" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
+[node name="Adder" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
 layout_mode = 2
 
-[node name="Label" type="Button" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
+[node name="Label" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = " + "
 
-[node name="WorldList" type="HFlowContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("instance_page")]
+[node name="WorldList" type="HFlowContainer" parent="TabContainer/VBoxContainer2" node_paths=PackedStringArray("instance_page")]
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("3_0bqws")
 instance_page = NodePath("../../InstancePage")
 
-[node name="InstancePage" type="VBoxContainer" parent="Control"]
-visible = false
+[node name="InstancePage" type="VBoxContainer" parent="TabContainer"]
 layout_mode = 2
 script = ExtResource("4_0bqws")
 metadata/_tab_index = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="Control/InstancePage"]
+[node name="TabContainer" type="TabContainer" parent="TabContainer/InstancePage"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 24
+tab_alignment = 1
+current_tab = 1
+clip_tabs = false
+
+[node name="Instances" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances"]
+layout_mode = 2
+alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/HBoxContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "new instance"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/HBoxContainer/HBoxContainer2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "filters"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/InstancePage/TabContainer/Instances"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
+script = ExtResource("5_1vkh6")
 
-[node name="Label" type="Label" parent="Control/InstancePage/HBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/ScrollContainer"]
 layout_mode = 2
-text = "todo: world details, instance list, create instance, join instance"
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="Control/InstancePage"]
+[node name="Details" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="TextureRect" type="TextureRect" parent="TabContainer/InstancePage/TabContainer/Details"]
 layout_mode = 2
 
-[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4/Button" to="Control/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+text = "UNNAMED"
+
+[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_1vkh6")
+
+[node name="PanelContainer" type="PanelContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+text = "example description"
+
+[node name="HSeparator3" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_pyqlh")
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "created on:"
+
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+text = "updated on:"
+
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_pyqlh")
+
+[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+text = "tags:"
+
+[node name="HFlowContainer" type="HFlowContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Favourite"
+
+[node name="Button2" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Make Home"
+
+[node name="Button3" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Preload"
+
+[node name="Button4" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+disabled = true
+text = "View Components"
+
+[node name="Button5" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Report"
+
+[connection signal="pressed" from="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4/Button" to="TabContainer/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
 "sort": "weekly_uses"
 }]]
-[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6/Button" to="Control/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
+[connection signal="pressed" from="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6/Button" to="TabContainer/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
 "sort": "created_at"
 }]]
