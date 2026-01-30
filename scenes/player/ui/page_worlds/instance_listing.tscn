@@ -1,0 +1,75 @@
+[gd_scene load_steps=3 format=3 uid="uid://cjgxtprohmi1v"]
+
+[ext_resource type="Script" uid="uid://dwuplvo2gfpfc" path="res://scenes/player/ui/page_worlds/instance_listing.gd" id="1_pdkpl"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_udq2w"]
+
+[node name="InstanceListing" type="HBoxContainer" node_paths=PackedStringArray("instance_name", "publicity", "player_count", "report_button", "join_button", "portal_button")]
+script = ExtResource("1_pdkpl")
+instance_name = NodePath("HBoxContainer/Label")
+publicity = NodePath("HBoxContainer/Label2")
+player_count = NodePath("HBoxContainer/Label3")
+report_button = NodePath("HBoxContainer/Button")
+join_button = NodePath("HBoxContainer2/Button2")
+portal_button = NodePath("HBoxContainer2/Button3")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "UNNAMED"
+
+[node name="VSeparator" type="VSeparator" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+theme_override_styles/separator = SubResource("StyleBoxEmpty_udq2w")
+
+[node name="Label2" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Private"
+
+[node name="VSeparator2" type="VSeparator" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+theme_override_styles/separator = SubResource("StyleBoxEmpty_udq2w")
+
+[node name="Label3" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "0/256"
+
+[node name="VSeparator3" type="VSeparator" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 48
+theme_override_styles/separator = SubResource("StyleBoxEmpty_udq2w")
+
+[node name="Button" type="Button" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+disabled = true
+text = "report"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Button2" type="Button" parent="HBoxContainer2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "join"
+
+[node name="VSeparator2" type="VSeparator" parent="HBoxContainer2"]
+layout_mode = 2
+theme_override_constants/separation = 12
+theme_override_styles/separator = SubResource("StyleBoxEmpty_udq2w")
+
+[node name="Button3" type="Button" parent="HBoxContainer2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+disabled = true
+text = "drop portal"

@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://bw1xhp1qer3a"]
+[gd_scene load_steps=9 format=3 uid="uid://bw1xhp1qer3a"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_nfh3x"]
 [ext_resource type="Script" uid="uid://byxidffb2k4ao" path="res://scenes/player/ui/page_avatars/owned_filter.gd" id="2_ju76t"]
 [ext_resource type="Script" uid="uid://xo6kpymld7ew" path="res://scenes/player/ui/page_worlds/world_list.gd" id="3_0bqws"]
 [ext_resource type="Script" uid="uid://f2hurcepphnt" path="res://scenes/player/ui/page_worlds/instance_page.gd" id="4_0bqws"]
 [ext_resource type="Script" uid="uid://bke03jxrinrui" path="res://scenes/player/ui/page_worlds/instance_list.gd" id="5_1vkh6"]
+[ext_resource type="Script" uid="uid://bnhxoegmb208c" path="res://scenes/player/ui/page_worlds/world_tags_list.gd" id="6_pyqlh"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_1vkh6"]
 
@@ -120,9 +121,15 @@ size_flags_horizontal = 3
 script = ExtResource("3_0bqws")
 instance_page = NodePath("../../InstancePage")
 
-[node name="InstancePage" type="VBoxContainer" parent="TabContainer"]
+[node name="InstancePage" type="VBoxContainer" parent="TabContainer" node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_tags", "instances_list")]
 layout_mode = 2
 script = ExtResource("4_0bqws")
+details_name = NodePath("TabContainer/Details/VBoxContainer/Label2")
+details_description = NodePath("TabContainer/Details/VBoxContainer/PanelContainer/MarginContainer/Label2")
+details_creation_time = NodePath("TabContainer/Details/VBoxContainer/HBoxContainer2/Label2")
+details_update_time = NodePath("TabContainer/Details/VBoxContainer/HBoxContainer3/Label2")
+details_tags = NodePath("TabContainer/Details/VBoxContainer/HFlowContainer")
+instances_list = NodePath("TabContainer/Container/Instances/ScrollContainer")
 metadata/_tab_index = 1
 
 [node name="TabContainer" type="TabContainer" parent="TabContainer/InstancePage"]
@@ -131,54 +138,86 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_font_sizes/font_size = 24
 tab_alignment = 1
-current_tab = 1
+current_tab = 0
 clip_tabs = false
 
-[node name="Instances" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer"]
-visible = false
+[node name="Container" type="Control" parent="TabContainer/InstancePage/TabContainer"]
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances"]
+[node name="Instances" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances"]
 layout_mode = 2
 alignment = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/HBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/HBoxContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Container/Instances/HBoxContainer/HBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "new instance"
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/HBoxContainer"]
+[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 2
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/HBoxContainer/HBoxContainer2"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Container/Instances/HBoxContainer/HBoxContainer2"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
+disabled = true
 text = "filters"
 
-[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/InstancePage/TabContainer/Instances"]
+[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 script = ExtResource("5_1vkh6")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/ScrollContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="Filters" type="Control" parent="TabContainer/InstancePage/TabContainer/Container"]
+visible = false
+layout_mode = 1
+anchor_left = 0.30677083
+anchor_top = 0.0764526
+anchor_right = 0.69322914
+anchor_bottom = 0.9235474
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Container/Filters"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
 [node name="Details" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer"]
+visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 
 [node name="TextureRect" type="TextureRect" parent="TabContainer/InstancePage/TabContainer/Details"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.5
+expand_mode = 1
+stretch_mode = 4
 
 [node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details"]
 layout_mode = 2
@@ -186,6 +225,7 @@ size_flags_horizontal = 3
 
 [node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 28
 text = "UNNAMED"
 
 [node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
@@ -205,7 +245,7 @@ theme_override_constants/margin_bottom = 8
 
 [node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/PanelContainer/MarginContainer"]
 layout_mode = 2
-text = "example description"
+theme_override_font_sizes/font_size = 24
 
 [node name="HSeparator3" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
 layout_mode = 2
@@ -216,20 +256,24 @@ layout_mode = 2
 
 [node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer2"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 24
 text = "created on:"
 
 [node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer2"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 24
 
 [node name="HBoxContainer3" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
 layout_mode = 2
 
 [node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer3"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 24
 text = "updated on:"
 
 [node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer3"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 24
 
 [node name="HSeparator2" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
 layout_mode = 2
@@ -237,10 +281,12 @@ theme_override_styles/separator = SubResource("StyleBoxEmpty_pyqlh")
 
 [node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 24
 text = "tags:"
 
 [node name="HFlowContainer" type="HFlowContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
 layout_mode = 2
+script = ExtResource("6_pyqlh")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage"]
 layout_mode = 2

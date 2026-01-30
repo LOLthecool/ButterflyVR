@@ -15,11 +15,6 @@ enum InstanceJoinPermission{
 const STATUS_REFRESH_RATE:int = 30
 
 var current_instance:UUID
-var local_server_pid:int = -1
-
-func _exit_tree() -> void:
-	if local_server_pid != -1:
-		OS.kill(local_server_pid)
 
 func create_online_instance(
 		world_uuid:UUID, join_permission:InstanceJoinPermission, 
@@ -55,7 +50,7 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	if FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
 		DirAccess.remove_absolute(ServerHandler.LOCAL_SERVER_KEY_LOCATION)
 	
-	local_server_pid = OS.create_instance(arguments)
+	var local_server_pid:int = OS.create_instance(arguments)
 	
 	if local_server_pid == -1:
 		push_error("failed to create local instance")
@@ -69,10 +64,6 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	NetworkManager.start_client(local_server_token)
 
 func join_instance(instance:UUID) -> void:
-	if local_server_pid != -1:
-		OS.kill(local_server_pid)
-	local_server_pid = -1
-	
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, 
 			INSTANCE_JOIN_ENDPOINT % instance.to_string(), 
