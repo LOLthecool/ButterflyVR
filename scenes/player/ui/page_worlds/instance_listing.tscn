@@ -30,7 +30,7 @@ theme_override_styles/separator = SubResource("StyleBoxEmpty_udq2w")
 [node name="Label2" type="Label" parent="HBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Private"
+text = "INVALID"
 
 [node name="VSeparator2" type="VSeparator" parent="HBoxContainer"]
 layout_mode = 2
@@ -40,7 +40,7 @@ theme_override_styles/separator = SubResource("StyleBoxEmpty_udq2w")
 [node name="Label3" type="Label" parent="HBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "0/256"
+text = "0/0"
 
 [node name="VSeparator3" type="VSeparator" parent="HBoxContainer"]
 layout_mode = 2

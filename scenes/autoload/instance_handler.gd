@@ -18,11 +18,14 @@ var current_instance:UUID
 
 func create_online_instance(
 		world_uuid:UUID, join_permission:InstanceJoinPermission, 
-		anyone_can_invite:bool, is_gameserver:bool) -> UUID:
+		anyone_can_invite:bool, is_gameserver:bool, 
+		instance_name:String, max_players:int) -> UUID:
 	var body_dict:Dictionary[String, Variant] = {"world":world_uuid, 
 			"join_permission":join_permission, 
 			"anyone_can_invite":anyone_can_invite, 
-			"is_gameserver":is_gameserver}
+			"is_gameserver":is_gameserver,
+			"name":instance_name,
+			"max_players":max_players}
 	
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_POST, 
