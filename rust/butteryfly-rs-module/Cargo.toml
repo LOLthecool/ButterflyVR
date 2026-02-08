@@ -20,5 +20,4 @@ lto = "off"
 [profile.release]
 strip = "debuginfo"
 lto = "thin"
-# todo: test different values here
-codegen-units = 16
+codegen-units = 4
