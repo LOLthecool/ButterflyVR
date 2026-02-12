@@ -57,7 +57,7 @@ const OUTPUT_LENGTH:int = 64
 var load_cancelled:bool = false
 
 func _ready() -> void:
-	if OS.get_cmdline_args().has("--server"):
+	if OS.get_cmdline_args().has("--server") or OS.get_cmdline_args().has("--headless"):
 		get_tree().change_scene_to_file.call_deferred("res://scenes/startup/loading_server.tscn")
 		return
 	

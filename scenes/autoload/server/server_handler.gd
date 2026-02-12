@@ -1,8 +1,6 @@
 extends Node
 class_name ServerHandler
 
-const INSTANCE_QUEUE_ENDPOINT = "/api/v0/server/instance"
-
 const LOCAL_SERVER_KEY_LOCATION:String = "user://local_key.tmp"
 
 # seconds after all players leave before exiting
@@ -41,7 +39,6 @@ func start(max_players:int, api_token:PackedByteArray, is_local:bool,
 	
 	if is_local:
 		# local instance
-		
 		await GlobalAccountHandler.set_token(api_token, -1, false)
 		
 		await GlobalWorldHandler.load_world_server(world, bind_addr, key)
@@ -51,28 +48,31 @@ func start(max_players:int, api_token:PackedByteArray, is_local:bool,
 		local_token_file.close()
 	else:
 		# game server instance
+		print("starting remote server")
 		AgonesSDK.start()
+		await AgonesSDK.ready()
 		agones_health_checking = true
 		
+		var values:Dictionary[String, Variant] = {}
 		while true:
-			AgonesSDK.reserve(3)
-			var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, INSTANCE_QUEUE_ENDPOINT, PackedStringArray([GlobalAccountHandler.get_token_header()]))
-			var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["uuid", "world_uuid", "token"])
+			print("waiting for allocation...")
+			AgonesSDK.gameserver()
+			var response:Array[Variant] = await AgonesSDK.agones_response
 			
-			var success:bool = result[0]
-			var values:Dictionary[String, Variant] = {}
-			values.assign(result[4])
+			var success:bool = response[0]
+			var body:Dictionary = response[2]
 			
 			if !success:
-				await get_tree().create_timer(6).timeout
+				OS.delay_msec(1000)
 				continue
 			
-			AgonesSDK.allocate()
-			
-			await GlobalAccountHandler.set_token(values["token"], -1, false)
-			
-			print("loading world: %s" % values["world_uuid"])
-			await GlobalWorldHandler.load_world_server(values["world_uuid"], bind_addr, key)
+			print(body)
 			break
+		
+		print("got allocation")
+		get_tree().quit()
+		
+		print("loading world: %s" % values["world_uuid"])
+		await GlobalWorldHandler.load_world_server(values["world_uuid"], bind_addr, key)
 	
 	finished_starting = true

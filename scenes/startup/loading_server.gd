@@ -1,6 +1,7 @@
 extends Node
-# will later take command arguments / load a config file to control startup
+
 func _ready() -> void:
+	# todo: most of this is redundant and unused now
 	print("server starting up")
 	
 	var key:Array[int] = []
