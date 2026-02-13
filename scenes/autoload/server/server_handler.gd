@@ -53,6 +53,10 @@ func start(max_players:int, api_token:PackedByteArray, is_local:bool,
 		await AgonesSDK.ready()
 		agones_health_checking = true
 		
+		var timer:Timer = Timer.new()
+		add_child(timer)
+		timer.start(5)
+		
 		var values:Dictionary[String, Variant] = {}
 		while true:
 			print("waiting for allocation...")
@@ -63,13 +67,17 @@ func start(max_players:int, api_token:PackedByteArray, is_local:bool,
 			var body:Dictionary = response[2]
 			
 			if !success:
-				OS.delay_msec(1000)
+				await timer.timeout
 				continue
 			
-			print(body)
+			print(body["status"]["state"])
+			print("-------")
+			print(body["status"]["addresses"])
+			
 			break
 		
 		print("got allocation")
+		await timer.timeout
 		get_tree().quit()
 		
 		print("loading world: %s" % values["world_uuid"])
