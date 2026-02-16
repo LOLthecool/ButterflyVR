@@ -1,0 +1,12 @@
+[package]
+name = "agones-godot-rs"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+agones = "1.55.0"
+godot = "0.4.5"
+tokio = { version = "1.49.0", features = ["full"] }
