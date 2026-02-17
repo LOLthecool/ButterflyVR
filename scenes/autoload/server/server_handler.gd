@@ -62,9 +62,6 @@ func start(api_token:PackedByteArray, is_local:bool, world:UUID,
 			print("waiting for allocation...")
 			var response:Dictionary = agones_sdk.get_gameserver_status()
 			
-			if response.is_empty():
-				
-			
 			break
 		
 		print("got allocation")
