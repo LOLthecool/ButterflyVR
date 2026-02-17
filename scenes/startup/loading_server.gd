@@ -9,7 +9,6 @@ func _ready() -> void:
 	
 	var bind_ip:String = "127.0.0.1"
 	var bind_port:int = randi_range(20000, 40000)
-	var max_players:int = 1
 	var api_token:PackedByteArray = PackedByteArray()
 	var world:UUID = UUID.new()
 	var is_local:bool = false
@@ -41,11 +40,6 @@ func _ready() -> void:
 						push_error("port %s is not a valid port number" % port_num)
 				else:
 					push_error("expected a port number but got \"%s\"" % argument_value)
-			"max_players":
-				if argument_value.is_valid_int():
-					max_players = int(argument_value)
-				else:
-					push_error("expected a max player count but got \"%s\"" % argument_value)
 			"api_token":
 				if argument_value.is_valid_hex_number():
 					var token:PackedByteArray = argument_value.hex_decode()
@@ -63,7 +57,4 @@ func _ready() -> void:
 					push_error("expected a world UUID but got \"%s\"" % argument_value)
 	
 	var bind_addr:String = bind_ip + ":" + str(bind_port)
-	print("binding to address: ", bind_addr)
-	
-	print("set token to %s" % api_token)
-	GlobalServerHandler.start(max_players, api_token, is_local, world, bind_addr, key)
+	GlobalServerHandler.start(api_token, is_local, world, bind_addr, key)

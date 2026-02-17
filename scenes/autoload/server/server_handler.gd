@@ -8,7 +8,7 @@ const INACTIVITY_KILL_THRESHOLD:float = 5.0
 
 var started:bool = false
 var finished_starting:bool = false
-var agones_health_checking:bool = false
+var agones_sdk:AgonesSDK = null
 var api_token:PackedByteArray
 var max_players:int
 var inactivity:float
@@ -19,26 +19,27 @@ func _ready() -> void:
 		queue_free()
 
 func _physics_process(delta: float) -> void:
-	if agones_health_checking:
-		AgonesSDK.health()
 	if finished_starting and NetworkManager.get_player_count() == 0:
 		inactivity += delta
 		if inactivity > INACTIVITY_KILL_THRESHOLD:
 			push_warning("too long with 0 players: exiting")
-			if agones_health_checking:
-				AgonesSDK.shutdown()
+			if agones_sdk:
+				agones_sdk.shutdown()
 			else:
 				get_tree().quit()
 	else:
 		inactivity = 0
 
 # this class should do nothing until this function is done
-func start(max_players:int, api_token:PackedByteArray, is_local:bool, 
-		world:UUID, bind_addr:String, key:PackedByteArray) -> void:
+func start(api_token:PackedByteArray, is_local:bool, world:UUID, 
+		bind_addr:String, key:PackedByteArray) -> void:
 	started = true
 	
 	if is_local:
 		# local instance
+		print("binding to address: ", bind_addr)
+		
+		print("set token to %s" % api_token)
 		await GlobalAccountHandler.set_token(api_token, -1, false)
 		
 		await GlobalWorldHandler.load_world_server(world, bind_addr, key)
@@ -49,9 +50,8 @@ func start(max_players:int, api_token:PackedByteArray, is_local:bool,
 	else:
 		# game server instance
 		print("starting remote server")
-		AgonesSDK.start()
-		await AgonesSDK.ready()
-		agones_health_checking = true
+		agones_sdk = AgonesSDK.new()
+		add_child(agones_sdk)
 		
 		var timer:Timer = Timer.new()
 		add_child(timer)
@@ -60,19 +60,10 @@ func start(max_players:int, api_token:PackedByteArray, is_local:bool,
 		var values:Dictionary[String, Variant] = {}
 		while true:
 			print("waiting for allocation...")
-			AgonesSDK.gameserver()
-			var response:Array[Variant] = await AgonesSDK.agones_response
+			var response:Dictionary = agones_sdk.get_gameserver_status()
 			
-			var success:bool = response[0]
-			var body:Dictionary = response[2]
-			
-			if !success:
-				await timer.timeout
-				continue
-			
-			print(body["status"]["state"])
-			print("-------")
-			print(body["status"]["addresses"])
+			if response.is_empty():
+				
 			
 			break
 		
