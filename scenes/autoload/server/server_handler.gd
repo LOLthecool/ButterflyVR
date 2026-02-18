@@ -4,7 +4,7 @@ class_name ServerHandler
 const LOCAL_SERVER_KEY_LOCATION:String = "user://local_key.tmp"
 
 # seconds after all players leave before exiting
-const INACTIVITY_KILL_THRESHOLD:float = 5.0
+const INACTIVITY_KILL_THRESHOLD:float = 15.0
 
 var started:bool = false
 var finished_starting:bool = false
@@ -31,18 +31,18 @@ func _physics_process(delta: float) -> void:
 		inactivity = 0
 
 # this class should do nothing until this function is done
-func start(api_token:PackedByteArray, is_local:bool, world:UUID, 
-		bind_addr:String, key:PackedByteArray) -> void:
+func start(api_token:PackedByteArray, is_local:bool, local_world:UUID, 
+		local_bind_addr:String, key:PackedByteArray) -> void:
 	started = true
 	
 	if is_local:
 		# local instance
-		print("binding to address: ", bind_addr)
+		print("binding to address: ", local_bind_addr)
 		
 		print("set token to %s" % api_token)
 		await GlobalAccountHandler.set_token(api_token, -1, false)
 		
-		await GlobalWorldHandler.load_world_server(world, bind_addr, key)
+		await GlobalWorldHandler.load_world_server(local_world, local_bind_addr, key)
 		
 		var local_token_file:FileAccess = FileAccess.open(LOCAL_SERVER_KEY_LOCATION, FileAccess.WRITE)
 		local_token_file.store_buffer(NetworkManager.get_next_client())
@@ -55,20 +55,32 @@ func start(api_token:PackedByteArray, is_local:bool, world:UUID,
 		
 		var timer:Timer = Timer.new()
 		add_child(timer)
-		timer.start(5)
+		timer.start(3)
 		
-		var values:Dictionary[String, Variant] = {}
+		var response:Dictionary
 		while true:
 			print("waiting for allocation...")
-			var response:Dictionary = agones_sdk.get_gameserver_status()
+			response = agones_sdk.get_gameserver_status()
 			
-			break
+			if "world" in (response["labels"] as Dictionary).keys():
+				break
+			else:
+				await timer.timeout
+				continue
 		
 		print("got allocation")
-		await timer.timeout
-		get_tree().quit()
+		var addr:String = response["address"]
+		var port:int = response["ports"]["default"]
+		var world:UUID = UUID.from_String(response["labels"]["world"])
+		var instance_token:PackedByteArray = PackedByteArray(JSON.parse_string(response["labels"]["token"]))
 		
-		print("loading world: %s" % values["world_uuid"])
-		await GlobalWorldHandler.load_world_server(values["world_uuid"], bind_addr, key)
+		print("addr:", addr)
+		print("port:", port)
+		print("world:", world)
+		print("instancetoken:", instance_token)
+		
+		await GlobalAccountHandler.set_token(api_token, -1, false)
+		
+		await GlobalWorldHandler.load_world_server(world, addr + ":" + str(port), key)
 	
 	finished_starting = true

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use agones::{Sdk, Status};
+use agones::{GameServer, Sdk};
 use godot::prelude::*;
 use tokio::{
     runtime::{Builder, Runtime},
@@ -43,38 +43,47 @@ impl AgonesSDK {
     fn get_gameserver_status(&mut self) -> VarDictionary {
         self.runtime.block_on(async {
             self.sdk.get_or_init(AgonesSDK::init_sdk).await;
-            let gameserver = self
-                .sdk
+            self.sdk
                 .get_mut()
                 .unwrap()
                 .get_gameserver()
                 .await
-                .expect("failed to get gameserver");
-            gameserver
-                .status
                 .map(AgonesSDK::status_to_dict)
-                .unwrap_or_else(|| {
+                .unwrap_or_else(|_| {
                     godot_warn!("Failed to unwrap gameserver status");
                     VarDictionary::new()
                 })
         })
     }
-    fn status_to_dict(status: Status) -> VarDictionary {
+    fn status_to_dict(gameserver: GameServer) -> VarDictionary {
         let mut internal_dict: HashMap<String, Variant> = HashMap::new();
+
+        let status = gameserver.status.expect("gameserver didnt have status");
         internal_dict.insert("state".to_string(), status.state.to_variant());
+
         internal_dict.insert("address".to_string(), status.address.to_variant());
-        let addresses: Vec<Variant> = status
-            .addresses
-            .iter()
-            .map(|x| vec![x.address.to_variant(), x.r#type.to_variant()].to_variant())
-            .collect();
-        internal_dict.insert("addresses".to_string(), addresses.to_variant());
-        let ports: Vec<Variant> = status
+
+        let ports: HashMap<GString, Variant> = status
             .ports
             .iter()
-            .map(|x| vec![x.name.to_variant(), x.port.to_variant()].to_variant())
+            .flat_map(|x| {
+                let mut map = HashMap::new();
+                map.insert(x.name.to_godot(), x.port.to_variant());
+                map
+            })
             .collect();
+        let ports = VarDictionary::from(ports.iter());
         internal_dict.insert("ports".to_string(), ports.to_variant());
+
+        let labels = gameserver
+            .object_meta
+            .expect("gameserver didnt have metadata")
+            .labels;
+        internal_dict.insert(
+            "labels".to_string(),
+            VarDictionary::from(labels.iter()).to_variant(),
+        );
+
         VarDictionary::from(internal_dict.iter())
     }
     async fn init_sdk() -> Sdk {

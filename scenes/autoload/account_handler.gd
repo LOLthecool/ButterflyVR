@@ -46,6 +46,9 @@ func _ready() -> void:
 
 func logout() -> void:
 	set_token([], -1, false)
+	GlobalPersistanceHandler.set_value("user_login", "token", "token", [])
+	GlobalPersistanceHandler.set_value("user_login", "token", "expiry", -1)
+	GlobalPersistanceHandler.set_value("user_login", "token", "renewable", false)
 
 func set_token(token:Array[int], expiry_utc:int, renewable:bool) -> void:
 	session_token = token
@@ -55,10 +58,6 @@ func set_token(token:Array[int], expiry_utc:int, renewable:bool) -> void:
 		GlobalPersistanceHandler.set_value("user_login", "token", "token", token)
 		GlobalPersistanceHandler.set_value("user_login", "token", "expiry", expiry_utc)
 		GlobalPersistanceHandler.set_value("user_login", "token", "renewable", renewable)
-	else:
-		GlobalPersistanceHandler.set_value("user_login", "token", "token", [])
-		GlobalPersistanceHandler.set_value("user_login", "token", "expiry", -1)
-		GlobalPersistanceHandler.set_value("user_login", "token", "renewable", false)
 	if await is_token_valid(session_token, token_expiry_utc):
 		user_id = await get_uuid(false)
 
