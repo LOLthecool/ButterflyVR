@@ -49,7 +49,7 @@ func make_request(method:HTTPClient.Method, target:String,
 
 # generic handler for api responses, 
 # can check that specific response codes are sent or that specific values are in the response body
-# returns a bool indicating sucess, the response code, an error code or message,
+# returns a bool indicating sucess, the response code, an error code and/or message,
 # if one was sent by the server and an dictionary of the requested values
 func handle_response(code:HTTPClient.ResponseCode, body:String, expected_codes:Array[int], 
 		expected_body_keys:Array[String]) -> Array[Variant]:

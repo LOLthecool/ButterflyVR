@@ -31,11 +31,10 @@ page_name = "Worlds"
 [node name="TabContainer" type="TabContainer" parent="."]
 layout_mode = 2
 size_flags_vertical = 3
-current_tab = 1
+current_tab = 0
 tabs_visible = false
 
 [node name="VBoxContainer2" type="HBoxContainer" parent="TabContainer"]
-visible = false
 layout_mode = 2
 size_flags_vertical = 3
 metadata/_tab_index = 0
@@ -128,6 +127,7 @@ script = ExtResource("3_0bqws")
 instance_page = NodePath("../../InstancePage")
 
 [node name="InstancePage" type="VBoxContainer" parent="TabContainer" node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_tags", "instances_list")]
+visible = false
 layout_mode = 2
 script = ExtResource("4_0bqws")
 details_name = NodePath("TabContainer/Details/VBoxContainer/Label2")
@@ -135,7 +135,7 @@ details_description = NodePath("TabContainer/Details/VBoxContainer/PanelContaine
 details_creation_time = NodePath("TabContainer/Details/VBoxContainer/HBoxContainer2/Label2")
 details_update_time = NodePath("TabContainer/Details/VBoxContainer/HBoxContainer3/Label2")
 details_tags = NodePath("TabContainer/Details/VBoxContainer/HFlowContainer")
-instances_list = NodePath("TabContainer/Container/Instances/ScrollContainer")
+instances_list = NodePath("TabContainer/Instances/InstancesUI/ScrollContainer")
 metadata/_tab_index = 1
 
 [node name="TabContainer" type="TabContainer" parent="TabContainer/InstancePage"]
@@ -147,11 +147,11 @@ tab_alignment = 1
 current_tab = 0
 clip_tabs = false
 
-[node name="Container" type="Control" parent="TabContainer/InstancePage/TabContainer"]
+[node name="Instances" type="Control" parent="TabContainer/InstancePage/TabContainer"]
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="Instances" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container"]
+[node name="InstancesUI" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -159,42 +159,43 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI"]
 layout_mode = 2
 alignment = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances/HBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Container/Instances/HBoxContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer/HBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "new instance"
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances/HBoxContainer"]
+[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 2
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Container/Instances/HBoxContainer/HBoxContainer2"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer/HBoxContainer2"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 disabled = true
 text = "filters"
 
-[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances"]
+[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI" node_paths=PackedStringArray("instances_container")]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 script = ExtResource("5_1vkh6")
+instances_container = NodePath("VBoxContainer")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/Instances/ScrollContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Filters" type="Control" parent="TabContainer/InstancePage/TabContainer/Container"]
+[node name="Filters" type="Control" parent="TabContainer/InstancePage/TabContainer/Instances"]
 visible = false
 layout_mode = 1
 anchor_left = 0.30677083
@@ -205,7 +206,7 @@ grow_horizontal = 2
 grow_vertical = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Container/Filters"]
+[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Instances/Filters"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -213,7 +214,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="InstanceCreator" type="Control" parent="TabContainer/InstancePage/TabContainer/Container"]
+[node name="InstanceCreator" type="Control" parent="TabContainer/InstancePage/TabContainer/Instances" node_paths=PackedStringArray("name_entry", "max_players", "publicity", "anyone_can_invite", "is_gameserver")]
+visible = false
 layout_mode = 1
 anchor_left = 0.30677083
 anchor_top = 0.0764526
@@ -222,9 +224,14 @@ anchor_bottom = 0.9235474
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("6_5kx4f")
+name_entry = NodePath("Panel/VBoxContainer/VBoxContainer/Label")
+max_players = NodePath("Panel/VBoxContainer/VBoxContainer/HSlider")
+publicity = NodePath("Panel/VBoxContainer/VBoxContainer/OptionButton")
+anyone_can_invite = NodePath("Panel/VBoxContainer/VBoxContainer/CheckBox")
+is_gameserver = NodePath("Panel/VBoxContainer/VBoxContainer/CheckBox2")
 metadata/_edit_use_anchors_ = true
 
-[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator"]
+[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -232,7 +239,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -241,34 +248,34 @@ grow_horizontal = 2
 grow_vertical = 2
 alignment = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Label" type="LineEdit" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="Label" type="LineEdit" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 placeholder_text = "instance name (optional)"
 max_length = 32
 
-[node name="HSeparator2" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_2rbbj")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "max players"
 
-[node name="Label3" type="Label" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer/HBoxContainer" node_paths=PackedStringArray("max_player_slider")]
+[node name="Label3" type="Label" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer/HBoxContainer" node_paths=PackedStringArray("max_player_slider")]
 layout_mode = 2
 text = "-1"
 script = ExtResource("7_35llq")
 max_player_slider = NodePath("../../HSlider")
 
-[node name="HSlider" type="HSlider" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HSlider" type="HSlider" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 max_value = 64.0
 value = 20.0
@@ -276,11 +283,11 @@ tick_count = 32
 ticks_on_borders = true
 ticks_position = 3
 
-[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_2rbbj")
 
-[node name="OptionButton" type="OptionButton" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="OptionButton" type="OptionButton" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 selected = 0
 item_count = 4
@@ -293,47 +300,47 @@ popup/item_2/id = 2
 popup/item_3/text = "Public"
 popup/item_3/id = 3
 
-[node name="HSeparator3" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HSeparator3" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_2rbbj")
 
-[node name="CheckBox" type="CheckBox" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="CheckBox" type="CheckBox" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 text = "anyone can invite"
 
-[node name="CheckBox2" type="CheckBox" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="CheckBox2" type="CheckBox" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
 layout_mode = 2
 disabled = true
 button_pressed = true
 text = "create gameserver"
 
-[node name="VBoxContainer2" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer"]
+[node name="VBoxContainer2" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 28
 text = "create and join"
 
-[node name="Button2" type="Button" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer"]
+[node name="Button2" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 28
 disabled = true
 text = "create and drop portal"
 
-[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
+[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
 layout_mode = 2
 theme_override_constants/separation = 16
 theme_override_styles/separator = SubResource("StyleBoxEmpty_w7yhl")
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Container/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "close"
@@ -426,6 +433,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
+disabled = true
 text = "Favourite"
 
 [node name="Button2" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
@@ -451,6 +459,7 @@ text = "View Components"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
+disabled = true
 text = "Report"
 
 [connection signal="pressed" from="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4/Button" to="TabContainer/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
@@ -459,3 +468,6 @@ text = "Report"
 [connection signal="pressed" from="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6/Button" to="TabContainer/VBoxContainer2/WorldList" method="get_and_show_worlds" binds= ["", {
 "sort": "created_at"
 }]]
+[connection signal="pressed" from="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer/HBoxContainer/Button" to="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator" method="make_visible"]
+[connection signal="pressed" from="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer/Button" to="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator" method="create_and_join_instance"]
+[connection signal="pressed" from="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/Button" to="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator" method="make_invisible"]

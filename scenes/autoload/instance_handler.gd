@@ -1,8 +1,8 @@
 extends Node
 class_name InstanceHandler
 
-const INSTANCE_CREATION_ENDPOINT:String = "/api/v0/instance"
-const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instance/%s/join"
+const INSTANCE_CREATION_ENDPOINT:String = "/api/v0/instances"
+const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
 const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless"]
 
 enum InstanceJoinPermission{
@@ -35,6 +35,15 @@ func create_online_instance(
 	
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(
 			response[0], response[2], [200], ["instance_uuid"])
+	if !result[0]:
+		push_error("error while creating an online instance")
+		if result[1] != -1:
+			push_error("server response: %s" % result[1])
+		if result[2] != "":
+			push_error("error code: %s" % result[2])
+		if result[3] != "":
+			push_error("error message: %s" % result[3])
+		return null
 	
 	return result[4]["instance_uuid"]
 
@@ -74,6 +83,16 @@ func join_instance(instance:UUID) -> void:
 	
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(
 			response[0], response[2], [200], ["join_token"])
+	
+	if !result[0]:
+		push_error("error while joining an online instance")
+		if result[1] != -1:
+			push_error("server response: %s" % result[1])
+		if result[2] != "":
+			push_error("error code: %s" % result[2])
+		if result[3] != "":
+			push_error("error message: %s" % result[3])
+		return
 	
 	var token_string:String = result[4]["join_token"]
 	

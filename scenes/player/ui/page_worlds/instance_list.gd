@@ -1,13 +1,12 @@
 extends ScrollContainer
 class_name InstanceList
 
-const INSTANCE_SEARCH_ENDPOINT:String = "/api/v0/instance/search"
-const INSTANCE_INFO_ENDPOINT:String = "/api/v0/instance/%s"
-const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instance/%s/join"
+const INSTANCE_SEARCH_ENDPOINT:String = "/api/v0/instances/search"
+const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
 
 @export var instances_container:VBoxContainer
 
-var world_id:UUID
+var world_id:String
 var filters:Dictionary
 
 func update_filters(filters:Dictionary) -> void:
@@ -31,6 +30,12 @@ func show_instances(world:Dictionary) -> void:
 	
 	if !result[0]:
 		push_error("error when getting instances")
+		if result[1] != -1:
+			push_error("server response: %s" % result[1])
+		if result[2] != "":
+			push_error("error code: %s" % result[2])
+		if result[3] != "":
+			push_error("error message: %s" % result[3])
 		return
 	
 	for instance:Dictionary in result[4]["instances"]:
