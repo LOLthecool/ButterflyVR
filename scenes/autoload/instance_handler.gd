@@ -75,6 +75,7 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	
 	NetworkManager.start_client(local_server_token)
 
+# do not call directly, call load_world instead
 func join_instance(instance:UUID) -> void:
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, 

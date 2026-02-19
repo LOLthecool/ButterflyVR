@@ -28,7 +28,7 @@ func create_and_join_instance() -> void:
 			join_permissions = InstanceHandler.InstanceJoinPermission.public
 	
 	
-	await GlobalInstanceHandler.join_instance(
+	await GlobalWorldHandler.load_world(world, 
 			await GlobalInstanceHandler.create_online_instance(
 					world,
 					join_permissions,

@@ -22,11 +22,12 @@ func load_homeworld() -> void:
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
-		return load_world(UUID.new()) # null is default world
+		await load_world(UUID.new())
+		return
 	
 	# todo: get default instance type, if offline load_world(uuid, null), 
 	# otherwise create instance then load
-	load_world(UUID.from_String(values["homeworld"]))
+	await load_world(UUID.from_String(values["homeworld"]))
 
 func load_fallback_world() -> void:
 	get_tree().current_scene.queue_free()
