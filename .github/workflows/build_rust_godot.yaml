@@ -194,8 +194,8 @@ jobs:
       - name: Download Windows Rust-agones-godot-rs artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-agones-godot-rs-windows-latest-release
-          path: rust/agones-godot-rs/target/release
+          name: rust-agones-godot-rs-windows-latest-debug
+          path: rust/agones-godot-rs/target/debug
 
       - name: Setup Godot templates
         run: |
