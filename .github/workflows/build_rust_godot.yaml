@@ -98,8 +98,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             rust/agones-godot-rs/target
-          key: ${{ runner.os }}-cargo-agones-godot-rs-release-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-agones-godot-rs-release-
+          key: ${{ runner.os }}-cargo-agones-godot-rs-debug-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-agones-godot-rs-debug-
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
