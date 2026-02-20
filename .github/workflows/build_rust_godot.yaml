@@ -109,7 +109,7 @@ jobs:
           override: true
 
       - name: install protobuf dependancy
-        run: apt-get install protobuf-compiler
+        run: sudo apt-get install protobuf-compiler
 
       - name: Build Rust module (debug)
         working-directory: rust/agones-godot-rs
