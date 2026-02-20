@@ -179,6 +179,24 @@ jobs:
         with:
           lfs: true
 
+      - name: Download Linux Rust-netnodes artifact to silence useless errors
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-netnodes-ubuntu-latest-debug
+          path: rust/butteryfly-rs-module/target/debug
+
+      - name: Download Linux Rust-godotpass artifact to silence useless errors
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-godotpass-ubuntu-latest-release
+          path: rust/godot-pass/target/release
+
+      - name: Download Linux Rust-agones-godot-rs artifact to silence useless errors
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-agones-godot-rs-ubuntu-latest-debug
+          path: rust/agones-godot-rs/target/debug
+
       - name: Download Windows Rust artifact
         uses: actions/download-artifact@v4
         with:
