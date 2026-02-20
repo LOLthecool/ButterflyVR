@@ -72,7 +72,7 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Build Rust module (debug)
+      - name: Build Rust module (release)
         working-directory: rust/godot-pass
         run: cargo build --release
 
@@ -120,8 +120,8 @@ jobs:
       - name: Upload Rust artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rust-agones-godot-rs-${{ matrix.os }}-release
-          path: rust/agones-godot-rs/target/release/*.*
+          name: rust-agones-godot-rs-${{ matrix.os }}-debug
+          path: rust/agones-godot-rs/target/debug/*.*
 
   godot-linux:
     runs-on: ubuntu-22.04
@@ -148,8 +148,8 @@ jobs:
       - name: Download Linux Rust-agones-godot-rs artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-agones-godot-rs-ubuntu-latest-release
-          path: rust/agones-godot-rs/target/release
+          name: rust-agones-godot-rs-ubuntu-latest-debug
+          path: rust/agones-godot-rs/target/debug
 
       - name: Setup Godot templates
         run: |
