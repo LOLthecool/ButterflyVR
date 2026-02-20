@@ -82,6 +82,42 @@ jobs:
           name: rust-godotpass-${{ matrix.os }}-release
           path: rust/godot-pass/target/release/*.*
 
+  rust-agones-rs:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/agones-godot-rs/target
+          key: ${{ runner.os }}-cargo-agones-godot-rs-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-agones-godot-rs-release-
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Build Rust module (debug)
+        working-directory: rust/agones-godot-rs
+        run: cargo build --release
+
+      - name: Upload Rust artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-agones-godot-rs-${{ matrix.os }}-release
+          path: rust/agones-godot-rs/target/release/*.*
+
   godot-linux:
     runs-on: ubuntu-22.04
     needs: [rust-netnodes, rust-godotpass]
