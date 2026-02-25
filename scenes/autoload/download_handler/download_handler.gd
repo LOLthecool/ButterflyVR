@@ -47,7 +47,7 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 			push_error("error message: %s" % error_message)
 		return null
 	
-	var file:FileAccess = FileAccess.open(cache.object_file_path % [type, uuid], FileAccess.READ)
+	var file:FileAccess = FileAccess.open(cache.object_file_path % [uuid], FileAccess.READ)
 	return decrypt_and_load_object(file, type, uuid, response_values["encryption_key"], 
 			response_values["encryption_iv"])
 
@@ -83,7 +83,7 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 			push_error("error message: %s" % error_message)
 		return false
 	
-	if cache.has(uuid, type):
+	if cache.cached_objects.has(uuid):
 		if cache.get_object(uuid, type).cache_time_utc >= response_values["updated_at"]:
 			return true
 		else:
@@ -92,10 +92,9 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 	
 	# cache value didnt exist or was stale so we download
 	await download_object(uuid, type)
-	var identifier:LRUCache.PackIdentifier = LRUCache.PackIdentifier.new(uuid, type)
-	var item:LRUCache.Pack = LRUCache.Pack.new(identifier, response_values["updated_at"], 
+	var item:LRUCache.Pack = LRUCache.Pack.new(response_values["updated_at"], 
 			response_values["object_size"] / 1024)
-	cache.push_front(item)
+	cache.push_front(uuid.to_string(), item)
 	return true
 
 func remove_all_expired() -> void:
@@ -116,12 +115,12 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	var downloader:HTTPRequest = HTTPRequest.new()
 	add_child(downloader)
 	
-	downloader.download_file = cache.object_file_path % [object_type, uuid]
+	downloader.download_file = cache.object_file_path % [uuid]
 	
 	if !DirAccess.dir_exists_absolute(
-			cache.object_file_path.trim_suffix("%s.epck") % object_type):
+			cache.object_file_path.trim_suffix("%s.epck")):
 		DirAccess.make_dir_recursive_absolute(
-				cache.object_file_path.trim_suffix("%s.epck") % object_type)
+				cache.object_file_path.trim_suffix("%s.epck"))
 	
 	FileAccess.open(downloader.download_file, FileAccess.WRITE).close()
 	
