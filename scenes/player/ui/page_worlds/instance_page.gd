@@ -9,6 +9,7 @@ const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 @export var details_update_time:Label
 @export var details_tags:tags_list
 @export var instances_list:InstanceList
+@export var instance_creator:InstanceCreator
 
 func show_details(short_world:Dictionary) -> void:
 	var response = await GlobalAPIHandler.make_request(
@@ -30,6 +31,8 @@ func show_details(short_world:Dictionary) -> void:
 	visible = true
 	
 	var world = result[4]
+	
+	instance_creator.world = UUID.from_String(world["id"])
 	
 	details_name.text = world["name"]
 	details_description.text = world["description"]

@@ -29,7 +29,7 @@ class Pack:
 				str(next_pack_uuid), str(last_pack_uuid)]
 	
 	static func from_string(string:String) -> Pack:
-		var strings:Array[String] = string.split(",", false, 3)
+		var strings:PackedStringArray = string.split(",", true, 3)
 		var cache_time_utc:int = int(strings[0])
 		var size_KB:int = int(strings[1])
 		var next_pack_uuid:String = strings[2]
@@ -96,6 +96,7 @@ func push_front(uuid:String, item:Pack) -> void:
 	if cache_head:
 		item.last_pack_uuid = cache_head
 		cached_objects[cache_head].next_pack_uuid = uuid
+		cache_head = uuid
 	else:
 		cache_head = uuid
 		cache_tail = uuid # if theres no head theres no tail either

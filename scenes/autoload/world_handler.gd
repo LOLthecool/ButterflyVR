@@ -30,7 +30,8 @@ func load_homeworld() -> void:
 	await load_world(UUID.from_String(values["homeworld"]))
 
 func load_fallback_world() -> void:
-	get_tree().current_scene.queue_free()
+	if get_tree().current_scene:
+		get_tree().current_scene.queue_free()
 	
 	await get_tree().physics_frame
 	

@@ -126,7 +126,7 @@ size_flags_horizontal = 3
 script = ExtResource("3_0bqws")
 instance_page = NodePath("../../InstancePage")
 
-[node name="InstancePage" type="VBoxContainer" parent="TabContainer" node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_tags", "instances_list")]
+[node name="InstancePage" type="VBoxContainer" parent="TabContainer" node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_tags", "instances_list", "instance_creator")]
 visible = false
 layout_mode = 2
 script = ExtResource("4_0bqws")
@@ -136,6 +136,7 @@ details_creation_time = NodePath("TabContainer/Details/VBoxContainer/HBoxContain
 details_update_time = NodePath("TabContainer/Details/VBoxContainer/HBoxContainer3/Label2")
 details_tags = NodePath("TabContainer/Details/VBoxContainer/HFlowContainer")
 instances_list = NodePath("TabContainer/Instances/InstancesUI/ScrollContainer")
+instance_creator = NodePath("TabContainer/Instances/InstanceCreator")
 metadata/_tab_index = 1
 
 [node name="TabContainer" type="TabContainer" parent="TabContainer/InstancePage"]

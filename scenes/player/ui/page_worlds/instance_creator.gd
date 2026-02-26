@@ -1,4 +1,5 @@
 extends Control
+class_name InstanceCreator
 
 @export var name_entry:LineEdit
 @export var max_players:HSlider

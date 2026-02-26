@@ -7,7 +7,7 @@ const OBJECT_IMAGE_ENDPOINT:String = "/api/v0/%s/%s/image"
 const DAY_UTC:int = 60 * 60 * 24
 
 # max size: 50mb
-var cache:LRUCache = LRUCache.load_cache("image_cache", 1024 * 50, "images")
+var cache:LRUCache = LRUCache.load_cache("image_cache", 1000 * 100, "images")
 
 
 func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
@@ -28,7 +28,7 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	# todo: error handling
 	var response_values:Dictionary[String, Variant] = result[4]
 	
-	if cache.cached_objects.has(uuid):
+	if cache.cached_objects.has(uuid.to_string()):
 		if cache.get_object(uuid, type).cache_time_utc >= response_values["updated_at"]:
 			return load_image(cache.object_file_path % [uuid])
 		else:
@@ -39,11 +39,12 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	var item:LRUCache.Pack = LRUCache.Pack.new(
 			response_values["updated_at"], response_values["image_size"] / 1024)
 	cache.push_front(uuid.to_string(), item)
-	return load_image(cache.object_file_path % [type, uuid])
+	return load_image(cache.object_file_path % [uuid])
 
 func load_image(file:String) -> Image:
 	var buffer:PackedByteArray = FileAccess.get_file_as_bytes(file)
 	var new_image:Image = Image.new()
+	# todo: stop these from emitting errors whenever we load an image
 	if new_image.load_png_from_buffer(buffer) == OK:
 		return new_image
 	elif new_image.load_jpg_from_buffer(buffer) == OK:

@@ -83,7 +83,7 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 			push_error("error message: %s" % error_message)
 		return false
 	
-	if cache.cached_objects.has(uuid):
+	if cache.cached_objects.has(uuid.to_string()):
 		if cache.get_object(uuid, type).cache_time_utc >= response_values["updated_at"]:
 			return true
 		else:
