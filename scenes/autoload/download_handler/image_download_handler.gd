@@ -28,11 +28,12 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	# todo: error handling
 	var response_values:Dictionary[String, Variant] = result[4]
 	
-	if cache.cached_objects.has(uuid.to_string()):
-		if cache.get_object(uuid, type).cache_time_utc >= response_values["updated_at"]:
+	var object:LRUCache.Pack = cache.get_object(uuid, type)
+	if object:
+		if object.cache_time_utc >= response_values["updated_at"]:
 			return load_image(cache.object_file_path % [uuid])
 		else:
-			cache.pop_front()
+			cache.remove(uuid.to_string())
 	
 	# cache value didnt exist or was stale so we download
 	await download_object(uuid, type)

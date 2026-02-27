@@ -1,0 +1,10 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = 4.1
+reloadable = true
+
+[libraries]
+linux.debug.x86_64 =     "res://rust/godot-lru-rust/target/debug/libgodot_lru_rust.so"
+linux.release.x86_64 =   "res://rust/godot-lru-rust/target/release/libgodot_lru_rust.so"
+windows.debug.x86_64 =   "res://rust/godot-lru-rust/target/debug/godot_lru_rust.dll"
+windows.release.x86_64 = "res://rust/godot-lru-rust/target/release/godot_lru_rust.dll"

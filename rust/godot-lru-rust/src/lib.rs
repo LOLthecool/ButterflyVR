@@ -20,7 +20,7 @@ struct Pack {
 
 #[derive(GodotClass)]
 #[class(no_init, base=Node)]
-struct LRUCache {
+struct LruCache {
     cache: Cache<Uuid, Pack>,
     #[var]
     save_call: Callable,
@@ -32,9 +32,9 @@ struct LRUCache {
 }
 
 #[godot_api]
-impl LRUCache {
+impl LruCache {
     #[func]
-    fn new(
+    fn new_cache(
         size_kb: u64,
         save_call: Callable,
         load_call: Callable,
@@ -167,7 +167,7 @@ impl LRUCache {
 }
 
 #[godot_api]
-impl INode for LRUCache {
+impl INode for LruCache {
     fn physics_process(&mut self, _: f64) {
         while let Some(dropped) = self.destructor_queue.lock().unwrap().pop_front() {
             self.on_destroy_call

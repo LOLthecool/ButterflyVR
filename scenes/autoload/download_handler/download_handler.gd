@@ -83,12 +83,12 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 			push_error("error message: %s" % error_message)
 		return false
 	
-	if cache.cached_objects.has(uuid.to_string()):
-		if cache.get_object(uuid, type).cache_time_utc >= response_values["updated_at"]:
+	var object:LRUCache.Pack = cache.get_object(uuid, type)
+	if object:
+		if object.cache_time_utc >= response_values["updated_at"]:
 			return true
 		else:
-			# get object just moved it to the front
-			cache.pop_front()
+			cache.remove(uuid.to_string())
 	
 	# cache value didnt exist or was stale so we download
 	await download_object(uuid, type)
