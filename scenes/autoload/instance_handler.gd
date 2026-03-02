@@ -21,7 +21,7 @@ func create_online_instance(
 		anyone_can_invite:bool, is_gameserver:bool, 
 		instance_name:String, max_players:int) -> UUID:
 	var body_dict:Dictionary[String, Variant] = {"world":world_uuid, 
-			"join_permission":join_permission, 
+			"publicity":join_permission, 
 			"anyone_can_invite":anyone_can_invite, 
 			"is_gameserver":is_gameserver,
 			"name":instance_name,
@@ -34,7 +34,7 @@ func create_online_instance(
 			JSON.stringify(body_dict))
 	
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(
-			response[0], response[2], [200], ["instance_uuid"])
+			response[0], response[2], [200], ["id"])
 	if !result[0]:
 		push_error("error while creating an online instance")
 		if result[1] != -1:
@@ -45,7 +45,7 @@ func create_online_instance(
 			push_error("error message: %s" % result[3])
 		return null
 	
-	return result[4]["instance_uuid"]
+	return UUID.from_String(result[4]["id"])
 
 func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	var arguments:PackedStringArray = PackedStringArray(OFFLINE_INSTANCE_CMD_ARGUMENTS)

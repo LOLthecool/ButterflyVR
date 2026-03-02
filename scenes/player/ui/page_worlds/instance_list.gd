@@ -41,7 +41,7 @@ func show_instances(world:Dictionary) -> void:
 	for instance:Dictionary in result[4]["instances"]:
 		var id:UUID = UUID.from_String(instance["id"])
 		var instance_name:String = instance["name"]
-		var player_count:int = instance["player_count"]
+		var player_count:int = 0 # todo
 		var max_players:int = instance["max_players"]
 		var publicity:int = instance["publicity"]
 		

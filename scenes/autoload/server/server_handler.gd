@@ -82,5 +82,6 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 		await GlobalAccountHandler.set_token(api_token, -1, false)
 		
 		await GlobalWorldHandler.load_world_server(world, addr + ":" + str(port), key)
+		agones_sdk.set_label("token", str(NetworkManager.get_next_client()))
 	
 	finished_starting = true

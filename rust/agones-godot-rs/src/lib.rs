@@ -94,13 +94,13 @@ impl AgonesSDK {
         sdk
     }
     #[func]
-    fn set_label(&mut self, key: String, value: String) {
+    fn set_annotation(&mut self, key: String, value: String) {
         self.runtime.block_on(async {
             self.sdk.get_or_init(AgonesSDK::init_sdk).await;
             self.sdk
                 .get_mut()
                 .unwrap()
-                .set_label(key, value)
+                .set_annotation(key, value)
                 .await
                 .expect("failed to set label");
         })
