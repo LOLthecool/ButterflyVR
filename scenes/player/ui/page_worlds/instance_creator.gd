@@ -28,13 +28,15 @@ func create_and_join_instance() -> void:
 		3:
 			join_permissions = InstanceHandler.InstanceJoinPermission.public
 	
-	
-	await GlobalWorldHandler.load_world(world, 
-			await GlobalInstanceHandler.create_online_instance(
+	var instance_uuid:UUID = await GlobalInstanceHandler.create_online_instance(
 					world,
 					join_permissions,
 					anyone_can_invite.button_pressed,
 					is_gameserver.button_pressed,
 					name_entry.text,
 					int(max_players.value)
-			))
+			)
+	if instance_uuid == null:
+		push_error("error while creating instance")
+		return
+	await GlobalWorldHandler.load_world(world, instance_uuid)

@@ -47,10 +47,10 @@ static func load_cache(file:String, max_size:int, cache_name:String) -> LRUCache
 	var cache:LRUCache = LRUCache.new()
 	var backing_cache:LruCache = LruCache.new_cache(
 			max_size, cache.on_save, cache.on_load, cache.on_destroy)
-	backing_cache.load()
 	cache.backing_cache = backing_cache
 	cache.cache_file = file
 	cache.object_file_path = object_file_path
+	backing_cache.load()
 	return cache
 
 func push_front(uuid:String, item:Pack) -> void:
@@ -67,3 +67,4 @@ func get_object(uuid:UUID, _object_type:ObjectType) -> Pack:
 
 func remove(uuid:String) -> void:
 	backing_cache.pop(uuid)
+	backing_cache.save()

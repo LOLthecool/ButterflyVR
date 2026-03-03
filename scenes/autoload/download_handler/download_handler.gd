@@ -171,7 +171,6 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	new_object.store_buffer(decrypted_buffer)
 	new_object.flush()
 	
-	# not sure what would happen here if the os clears the temp file while we are running
 	if !ProjectSettings.load_resource_pack(new_object.get_path(), false):
 		push_error("failed to load object pck")
 	

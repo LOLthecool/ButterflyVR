@@ -38,9 +38,6 @@ func load_fallback_world() -> void:
 	get_tree().change_scene_to_file("res://scenes/world/fallback world/debug_world.tscn")
 
 func load_world(world_id:UUID, instance_id:UUID = null) -> void:
-	if current_world != null:
-		disconnect_from_world(false)
-	
 	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
 	
 	if world == null:
@@ -50,10 +47,14 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	if !SetupHelpers.check_safe(world.get_state()):
 		push_error("tried to load unsafe world, aborting")
 		push_error("no error handling here, exiting")
-		get_tree().quit() # this is fine since we should disconnect before this point
+		get_tree().quit()
 		return
 	
 	get_tree().current_scene.queue_free()
+	
+	await get_tree().physics_frame
+	
+	disconnect_from_world(false)
 	
 	# initialization order MUST be:
 	# 1. world instantaited and setup (to connect signals in _init())
@@ -70,6 +71,7 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	
 	# client must be started by this point
 	get_tree().root.add_child(root) 
+	get_tree().current_scene = root
 	current_world = root
 
 # server must be started before this is called
@@ -98,6 +100,7 @@ func load_world_server(world_id:UUID, bind_addr:String, key:PackedByteArray) -> 
 	current_world = root
 
 func disconnect_from_world(go_home:bool = true) -> void:
-	NetworkManager.stop()
+	if current_world != null:
+		NetworkManager.stop()
 	if go_home:
 		load_homeworld()
