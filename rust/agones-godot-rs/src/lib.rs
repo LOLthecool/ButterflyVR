@@ -75,13 +75,24 @@ impl AgonesSDK {
         let ports = VarDictionary::from(ports.iter());
         internal_dict.insert("ports".to_string(), ports.to_variant());
 
-        let labels = gameserver
+        let labels = &gameserver
             .object_meta
+            .as_ref()
             .expect("gameserver didnt have metadata")
             .labels;
         internal_dict.insert(
             "labels".to_string(),
             VarDictionary::from(labels.iter()).to_variant(),
+        );
+
+        let annotations = &gameserver
+            .object_meta
+            .as_ref()
+            .expect("gameserver didnt have metadata")
+            .annotations;
+        internal_dict.insert(
+            "annotations".to_string(),
+            VarDictionary::from(annotations.iter()).to_variant(),
         );
 
         VarDictionary::from(internal_dict.iter())

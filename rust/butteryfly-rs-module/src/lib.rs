@@ -2,9 +2,9 @@
 mod client;
 mod messages;
 mod net_nodes;
+mod networker;
 mod serializer;
 mod server;
-mod voice;
 
 use crate::client::*;
 use crate::messages::MessageHandler;
@@ -92,7 +92,7 @@ impl NetNodeManager {
         self.client.as_mut().unwrap().bind_mut().start_client(arr);
     }
     #[func]
-    fn start_server(&mut self, bind_addr: String, private_key: [u8; 32]) {
+    fn start_server(&mut self, public_addr: String, bind_addr: String, private_key: [u8; 32]) {
         let s = NetNodeServer::new_alloc();
         self.base_mut().add_child(&s);
         self.server = Some(s);
@@ -113,7 +113,7 @@ impl NetNodeManager {
             .as_mut()
             .unwrap()
             .bind_mut()
-            .start_server(bind_addr, private_key);
+            .start_server(public_addr, bind_addr, private_key);
         self.is_server = true;
     }
     #[func]

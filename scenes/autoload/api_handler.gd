@@ -1,8 +1,6 @@
 extends Node
 class_name APIHandler
 
-const TARGET_HOST:String = "api.butterflyvr.net"
-const TARGET_PORT:int = 443
 const RECONNECT_DELAY_TIME:float = 3
 
 # contains the request information stored before processing a request
@@ -31,6 +29,9 @@ class Request:
 		on_complete = Signal(self, singal_name)
 
 var is_ready:bool = false
+var target_port:int = 443
+var target_host:String = "api.butterflyvr.net"
+var restart_requested:bool = false
 var client:HTTPClient
 var waiting_requests:Array[Request]
 @onready var tree:SceneTree = get_tree()
@@ -92,7 +93,11 @@ func handle_response(code:HTTPClient.ResponseCode, body:String, expected_codes:A
 # will call itself deferred to recreate the connection if it errors out
 func _ready() -> void:
 	client = HTTPClient.new()
-	var err:Error = client.connect_to_host(TARGET_HOST, TARGET_PORT, TLSOptions.client())
+	var err:Error
+	if target_port == 443:
+		err = client.connect_to_host(target_host, target_port, TLSOptions.client())
+	else:
+		err = client.connect_to_host(target_host, target_port)
 	if err != OK:
 		push_error("error while connecting to api: ", str(err))
 		await tree.create_timer(3).timeout
@@ -114,6 +119,11 @@ func _ready() -> void:
 			_ready.call_deferred()
 			return
 		while waiting_requests.is_empty():
+			if restart_requested:
+				restart_requested = false
+				print("restarting client with new connection parameters")
+				_ready.call_deferred()
+				return
 			await tree.physics_frame
 		var request:Request = waiting_requests.pop_back()
 		client.request(request.method, request.target, headers + request.additional_headers, request.body)
@@ -136,7 +146,7 @@ func _ready() -> void:
 				var chunk:PackedByteArray = client.read_response_body_chunk()
 				client.poll()
 				if chunk.size() == 0:
-					await get_tree().process_frame
+					await tree.process_frame
 				else:
 					raw_body = raw_body + chunk
 			if raw_body.is_empty():

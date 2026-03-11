@@ -89,10 +89,12 @@ pub impl NetNodeServer {
     pub fn queue_message(&mut self, message: BitVec<u64, Lsb0>) {
         self.message_buffer.push_back(message);
     }
-    pub fn start_server(&mut self, bind_addr: String, private_key: [u8; 32]) {
+    pub fn start_server(&mut self, public_addr: String, bind_addr: String, private_key: [u8; 32]) {
         const PROTOCOL_ID: u64 = 0;
         self.server_networker = ServerNetworker {
             server: Server::new(bind_addr, PROTOCOL_ID, private_key).unwrap(),
+            public_address: public_addr,
+            private_key,
             ..Default::default()
         };
     }
@@ -659,6 +661,8 @@ impl INode for NetNodeServer {
 
 struct ServerNetworker {
     server: Server<NetcodeSocket>,
+    public_address: String,
+    private_key: [u8; 32],
     start_time: Instant,
     packet_buffer: Vec<(BitVec<u64, Lsb0>, ClientIndex)>,
     next_client: u64,
@@ -674,6 +678,8 @@ impl Default for ServerNetworker {
                 netcode::generate_key(),
             )
             .unwrap(),
+            public_address: String::new(),
+            private_key: netcode::generate_key(),
             start_time: Instant::now(),
             packet_buffer: Vec::new(),
             next_client: 0,
@@ -684,15 +690,23 @@ impl Default for ServerNetworker {
 }
 impl ServerNetworker {
     fn get_token(&mut self) -> ConnectToken {
+        godot_print!("{:?}", self.public_address.clone());
+        godot_print!("{:?}", self.server.addr().to_string());
         const TOKEN_EXPIREY_TIME: i32 = -1;
         const TOKEN_TIMEOUT_THRESHOLD: i32 = 30;
         self.next_client += 1;
-        self.server
-            .token(self.next_client)
-            .expire_seconds(TOKEN_EXPIREY_TIME)
-            .timeout_seconds(TOKEN_TIMEOUT_THRESHOLD)
-            .generate()
-            .unwrap()
+        ConnectToken::build(
+            self.public_address.clone(),
+            build_time_utc!().as_bytes().iter().map(|x| *x as u64).sum(),
+            self.next_client,
+            self.private_key,
+        )
+        .internal_addresses(self.server.addr().to_string())
+        .unwrap()
+        .expire_seconds(TOKEN_EXPIREY_TIME)
+        .timeout_seconds(TOKEN_TIMEOUT_THRESHOLD)
+        .generate()
+        .unwrap()
     }
     fn send(&mut self, packet: &BitSlice<u64>, channel: u16, client_index: ClientIndex) {
         const PACKET_SPLIT_THRESHOLD: usize = 4800;

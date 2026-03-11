@@ -75,7 +75,7 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	current_world = root
 
 # server must be started before this is called
-func load_world_server(world_id:UUID, bind_addr:String, key:PackedByteArray) -> void:
+func load_world_server(world_id:UUID, public_addr:String, bind_addr:String, key:PackedByteArray) -> void:
 	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
 	
 	if world == null:
@@ -94,7 +94,7 @@ func load_world_server(world_id:UUID, bind_addr:String, key:PackedByteArray) -> 
 	
 	# todo: this definetly shouldnt be here 
 	# but we need this to happen after the world's _init but before it's _ready
-	NetworkManager.start_server(bind_addr, key)
+	NetworkManager.start_server(public_addr, bind_addr, key)
 	
 	get_tree().root.add_child(root) 
 	current_world = root

@@ -4,6 +4,7 @@ class_name InstanceHandler
 const INSTANCE_CREATION_ENDPOINT:String = "/api/v0/instances"
 const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
 const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless"]
+const MAX_CONNECT_RETRYS:int = 10
 
 enum InstanceJoinPermission{
 	public,
@@ -77,28 +78,31 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 
 # do not call directly, call load_world instead
 func join_instance(instance:UUID) -> void:
-	var response:Array[Variant] = await GlobalAPIHandler.make_request(
-			HTTPClient.METHOD_GET, 
-			INSTANCE_JOIN_ENDPOINT % instance.to_string(), 
-			PackedStringArray([GlobalAccountHandler.get_token_header()]))
-	
-	var result:Array[Variant] = GlobalAPIHandler.handle_response(
-			response[0], response[2], [200], ["join_token"])
-	
-	if !result[0]:
-		push_error("error while joining an online instance")
-		if result[1] != -1:
-			push_error("server response: %s" % result[1])
-		if result[2] != "":
-			push_error("error code: %s" % result[2])
-		if result[3] != "":
-			push_error("error message: %s" % result[3])
-		return
-	
-	var token_string:String = result[4]["join_token"]
-	
-	var token:PackedByteArray = PackedByteArray()
-	for idx:int in range(0, token_string.length(), 2):
-		token.push_back(token_string.substr(idx, 2).hex_to_int())
-	
-	NetworkManager.start_client(token)
+	for i in range(0, MAX_CONNECT_RETRYS):
+		await get_tree().create_timer(3).timeout
+		var response:Array[Variant] = await GlobalAPIHandler.make_request(
+				HTTPClient.METHOD_GET, 
+				INSTANCE_JOIN_ENDPOINT % instance.to_string(), 
+				PackedStringArray([GlobalAccountHandler.get_token_header()]))
+		
+		var result:Array[Variant] = GlobalAPIHandler.handle_response(
+				response[0], response[2], [200], ["token"])
+		
+		if !result[0]:
+			if result[1] == 202 and i + 1 < MAX_CONNECT_RETRYS:
+				push_warning("no connect token available, retrying")
+				continue
+			
+			push_error("error while joining an online instance")
+			if result[1] != -1:
+				push_error("server response: %s" % result[1])
+			if result[2] != "":
+				push_error("error code: %s" % result[2])
+			if result[3] != "":
+				push_error("error message: %s" % result[3])
+			return
+		
+		var token:PackedByteArray = PackedByteArray(result[4]["token"])
+		
+		NetworkManager.start_client(token)
+		break
