@@ -2,26 +2,26 @@
 use crate::messages::*;
 use crate::net_nodes::NetworkedNode;
 use crate::serializer::*;
-use crate::voice;
-use crate::voice::FRAME_LENGTH;
 use bitvec::prelude::*;
-use build_time::build_time_utc;
+use godot::classes::Engine;
+use godot::prelude::*;
 use std::collections::{HashSet, VecDeque};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{cmp, collections::HashMap};
 
-use godot::classes::Engine;
-use godot::prelude::*;
-use netcode::{ClientIndex, ConnectToken, NetcodeSocket, Server};
 const CHANNEL_ACK: u16 = u16::MAX;
+const CHANNEL_CLIENT_ID: u16 = u16::MAX - 1;
+
 const BYTE: usize = 8;
 const BYTES2: usize = 16;
 const BYTES8: usize = 64;
+
 const PACKET_HEADER_SIZE: usize = BYTES2 + BYTES8;
 const PACKET_HEADER_SIZE_ACK: usize = BYTES2;
 const CHANNEL1_HEADER_SIZE: usize = BYTES8;
+
 const HIT_RATE_HISTORY_LENGTH: usize = 128;
-const CHANNEL_CLIENT_ID: u16 = u16::MAX - 1;
+
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct NetNodeServer {
@@ -29,7 +29,6 @@ pub struct NetNodeServer {
     pub id: u16,
     next_id: u16,
     pub networked_nodes: Vec<Gd<NetworkedNode>>,
-    voice_manager: voice::VoiceStreamManager,
     server_networker: ServerNetworker,
     message_buffer: VecDeque<BitVec<u64, Lsb0>>,
     message_handlers: HashMap<u16, Gd<MessageHandler>>,
@@ -659,305 +658,7 @@ impl INode for NetNodeServer {
     }
 }
 
-struct ServerNetworker {
-    server: Server<NetcodeSocket>,
-    public_address: String,
-    private_key: [u8; 32],
-    start_time: Instant,
-    packet_buffer: Vec<(BitVec<u64, Lsb0>, ClientIndex)>,
-    next_client: u64,
-    next_client_id: u16,
-    clients: HashMap<ClientIndex, Client>,
-}
-impl Default for ServerNetworker {
-    fn default() -> Self {
-        ServerNetworker {
-            server: Server::new(
-                "127.0.0.1:0",
-                build_time_utc!().as_bytes().iter().map(|x| *x as u64).sum(),
-                netcode::generate_key(),
-            )
-            .unwrap(),
-            public_address: String::new(),
-            private_key: netcode::generate_key(),
-            start_time: Instant::now(),
-            packet_buffer: Vec::new(),
-            next_client: 0,
-            next_client_id: 0,
-            clients: HashMap::new(),
-        }
-    }
-}
-impl ServerNetworker {
-    fn get_token(&mut self) -> ConnectToken {
-        godot_print!("{:?}", self.public_address.clone());
-        godot_print!("{:?}", self.server.addr().to_string());
-        const TOKEN_EXPIREY_TIME: i32 = -1;
-        const TOKEN_TIMEOUT_THRESHOLD: i32 = 30;
-        self.next_client += 1;
-        ConnectToken::build(
-            self.public_address.clone(),
-            build_time_utc!().as_bytes().iter().map(|x| *x as u64).sum(),
-            self.next_client,
-            self.private_key,
-        )
-        .internal_addresses(self.server.addr().to_string())
-        .unwrap()
-        .expire_seconds(TOKEN_EXPIREY_TIME)
-        .timeout_seconds(TOKEN_TIMEOUT_THRESHOLD)
-        .generate()
-        .unwrap()
-    }
-    fn send(&mut self, packet: &BitSlice<u64>, channel: u16, client_index: ClientIndex) {
-        const PACKET_SPLIT_THRESHOLD: usize = 4800;
-        let client = self.clients.get_mut(&client_index).unwrap();
-        let reliable: bool;
-        let mut packet_number: Option<u64> = None;
-        match channel {
-            1 => {
-                reliable = false;
-                packet_number = Some(client.packet_number_c1);
-                client.packet_number_c1 += 1;
-            }
-            2 => {
-                reliable = true;
-                packet_number = Some(client.packet_number_c2);
-                client.packet_number_c2 += 1;
-            }
-            3 => {
-                reliable = true;
-                packet_number = Some(client.packet_number_c3);
-                client.packet_number_c3 += 1;
-            }
-            4 => {
-                reliable = true;
-                packet_number = Some(client.packet_number_c4);
-                client.packet_number_c4 += 1;
-            }
-            5 => {
-                reliable = false;
-                packet_number = Some(client.packet_number_c5);
-                client.packet_number_c5 += 1;
-            }
-            CHANNEL_CLIENT_ID => {
-                reliable = true;
-                packet_number = Some(0);
-            }
-            u16::MAX => reliable = false,
-            _ => {
-                godot_warn!("unhandled / invalid channel sent");
-                reliable = false;
-            }
-        }
-        if packet.len() + BYTES2 + BYTES8 > PACKET_SPLIT_THRESHOLD {
-            let mut final_packet: BitVec<u64, Lsb0> =
-                BitVec::with_capacity(packet.len() + BYTES2 + BYTES8);
-            final_packet.extend(channel.view_bits::<Lsb0>());
-            if packet_number.is_some() {
-                final_packet.extend(packet_number.unwrap().view_bits::<Lsb0>());
-            }
-            final_packet.extend(packet);
-            self.split_send(final_packet.as_bitslice(), client_index);
-            return;
-        }
-        let mut final_packet: Vec<u8> = Vec::with_capacity(10 + packet.len());
-        final_packet.extend(channel.to_le_bytes().iter());
-        if packet_number.is_some() {
-            final_packet.extend(packet_number.unwrap().to_le_bytes());
-        }
-        for bits in packet.chunks(BYTE) {
-            final_packet.push(bits.load_le::<u8>());
-        }
-        self.server.send(&final_packet, client_index).unwrap();
-        if packet_number.is_some() && reliable {
-            client.reliable_packets.insert(
-                (channel, packet_number.unwrap()),
-                (final_packet, Instant::now()),
-            );
-        }
-    }
-    fn split_send(&mut self, packet: &BitSlice<u64>, client_index: ClientIndex) {
-        const PACKET_SPLIT_THRESHOLD: usize = 4800 - (BYTES2 + BYTES8);
-        let packet_chunks: Vec<&BitSlice<u64>> = packet.chunks(PACKET_SPLIT_THRESHOLD).collect();
-        self.send(
-            BitVec::<u64>::from_slice(&[packet_chunks.len() as u64]).as_bitslice(),
-            4,
-            client_index,
-        );
-        for chunk in packet_chunks {
-            self.send(chunk, 4, client_index);
-        }
-    }
-    fn poll(&mut self) -> Vec<u16> {
-        self.server.update(self.start_time.elapsed().as_secs_f64());
-        let mut new_players: Vec<u16> = Vec::new();
-        while let Some(packet) = self.server.recv() {
-            if self.clients.contains_key(&packet.1) {
-                self.clients
-                    .get_mut(&packet.1)
-                    .unwrap()
-                    .last_packet_send_time = Instant::now();
-            } else {
-                self.next_client_id += 1;
-                self.clients.insert(
-                    packet.1,
-                    Client {
-                        index: packet.1,
-                        finished_sync: false,
-                        remaining_bandwidth: 0,
-                        packet_number_c1: 0,
-                        packet_number_c2: 0,
-                        packet_number_c3: 0,
-                        packet_number_c4: 0,
-                        packet_number_c5: 0,
-                        player_position_object: None,
-                        voice_input_stream: None,
-                        audio_output_stream: None,
-                        voice_packet_buffer: Vec::new(),
-                        audio_input_buffer: vec![0.0; FRAME_LENGTH],
-                        c4_remaining_packet_chunks: 0,
-                        c4_packet_chunks: Vec::new(),
-                        c4_waiting_packets: HashMap::new(),
-                        sync_progress: 0,
-                        last_packet_send_time: Instant::now(),
-                        reliable_packets: HashMap::new(),
-                        latency: Duration::default(),
-                        latency_buffer: VecDeque::new(),
-                        waiting_acks: HashSet::new(),
-                        id: self.next_client_id,
-                        id_received: false,
-                        message_buffer_position: 0,
-                        priorities: Vec::new(),
-                        c1_latency_info: LatencyInfo::default(),
-                        next_c3_packet_number: 0,
-                        next_c4_packet_number: 0,
-                        next_c5_packet_number: 0,
-                        c3_buffered_packets: HashMap::new(),
-                        packet_buffers: VecDeque::from_iter([Vec::new(), Vec::new()]),
-                    },
-                );
-                new_players.push(self.next_client_id);
-            }
-            let client = self.clients.get_mut(&packet.1).unwrap();
-            let channel: u16 = u16::from_le_bytes([packet.0[0], packet.0[1]]);
-            if channel == CHANNEL_ACK {
-                let mut pointer: usize = PACKET_HEADER_SIZE_ACK / BYTE;
-                while pointer + ((BYTES8 + BYTES2) / BYTE) <= packet.0.len() {
-                    let packet_channel =
-                        u16::from_le_bytes([packet.0[pointer], packet.0[pointer + 1]]);
-                    pointer += BYTES2 / BYTE;
-                    let packet_num = u64::from_le_bytes([
-                        packet.0[pointer],
-                        packet.0[pointer + 1],
-                        packet.0[pointer + 2],
-                        packet.0[pointer + 3],
-                        packet.0[pointer + 4],
-                        packet.0[pointer + 5],
-                        packet.0[pointer + 6],
-                        packet.0[pointer + 7],
-                    ]);
-                    pointer += 8;
-                    client
-                        .reliable_packets
-                        .remove(&(packet_channel, packet_num));
-                }
-                continue;
-            }
-            let packet_number: u64 = u64::from_le_bytes([
-                packet.0[2],
-                packet.0[3],
-                packet.0[4],
-                packet.0[5],
-                packet.0[6],
-                packet.0[7],
-                packet.0[8],
-                packet.0[9],
-            ]);
-            client.waiting_acks.insert((channel, packet_number));
-            if channel == 4 {
-                client.c4_waiting_packets.insert(packet_number, packet.0);
-
-                while let Some(packet) = client
-                    .c4_waiting_packets
-                    .remove(&client.next_c4_packet_number)
-                {
-                    client.next_c4_packet_number += 1;
-                    if client.c4_remaining_packet_chunks == 0 {
-                        client.c4_remaining_packet_chunks = u64::from_le_bytes([
-                            packet[10], packet[11], packet[12], packet[13], packet[14], packet[15],
-                            packet[16], packet[17],
-                        ]);
-                    } else {
-                        client.c4_packet_chunks.push(packet);
-                        client.c4_remaining_packet_chunks -= 1;
-                        if client.c4_remaining_packet_chunks == 0 {
-                            let mut packet: Vec<u8> = Vec::with_capacity(
-                                client.c4_packet_chunks.iter().map(|x| x.len()).sum(),
-                            );
-                            for chunk in client.c4_packet_chunks.iter() {
-                                packet.extend(chunk[10..].iter());
-                            }
-                            client.c4_packet_chunks.clear();
-                            let channel: u16 = u16::from_le_bytes([packet[0], packet[1]]);
-                            if channel == CHANNEL_ACK {
-                                let mut pointer: usize = PACKET_HEADER_SIZE_ACK / BYTE;
-                                while pointer + ((BYTES8 + BYTES2) / BYTE) <= packet.len() {
-                                    let packet_channel =
-                                        u16::from_le_bytes([packet[pointer], packet[pointer + 1]]);
-                                    pointer += BYTES2 / BYTE;
-                                    let packet_num = u64::from_le_bytes([
-                                        packet[pointer],
-                                        packet[pointer + 1],
-                                        packet[pointer + 2],
-                                        packet[pointer + 3],
-                                        packet[pointer + 4],
-                                        packet[pointer + 5],
-                                        packet[pointer + 6],
-                                        packet[pointer + 7],
-                                    ]);
-                                    pointer += 8;
-                                    client
-                                        .reliable_packets
-                                        .remove(&(packet_channel, packet_num));
-                                }
-                                continue;
-                            }
-                            let mut packet_bits: BitVec<u64, Lsb0> =
-                                BitVec::with_capacity(packet.len() * 8);
-                            for byte in packet {
-                                packet_bits.extend(byte.view_bits::<Lsb0>());
-                            }
-                            self.packet_buffer.push((packet_bits, client.index));
-                        }
-                    }
-                }
-                continue;
-            }
-
-            let mut packet_bits: BitVec<u64, Lsb0> = BitVec::with_capacity(packet.0.len() * 8);
-            for byte in packet.0 {
-                packet_bits.extend(byte.view_bits::<Lsb0>());
-            }
-            self.packet_buffer.push((packet_bits, packet.1));
-        }
-        let now = Instant::now();
-        for client in self.clients.iter_mut() {
-            for packet in client.1.reliable_packets.iter_mut() {
-                if now - packet.1.1 > (client.1.latency + Duration::from_millis(32)) * 3 {
-                    ServerNetworker::resend(&mut self.server, &packet.1.0, client.0.to_owned());
-                    packet.1.1 = Instant::now();
-                }
-            }
-        }
-        new_players
-    }
-    fn resend(server: &mut Server<NetcodeSocket, ()>, final_packet: &[u8], client: ClientIndex) {
-        server.send(final_packet, client).unwrap();
-    }
-}
-
 struct Client {
-    index: ClientIndex,
     finished_sync: bool,
     remaining_bandwidth: usize,
     packet_number_c1: u64,
@@ -988,7 +689,7 @@ struct Client {
     next_c4_packet_number: u64,
     next_c5_packet_number: u64,
     c3_buffered_packets: HashMap<u64, BitVec<u64, Lsb0>>,
-    packet_buffers: VecDeque<Vec<(BitVec<u64, Lsb0>, ClientIndex)>>,
+    packet_buffers: VecDeque<Vec<(BitVec<u64, Lsb0>)>>,
 }
 #[derive(Debug, Default, Clone)]
 struct LatencyInfo {

@@ -2,23 +2,26 @@
 use crate::messages::*;
 use crate::net_nodes::NetworkedNode;
 use crate::serializer::*;
-use crate::voice;
 use bitvec::prelude::*;
 use godot::classes::Engine;
 use godot::prelude::*;
-use netcode::{Client, NetcodeSocket};
 use std::collections::{HashSet, VecDeque};
 use std::time::UNIX_EPOCH;
 use std::time::{Duration, Instant, SystemTime};
 use std::{cmp, collections::HashMap};
+
 const CHANNEL_ACK: u16 = u16::MAX;
+
 const BYTE: usize = 8;
 const BYTES2: usize = 16;
 const BYTES8: usize = 64;
+
 const PACKET_HEADER_SIZE: usize = BYTES2 + BYTES8;
 const PACKET_HEADER_SIZE_ACK: usize = BYTES2;
 const CHANNEL1_HEADER_SIZE: usize = BYTES8;
+
 const HIT_RATE_HISTORY_LENGTH: usize = 128;
+
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct NetNodeClient {
@@ -486,243 +489,7 @@ impl INode for NetNodeClient {
         self.send_packets_client();
     }
 }
-// provides various network functionality for the client, seperation between them is mostly arbritary but maybe will be more cohesive in the future
-pub struct ClientNetworker {
-    client: Option<Client<NetcodeSocket>>,
-    start_time: Instant,
-    packet_number_c1: (u64, u64),
-    packet_number_c3: (u64, u64),
-    packet_number_c4: u64,
-    packet_number_c5: u64,
-    c4_remaining_packet_chunks: u64,
-    c4_packet_chunks: Vec<Vec<u8>>,
-    c4_waiting_packets: HashMap<u64, Vec<u8>>,
-    next_c4_packet_number: u64,
-    packet_buffer: Vec<BitVec<u64, Lsb0>>,
-    pub state: ClientState,
-    latency: Duration,
-    latency_buffer: VecDeque<Duration>,
-    waiting_acks: HashSet<(u16, u64)>,
-    reliable_packets: HashMap<(u16, u64), (Vec<u8>, Instant)>,
-    unsent_packets: Vec<(u16, BitVec<u64, Lsb0>)>,
-}
-impl Default for ClientNetworker {
-    fn default() -> Self {
-        ClientNetworker {
-            client: None,
-            start_time: Instant::now(),
-            packet_number_c1: (0u64, 0u64),
-            packet_number_c3: (0u64, 0u64),
-            packet_number_c4: 0,
-            packet_number_c5: 0,
-            c4_remaining_packet_chunks: 0,
-            c4_packet_chunks: Vec::new(),
-            c4_waiting_packets: HashMap::new(),
-            next_c4_packet_number: 0,
-            packet_buffer: Vec::new(),
-            state: ClientState::AwaitingID,
-            latency: Duration::default(),
-            latency_buffer: VecDeque::with_capacity(100),
-            waiting_acks: HashSet::new(),
-            reliable_packets: HashMap::new(),
-            unsent_packets: Vec::new(),
-        }
-    }
-}
-impl ClientNetworker {
-    // netcode works with Vec<u8> so we convert before sending
-    fn send(&mut self, packet: &BitSlice<u64, Lsb0>, channel: u16) {
-        const PACKET_SPLIT_THRESHOLD: usize = 4800;
-        if !self.client.as_mut().unwrap().is_connected() {
-            self.unsent_packets.push((channel, packet.to_bitvec()));
-            return;
-        }
-        let mut packet_number: Option<u64> = None;
-        let reliable: bool;
-        match channel {
-            1 => {
-                reliable = false;
-                packet_number = Some(self.packet_number_c1.0);
-                self.packet_number_c1.0 += 1;
-            }
-            2 => {
-                reliable = true;
-                packet_number = Some(self.packet_number_c1.0);
-                self.packet_number_c1.0 += 1;
-            }
-            3 => {
-                reliable = true;
-                packet_number = Some(self.packet_number_c3.0);
-                self.packet_number_c3.0 += 1;
-            }
-            4 => {
-                reliable = true;
-                packet_number = Some(self.packet_number_c4);
-                self.packet_number_c4 += 1;
-            }
-            5 => {
-                reliable = false;
-                packet_number = Some(self.packet_number_c5);
-                self.packet_number_c5 += 1;
-            }
-            u16::MAX => reliable = false,
-            _ => {
-                godot_warn!("unhandled / invalid channel sent");
-                reliable = false;
-            }
-        }
-        if packet.len() + BYTES2 + BYTES8 > PACKET_SPLIT_THRESHOLD {
-            let mut final_packet: BitVec<u64, Lsb0> =
-                BitVec::with_capacity(packet.len() + BYTES2 + BYTES8);
-            final_packet.extend(channel.view_bits::<Lsb0>());
-            if packet_number.is_some() {
-                final_packet.extend(packet_number.unwrap().view_bits::<Lsb0>());
-            }
-            final_packet.extend(packet);
-            self.split_send(final_packet.as_bitslice());
-            return;
-        }
-        let mut final_packet: Vec<u8> =
-            Vec::with_capacity((PACKET_HEADER_SIZE / BYTE) + (packet.len() / BYTE) + 1);
-        final_packet.extend(channel.to_le_bytes().iter());
-        if packet_number.is_some() {
-            final_packet.extend(packet_number.unwrap().to_le_bytes().iter());
-        }
-        for bits in packet.chunks(BYTE) {
-            final_packet.push(bits.load_le::<u8>());
-        }
-        self.client.as_mut().unwrap().send(&final_packet).unwrap();
-        if packet_number.is_some() && reliable {
-            self.reliable_packets.insert(
-                (channel, packet_number.unwrap()),
-                (final_packet, Instant::now()),
-            );
-        }
-    }
 
-    fn split_send(&mut self, packet: &BitSlice<u64>) {
-        const PACKET_SPLIT_THRESHOLD: usize = 4800 - (BYTES2 + BYTES8);
-        let packet_chunks: Vec<&BitSlice<u64>> = packet.chunks(PACKET_SPLIT_THRESHOLD).collect();
-        self.send(
-            BitVec::<u64>::from_slice(&[packet_chunks.len() as u64]).as_bitslice(),
-            4,
-        );
-        for chunk in packet_chunks {
-            self.send(chunk, 4);
-        }
-    }
-    // netcode works with Vec<u8> so we convert back before sending to the buffer
-    fn poll(&mut self) {
-        self.client
-            .as_mut()
-            .unwrap()
-            .update(self.start_time.elapsed().as_secs_f64());
-        while let Some(packet) = self.client.as_mut().unwrap().recv() {
-            let channel: u16 = u16::from_le_bytes([packet[0], packet[1]]);
-            if channel == CHANNEL_ACK {
-                let mut pointer: usize = PACKET_HEADER_SIZE_ACK / BYTE;
-                while pointer + ((BYTES8 + BYTES2) / BYTE) <= packet.len() {
-                    let packet_channel = u16::from_le_bytes([packet[pointer], packet[pointer + 1]]);
-                    pointer += BYTES2 / BYTE;
-                    let packet_num = u64::from_le_bytes([
-                        packet[pointer],
-                        packet[pointer + 1],
-                        packet[pointer + 2],
-                        packet[pointer + 3],
-                        packet[pointer + 4],
-                        packet[pointer + 5],
-                        packet[pointer + 6],
-                        packet[pointer + 7],
-                    ]);
-                    pointer += BYTES8 / BYTE;
-                    self.reliable_packets.remove(&(packet_channel, packet_num));
-                }
-                continue;
-            }
-            let packet_number: u64 = u64::from_le_bytes([
-                packet[2], packet[3], packet[4], packet[5], packet[6], packet[7], packet[8],
-                packet[9],
-            ]);
-            self.waiting_acks.insert((channel, packet_number));
-
-            if channel == 4 {
-                self.c4_waiting_packets.insert(packet_number, packet);
-                while let Some(packet) = self.c4_waiting_packets.remove(&self.next_c4_packet_number)
-                {
-                    self.next_c4_packet_number += 1;
-                    if self.c4_remaining_packet_chunks == 0 {
-                        self.c4_remaining_packet_chunks = u64::from_le_bytes([
-                            packet[10], packet[11], packet[12], packet[13], packet[14], packet[15],
-                            packet[16], packet[17],
-                        ]);
-                    } else {
-                        self.c4_packet_chunks.push(packet);
-                        self.c4_remaining_packet_chunks -= 1;
-                        if self.c4_remaining_packet_chunks == 0 {
-                            let mut packet: Vec<u8> = Vec::with_capacity(
-                                self.c4_packet_chunks.iter().map(|x| x.len()).sum(),
-                            );
-                            for chunk in self.c4_packet_chunks.iter() {
-                                packet.extend(chunk[10..].iter());
-                            }
-                            self.c4_packet_chunks.clear();
-                            let channel: u16 = u16::from_le_bytes([packet[0], packet[1]]);
-                            if channel == CHANNEL_ACK {
-                                let mut pointer: usize = PACKET_HEADER_SIZE_ACK / BYTE;
-                                while pointer + ((BYTES8 + BYTES2) / BYTE) <= packet.len() {
-                                    let packet_channel =
-                                        u16::from_le_bytes([packet[pointer], packet[pointer + 1]]);
-                                    pointer += BYTES2 / BYTE;
-                                    let packet_num = u64::from_le_bytes([
-                                        packet[pointer],
-                                        packet[pointer + 1],
-                                        packet[pointer + 2],
-                                        packet[pointer + 3],
-                                        packet[pointer + 4],
-                                        packet[pointer + 5],
-                                        packet[pointer + 6],
-                                        packet[pointer + 7],
-                                    ]);
-                                    pointer += 8;
-                                    self.reliable_packets.remove(&(packet_channel, packet_num));
-                                }
-                                continue;
-                            }
-                            let mut packet_bits: BitVec<u64, Lsb0> =
-                                BitVec::with_capacity(packet.len() * 8);
-                            for byte in packet {
-                                packet_bits.extend(byte.view_bits::<Lsb0>());
-                            }
-                            self.packet_buffer.push(packet_bits);
-                        }
-                    }
-                }
-                continue;
-            }
-
-            let mut packet_bits: BitVec<u64, Lsb0> = BitVec::with_capacity(packet.len() * BYTE);
-            for byte in packet {
-                packet_bits.extend(byte.view_bits::<Lsb0>());
-            }
-            self.packet_buffer.push(packet_bits);
-        }
-        if self.client.as_mut().unwrap().is_connected() {
-            let buffer: Vec<(u16, BitVec<u64, Lsb0>)> = self.unsent_packets.drain(..).collect();
-            for packet in buffer {
-                self.send(packet.1.as_bitslice(), packet.0);
-            }
-            let now = Instant::now();
-            for packet in self.reliable_packets.values() {
-                if now - packet.1 > (self.latency + Duration::from_millis(32)) * 3 {
-                    ClientNetworker::resend(self.client.as_mut().unwrap(), &packet.0);
-                }
-            }
-        }
-    }
-    fn resend(client: &mut Client<NetcodeSocket>, final_packet: &[u8]) {
-        client.send(final_packet).unwrap();
-    }
-}
 #[derive(Default, PartialEq, Debug)]
 pub enum ClientState {
     #[default]
