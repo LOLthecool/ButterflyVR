@@ -9,8 +9,8 @@ crate-type = ["cdylib"]
 [dependencies]
 bitvec = "1.0.1"
 godot = { version = "0.3.5", features = ["experimental-threads"] }
-mio = { version = "1.1.1", features = ["os-poll"] }
 quiche = "0.26.1"
+ring = "0.17.14"
 
 [profile.dev]
 debug = "line-tables-only"
