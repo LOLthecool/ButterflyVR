@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bitvec = "1.0.1"
+bytes = "1.11.1"
 godot = { version = "0.3.5", features = ["experimental-threads"] }
 quiche = "0.26.1"
 ring = "0.17.14"
