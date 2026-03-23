@@ -3,6 +3,7 @@ use quiche::*;
 use ring::rand::SecureRandom;
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::collections::hash_map::Entry;
 use std::io::ErrorKind;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
@@ -11,6 +12,7 @@ use std::time::{Duration, Instant};
 
 const MAX_DATAGRAM_SIZE: usize = 1350;
 const PACKET_QUEUE_CAPACITY: usize = 1000;
+const MAX_CLIENT_CONNECTIONS: usize = 256;
 
 struct UDPListener {
     send: SyncSender<(Bytes, SendInfo)>,
@@ -140,6 +142,7 @@ impl UDPListener {
 enum PeerState {
     AwaitingConnection,
     AwaitingIdentity(Instant),
+    AwaitingVerification,
     EventSync,
     InitObjectSync,
     Connected,
@@ -150,12 +153,13 @@ struct PeerConnection<'a> {
     id: ConnectionId<'a>,
     conn: Connection,
     state: PeerState,
+    peer_addr: SocketAddr,
 }
 
 enum HandlerType<'a> {
     Server(
         (
-            HashMap<SocketAddr, PeerConnection<'a>>,
+            HashMap<quiche::ConnectionId<'a>, PeerConnection<'a>>,
             HashMap<SocketAddr, BlockedConnection>,
         ),
     ),
@@ -163,19 +167,146 @@ enum HandlerType<'a> {
 }
 
 struct BlockedConnection {
-    block_count: usize,
+    block_count: u64,
     block_expiry: Instant,
 }
 
 struct ConnectionHandler<'a> {
     handler: HandlerType<'a>,
     listener: UDPListener,
+    unverified_clients: Vec<UnverifiedClients<'a>>,
+}
+
+struct UnverifiedClients<'a> {
+    id: ConnectionId<'a>,
+    nonce: [u8; 16],
+    uuid: [u8; 16],
+    verified: bool,
 }
 
 impl<'a> ConnectionHandler<'a> {
     fn update(&mut self) {
         match self.handler {
-            HandlerType::Server(ref mut data) => {}
+            HandlerType::Server(ref mut data) => {
+                for client in data.0.values_mut() {
+                    client.conn.on_timeout();
+                }
+
+                for (mut packet, source_addr) in self.listener.recv.try_iter() {
+                    let hdr = match quiche::Header::from_slice(
+                        packet.as_mut(),
+                        quiche::MAX_CONN_ID_LEN,
+                    ) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("Failed to parse header: {:?}", e);
+                            continue;
+                        }
+                    };
+
+                    let length = data.0.len();
+
+                    let client = match data.0.entry(hdr.dcid) {
+                        Entry::Occupied(entry) => entry.into_mut(),
+
+                        Entry::Vacant(entry) => {
+                            if hdr.ty != quiche::Type::Initial {
+                                continue;
+                            }
+
+                            if let Some(block) = data.1.get_mut(&source_addr)
+                                && block.block_expiry > Instant::now()
+                            {
+                                eprintln!("Blocked connection from {:?}", source_addr);
+                                continue;
+                            }
+
+                            if length >= MAX_CLIENT_CONNECTIONS {
+                                eprintln!("Max client connections reached");
+                                continue;
+                            }
+
+                            entry.insert(ConnectionHandler::create_client(
+                                source_addr,
+                                &self.listener,
+                            ))
+                        }
+                    };
+
+                    ConnectionHandler::recv_packet(
+                        source_addr,
+                        packet,
+                        client,
+                        self.listener.bind_addr,
+                    );
+                }
+
+                for client in data.0.values_mut() {
+                    match client.state {
+                        PeerState::AwaitingConnection => {
+                            if client.conn.is_closed() {
+                                client.state = PeerState::Disconnected;
+                            }
+
+                            if client.conn.is_established() {
+                                client.state = PeerState::AwaitingIdentity(
+                                    Instant::now() + Duration::from_secs(3),
+                                );
+                            }
+                        }
+                        PeerState::AwaitingIdentity(timeout) => {
+                            if client.conn.is_closed() || Instant::now() > timeout {
+                                client.state = PeerState::Disconnected;
+                                ConnectionHandler::update_blocked_connection(
+                                    data.1.entry(client.peer_addr),
+                                );
+                            }
+                            if client.conn.stream_readable(0) {
+                                let mut buf = [0u8; 32];
+                                let _ = client.conn.stream_recv(0, &mut buf);
+                                let nonce = buf[..16].try_into().unwrap();
+                                let uuid = buf[16..].try_into().unwrap();
+                                self.unverified_clients.push(UnverifiedClients {
+                                    id: client.id.clone(),
+                                    nonce,
+                                    uuid,
+                                    verified: false,
+                                });
+                                client.state = PeerState::AwaitingVerification;
+                            }
+                        }
+                        PeerState::AwaitingVerification => {
+                            if let Some(unverified) =
+                                self.unverified_clients.iter().find(|x| x.id == client.id)
+                            {
+                                if unverified.verified {
+                                    client.state = PeerState::EventSync;
+                                    self.unverified_clients.retain(|x| x.id != client.id);
+                                }
+                            } else {
+                                client.state = PeerState::Disconnected;
+                                ConnectionHandler::update_blocked_connection(
+                                    data.1.entry(client.peer_addr),
+                                );
+                            }
+                        }
+                        PeerState::EventSync | PeerState::InitObjectSync | PeerState::Connected => {
+                            if client.conn.is_closed() {
+                                client.state = PeerState::Disconnected;
+                            }
+                        }
+                        PeerState::Disconnected => {}
+                    }
+                }
+
+                data.0
+                    .retain(|_, client| client.state != PeerState::Disconnected);
+
+                for client in data.0.values_mut() {
+                    ConnectionHandler::send_packets(client, &mut self.listener.send);
+                }
+            }
+
             HandlerType::Client(ref mut data, ref mut identifier) => {
                 data.conn.on_timeout();
 
@@ -220,6 +351,40 @@ impl<'a> ConnectionHandler<'a> {
             }
         }
     }
+    fn update_blocked_connection(entry: Entry<SocketAddr, BlockedConnection>) {
+        entry
+            .and_modify(|e| {
+                e.block_count += 1;
+                e.block_expiry = Instant::now() + Duration::from_secs(e.block_count * e.block_count)
+            })
+            .or_insert(BlockedConnection {
+                block_count: 1,
+                block_expiry: Instant::now(),
+            });
+    }
+    fn create_client<'b>(source_addr: SocketAddr, listener: &UDPListener) -> PeerConnection<'a> {
+        let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
+        ring::rand::SystemRandom::new()
+            .fill(&mut scid_bytes)
+            .unwrap();
+        let scid = quiche::ConnectionId::from_vec(scid_bytes.to_vec());
+
+        let conn = quiche::accept(
+            &scid,
+            None,
+            listener.bind_addr,
+            source_addr,
+            &mut ConnectionHandler::get_config(),
+        )
+        .unwrap();
+
+        PeerConnection {
+            id: scid.clone(),
+            conn,
+            state: PeerState::AwaitingConnection,
+            peer_addr: source_addr,
+        }
+    }
     fn send_packets(connection: &mut PeerConnection, sender: &mut SyncSender<(Bytes, SendInfo)>) {
         loop {
             let mut out = BytesMut::zeroed(MAX_DATAGRAM_SIZE);
@@ -255,28 +420,24 @@ impl<'a> ConnectionHandler<'a> {
         let mut id = vec![0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new().fill(&mut id).unwrap();
         let id = ConnectionId::from_vec(id);
-        let conn = quiche::connect(
-            None,
-            &id,
-            SocketAddr::new("0.0.0.0".parse().unwrap(), server_addr.port()),
-            server_addr,
-            &mut config,
-        )
-        .unwrap();
         let listener = UDPListener::new_client(
             SocketAddr::new("0.0.0.0".parse().unwrap(), server_addr.port()),
             server_addr,
         );
+        let conn =
+            quiche::connect(None, &id, listener.bind_addr, server_addr, &mut config).unwrap();
         Self {
             handler: HandlerType::Client(
                 PeerConnection {
                     id,
                     conn,
                     state: PeerState::AwaitingConnection,
+                    peer_addr: server_addr,
                 },
                 identifier,
             ),
             listener,
+            unverified_clients: Vec::new(),
         }
     }
     fn new_server(target_port: u16) -> Self {
@@ -286,6 +447,7 @@ impl<'a> ConnectionHandler<'a> {
                 "0.0.0.0".parse().unwrap(),
                 target_port,
             )),
+            unverified_clients: Vec::new(),
         }
     }
     fn get_config() -> Config {
