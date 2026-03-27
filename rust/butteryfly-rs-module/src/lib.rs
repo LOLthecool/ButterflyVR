@@ -1,4 +1,3 @@
-// wrapper for either a client or server
 mod client;
 mod messages;
 mod net_nodes;
