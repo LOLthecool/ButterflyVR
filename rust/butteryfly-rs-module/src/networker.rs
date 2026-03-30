@@ -24,7 +24,7 @@ enum ConnectionError {
 
 struct UDPListener {
     send: SyncSender<(Bytes, SendInfo)>,
-    recv: Receiver<(BytesMut, SocketAddr)>,
+    recv: Receiver<(Bytes, SocketAddr)>,
     bind_addr: SocketAddr,
     pacing_notifier: Receiver<()>,
 }
@@ -87,7 +87,7 @@ impl UDPListener {
     // todo: check if this needs to handle channel disconnections
     fn listening_thread(
         incoming: Receiver<(Bytes, SendInfo)>,
-        outgoing: SyncSender<(BytesMut, SocketAddr)>,
+        outgoing: SyncSender<(Bytes, SocketAddr)>,
         excessive_pacing_notifier: SyncSender<()>,
         mut socket: UdpSocket,
     ) {
@@ -127,7 +127,7 @@ impl UDPListener {
             }
 
             if let Some(packet) = leftover_packet.clone() {
-                if outgoing.try_send((packet.0.into(), packet.1)).is_err() {
+                if outgoing.try_send((packet.0, packet.1)).is_err() {
                     thread::sleep(Duration::from_millis(1));
                     continue;
                 } else {
@@ -137,7 +137,7 @@ impl UDPListener {
 
             while let Some((source, packet)) = UDPListener::poll(&mut socket) {
                 let packet = packet.freeze();
-                if outgoing.try_send((packet.clone().into(), source)).is_err() {
+                if outgoing.try_send((packet.clone(), source)).is_err() {
                     leftover_packet = Some((packet, source));
                 }
             }
@@ -217,7 +217,8 @@ impl<'a> ConnectionHandler<'a> {
             client.conn.on_timeout();
         }
 
-        for (mut packet, source_addr) in listener.recv.try_iter() {
+        for (packet, source_addr) in listener.recv.try_iter() {
+            let mut packet: BytesMut = packet.into();
             let hdr = match quiche::Header::from_slice(&mut packet, quiche::MAX_CONN_ID_LEN) {
                 Ok(v) => v,
                 Err(e) => {
@@ -340,6 +341,7 @@ impl<'a> ConnectionHandler<'a> {
         data.conn.on_timeout();
 
         for (packet, source_addr) in listener.recv.try_iter() {
+            let packet: BytesMut = packet.into();
             ConnectionHandler::recv_packet(source_addr, packet, data, listener.bind_addr);
         }
 
@@ -605,14 +607,65 @@ impl<'a> ConnectionHandler<'a> {
     pub fn send_datagram(
         &mut self,
         peer: ConnectionId<'static>,
-        data: Bytes,
+        mut data: BitVec<u64, Lsb0>,
     ) -> std::result::Result<(), ConnectionError> {
+        data.set_uninitialized(false);
+
+        let data: Vec<u8> = data
+            .into_vec()
+            .iter()
+            .flat_map(|x| x.to_le_bytes())
+            .collect();
+
+        match self.handler {
+            HandlerType::Client(ref mut c, _) => Self::send_dgram_inner(c, data),
+            HandlerType::Server(ref mut s) => {
+                if let Some(peer) = s.0.get_mut(&peer) {
+                    Self::send_dgram_inner(peer, data)
+                } else {
+                    Err(ConnectionError::Generic(Box::new(io::Error::new(
+                        ErrorKind::NotFound,
+                        "peer not found",
+                    ))))
+                }
+            }
+        }
+    }
+
+    fn send_dgram_inner(
+        conn: &mut PeerConnection,
+        data: Vec<u8>,
+    ) -> std::result::Result<(), ConnectionError> {
+        if data.len() > conn.conn.dgram_max_writable_len().unwrap_or(0) {
+            return Err(ConnectionError::Generic(Box::new(io::Error::new(
+                ErrorKind::InvalidData,
+                "datagram too large",
+            ))));
+        }
+        match conn.conn.dgram_send_vec(data) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(ConnectionError::Generic(Box::new(e))),
+        }
     }
 
     pub fn recv_datagram(
         &mut self,
         peer: ConnectionId<'static>,
-    ) -> std::result::Result<Bytes, ConnectionError> {
+    ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
+        let dgram = match self.handler {
+            HandlerType::Client(ref mut c, _) => c.conn.dgram_recv_vec().unwrap_or(Vec::new()),
+            HandlerType::Server(ref mut s) => {
+                if let Some(peer) = s.0.get_mut(&peer) {
+                    peer.conn.dgram_recv_vec().unwrap_or(Vec::new())
+                } else {
+                    return Err(ConnectionError::Generic(Box::new(io::Error::new(
+                        ErrorKind::NotFound,
+                        "peer not found",
+                    ))));
+                }
+            }
+        };
+        Ok(Self::packet_to_bits(BytesMut::from(Bytes::from(dgram))))
     }
 
     fn new_server(target_port: u16) -> Self {
