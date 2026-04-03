@@ -1,7 +1,15 @@
 use bitvec::order::Lsb0;
 use bitvec::vec::BitVec;
+use boring::ssl::SslContextBuilder;
+use boring::ssl::SslMethod;
+use boring::ssl::SslVerifyMode;
+use boring::ssl::SslVersion;
 use bytes::{Bytes, BytesMut};
-use quiche::*;
+use quiche::Config;
+use quiche::Connection;
+use quiche::ConnectionId;
+use quiche::RecvInfo;
+use quiche::SendInfo;
 use ring::rand::SecureRandom;
 use std::collections::HashMap;
 use std::collections::VecDeque;
@@ -9,6 +17,8 @@ use std::collections::hash_map::Entry;
 use std::io;
 use std::io::ErrorKind;
 use std::net::{SocketAddr, UdpSocket};
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::thread::{self};
 use std::time::{Duration, Instant};
@@ -169,6 +179,7 @@ enum HandlerType<'a> {
         (
             HashMap<quiche::ConnectionId<'a>, PeerConnection<'a>>,
             HashMap<SocketAddr, BlockedConnection>,
+            Arc<Mutex<HashMap<String, [u8; 32]>>>,
         ),
     ),
     Client(PeerConnection<'a>, BytesMut),
@@ -209,6 +220,7 @@ impl<'a> ConnectionHandler<'a> {
         data: &mut (
             HashMap<ConnectionId<'_>, PeerConnection<'a>>,
             HashMap<SocketAddr, BlockedConnection>,
+            Arc<Mutex<HashMap<String, [u8; 32]>>>,
         ),
         listener: &mut UDPListener,
         unverified_clients: &mut Vec<UnverifiedClients<'a>>,
@@ -249,7 +261,11 @@ impl<'a> ConnectionHandler<'a> {
                         continue;
                     }
 
-                    entry.insert(ConnectionHandler::create_client(source_addr, &listener))
+                    entry.insert(ConnectionHandler::create_client(
+                        source_addr,
+                        &listener,
+                        data.2.clone(),
+                    ))
                 }
             };
 
@@ -384,19 +400,25 @@ impl<'a> ConnectionHandler<'a> {
                 block_expiry: Instant::now(),
             });
     }
-    fn create_client<'b>(source_addr: SocketAddr, listener: &UDPListener) -> PeerConnection<'a> {
+    fn create_client<'b>(
+        source_addr: SocketAddr,
+        listener: &UDPListener,
+        psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
+    ) -> PeerConnection<'a> {
         let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
             .fill(&mut scid_bytes)
             .unwrap();
         let scid = quiche::ConnectionId::from_vec(scid_bytes.to_vec());
 
+        let ssl_ctx = ConnectionHandler::build_server_ctx(psks).unwrap();
+
         let conn = quiche::accept(
             &scid,
             None,
             listener.bind_addr,
             source_addr,
-            &mut ConnectionHandler::get_config(),
+            &mut ConnectionHandler::get_config(ssl_ctx),
         )
         .unwrap();
 
@@ -436,31 +458,6 @@ impl<'a> ConnectionHandler<'a> {
             to: bind_addr,
         };
         connection.conn.recv(&mut packet, info).unwrap();
-    }
-    fn new_client(server_addr: SocketAddr, identifier: BytesMut) -> Self {
-        let mut config = ConnectionHandler::get_config();
-        let mut id = vec![0u8; quiche::MAX_CONN_ID_LEN];
-        ring::rand::SystemRandom::new().fill(&mut id).unwrap();
-        let id = ConnectionId::from_vec(id);
-        let listener = UDPListener::new_client(
-            SocketAddr::new("0.0.0.0".parse().unwrap(), server_addr.port()),
-            server_addr,
-        );
-        let conn =
-            quiche::connect(None, &id, listener.bind_addr, server_addr, &mut config).unwrap();
-        Self {
-            handler: HandlerType::Client(
-                PeerConnection {
-                    id,
-                    conn,
-                    state: PeerState::AwaitingConnection,
-                    peer_addr: server_addr,
-                },
-                identifier,
-            ),
-            listener,
-            unverified_clients: Vec::new(),
-        }
     }
 
     pub fn get_peers(&self) -> Vec<ConnectionId<'_>> {
@@ -599,7 +596,7 @@ impl<'a> ConnectionHandler<'a> {
     ) -> std::result::Result<usize, ConnectionError> {
         match conn.conn.stream_recv(stream_id, buf) {
             Ok((length, _)) => Ok(length),
-            Err(Error::Done) => Ok(0),
+            Err(quiche::Error::Done) => Ok(0),
             Err(e) => return Err(ConnectionError::Generic(Box::new(e))),
         }
     }
@@ -642,7 +639,7 @@ impl<'a> ConnectionHandler<'a> {
                 "datagram too large",
             ))));
         }
-        match conn.conn.dgram_send_vec(data) {
+        match conn.conn.dgram_send_buf(data) {
             Ok(_) => Ok(()),
             Err(e) => Err(ConnectionError::Generic(Box::new(e))),
         }
@@ -653,10 +650,10 @@ impl<'a> ConnectionHandler<'a> {
         peer: ConnectionId<'static>,
     ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
         let dgram = match self.handler {
-            HandlerType::Client(ref mut c, _) => c.conn.dgram_recv_vec().unwrap_or(Vec::new()),
+            HandlerType::Client(ref mut c, _) => c.conn.dgram_recv_buf().unwrap_or(Vec::new()),
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(&peer) {
-                    peer.conn.dgram_recv_vec().unwrap_or(Vec::new())
+                    peer.conn.dgram_recv_buf().unwrap_or(Vec::new())
                 } else {
                     return Err(ConnectionError::Generic(Box::new(io::Error::new(
                         ErrorKind::NotFound,
@@ -668,9 +665,45 @@ impl<'a> ConnectionHandler<'a> {
         Ok(Self::packet_to_bits(BytesMut::from(Bytes::from(dgram))))
     }
 
+    fn new_client(
+        server_addr: SocketAddr,
+        identifier: BytesMut,
+        supplied_identity: String,
+        supplied_psk: Vec<u8>,
+    ) -> Self {
+        let ssl_ctx = ConnectionHandler::build_client_ctx(supplied_identity, supplied_psk);
+        let mut config = ConnectionHandler::get_config(ssl_ctx);
+        let mut id = vec![0u8; quiche::MAX_CONN_ID_LEN];
+        ring::rand::SystemRandom::new().fill(&mut id).unwrap();
+        let id = ConnectionId::from_vec(id);
+        let listener = UDPListener::new_client(
+            SocketAddr::new("0.0.0.0".parse().unwrap(), server_addr.port()),
+            server_addr,
+        );
+        let conn =
+            quiche::connect(None, &id, listener.bind_addr, server_addr, &mut config).unwrap();
+        Self {
+            handler: HandlerType::Client(
+                PeerConnection {
+                    id,
+                    conn,
+                    state: PeerState::AwaitingConnection,
+                    peer_addr: server_addr,
+                },
+                identifier,
+            ),
+            listener,
+            unverified_clients: Vec::new(),
+        }
+    }
+
     fn new_server(target_port: u16) -> Self {
         Self {
-            handler: HandlerType::Server((HashMap::new(), HashMap::new())),
+            handler: HandlerType::Server((
+                HashMap::new(),
+                HashMap::new(),
+                Arc::new(Mutex::new(HashMap::new())),
+            )),
             listener: UDPListener::new_server(SocketAddr::new(
                 "0.0.0.0".parse().unwrap(),
                 target_port,
@@ -678,8 +711,9 @@ impl<'a> ConnectionHandler<'a> {
             unverified_clients: Vec::new(),
         }
     }
-    fn get_config() -> Config {
-        let mut config = Config::new(quiche::PROTOCOL_VERSION).unwrap();
+    fn get_config(ssl_ctx: SslContextBuilder) -> Config {
+        let mut config =
+            Config::with_boring_ssl_ctx_builder(quiche::PROTOCOL_VERSION, ssl_ctx).unwrap();
         config.discover_pmtu(true);
         config.set_application_protos(&[b"netnodes-1"]);
         config.set_max_idle_timeout(10000);
@@ -694,5 +728,59 @@ impl<'a> ConnectionHandler<'a> {
         config.enable_dgram(true, 1000, 1000);
         config.set_disable_active_migration(true);
         config
+    }
+
+    fn build_server_ctx(
+        psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
+    ) -> Result<SslContextBuilder, boring::error::ErrorStack> {
+        let mut ctx = SslContextBuilder::new(SslMethod::tls_server())?;
+
+        ctx.set_min_proto_version(Some(SslVersion::TLS1_3))?;
+        ctx.set_max_proto_version(Some(SslVersion::TLS1_3))?;
+
+        ctx.set_verify(SslVerifyMode::NONE);
+
+        ctx.set_psk_server_callback(move |_ssl, identity, out| {
+            if let Some(id) = identity {
+                if let Some(psk) = psks.lock().unwrap().get(&*String::from_utf8_lossy(id)) {
+                    let key_len = psk.len();
+                    if out.len() >= key_len {
+                        out[..key_len].copy_from_slice(psk);
+                        return Ok(key_len);
+                    }
+                }
+            }
+            Ok(0)
+        });
+
+        Ok(ctx)
+    }
+
+    fn build_client_ctx(supplied_identity: String, supplied_psk: Vec<u8>) -> SslContextBuilder {
+        let mut ctx = SslContextBuilder::new(SslMethod::tls_client()).unwrap();
+
+        ctx.set_min_proto_version(Some(SslVersion::TLS1_3)).unwrap();
+        ctx.set_max_proto_version(Some(SslVersion::TLS1_3)).unwrap();
+
+        ctx.set_verify(SslVerifyMode::NONE);
+
+        ctx.set_psk_client_callback(move |_ssl, _hint, identity, psk| {
+            let id_bytes = supplied_identity.as_bytes();
+            if identity.len() < id_bytes.len() + 1 {
+                return Err(boring::error::ErrorStack::get());
+            }
+            identity[..id_bytes.len()].copy_from_slice(id_bytes);
+            identity[id_bytes.len()] = 0;
+
+            let key_len = supplied_psk.len();
+            if psk.len() < key_len {
+                return Err(boring::error::ErrorStack::get());
+            }
+            psk[..key_len].copy_from_slice(&supplied_psk);
+
+            Ok(key_len)
+        });
+
+        ctx
     }
 }
