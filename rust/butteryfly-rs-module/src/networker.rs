@@ -159,8 +159,6 @@ impl UDPListener {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum PeerState {
     AwaitingConnection,
-    AwaitingIdentity(Instant),
-    AwaitingVerification,
     EventSync,
     InitObjectSync,
     Connected,
@@ -179,10 +177,10 @@ enum HandlerType<'a> {
         (
             HashMap<quiche::ConnectionId<'a>, PeerConnection<'a>>,
             HashMap<SocketAddr, BlockedConnection>,
-            Arc<Mutex<HashMap<String, [u8; 32]>>>,
+            Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
         ),
     ),
-    Client(PeerConnection<'a>, BytesMut),
+    Client(PeerConnection<'a>),
 }
 
 struct BlockedConnection {
@@ -193,7 +191,6 @@ struct BlockedConnection {
 struct ConnectionHandler<'a> {
     handler: HandlerType<'a>,
     listener: UDPListener,
-    unverified_clients: Vec<UnverifiedClients<'a>>,
 }
 
 struct UnverifiedClients<'a> {
@@ -207,11 +204,11 @@ impl<'a> ConnectionHandler<'a> {
     fn update(&mut self) {
         match self.handler {
             HandlerType::Server(ref mut data) => {
-                Self::update_server(data, &mut self.listener, &mut self.unverified_clients);
+                Self::update_server(data, &mut self.listener);
             }
 
-            HandlerType::Client(ref mut data, ref mut identifier) => {
-                Self::update_client(data, identifier, &mut self.listener);
+            HandlerType::Client(ref mut data) => {
+                Self::update_client(data, &mut self.listener);
             }
         }
     }
@@ -220,10 +217,9 @@ impl<'a> ConnectionHandler<'a> {
         data: &mut (
             HashMap<ConnectionId<'_>, PeerConnection<'a>>,
             HashMap<SocketAddr, BlockedConnection>,
-            Arc<Mutex<HashMap<String, [u8; 32]>>>,
+            Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
         ),
         listener: &mut UDPListener,
-        unverified_clients: &mut Vec<UnverifiedClients<'a>>,
     ) {
         for client in data.0.values_mut() {
             client.conn.on_timeout();
@@ -283,51 +279,7 @@ impl<'a> ConnectionHandler<'a> {
                     }
 
                     if client.conn.is_established() {
-                        client.state =
-                            PeerState::AwaitingIdentity(Instant::now() + Duration::from_secs(3));
-                    }
-                }
-
-                PeerState::AwaitingIdentity(timeout) => {
-                    if client.conn.is_closed() || Instant::now() > timeout {
-                        client.state = PeerState::Disconnected;
-                        ConnectionHandler::update_blocked_connection(
-                            data.1.entry(client.peer_addr),
-                        );
-                    }
-
-                    if client.conn.stream_readable(0) {
-                        let mut buf = [0u8; 32];
-                        let _ = client.conn.stream_recv(0, &mut buf);
-
-                        let nonce = buf[..16].try_into().unwrap();
-                        let uuid = buf[16..].try_into().unwrap();
-
-                        unverified_clients.push(UnverifiedClients {
-                            id: client.id.clone(),
-                            nonce,
-                            uuid,
-                            verified: false,
-                        });
-
-                        client.state = PeerState::AwaitingVerification;
-                    }
-                }
-
-                PeerState::AwaitingVerification => {
-                    if let Some(unverified) = unverified_clients.iter().find(|x| x.id == client.id)
-                    {
-                        if unverified.verified {
-                            client.state = PeerState::EventSync;
-
-                            unverified_clients.retain(|x| x.id != client.id);
-                        }
-                    } else {
-                        client.state = PeerState::Disconnected;
-
-                        ConnectionHandler::update_blocked_connection(
-                            data.1.entry(client.peer_addr),
-                        );
+                        client.state = PeerState::EventSync;
                     }
                 }
 
@@ -349,11 +301,7 @@ impl<'a> ConnectionHandler<'a> {
         }
     }
 
-    fn update_client(
-        data: &mut PeerConnection,
-        identifier: &mut BytesMut,
-        listener: &mut UDPListener,
-    ) {
+    fn update_client(data: &mut PeerConnection, listener: &mut UDPListener) {
         data.conn.on_timeout();
 
         for (packet, source_addr) in listener.recv.try_iter() {
@@ -368,8 +316,6 @@ impl<'a> ConnectionHandler<'a> {
                 }
 
                 if data.conn.is_established() {
-                    let length = data.conn.stream_send(0, identifier, false).unwrap();
-                    assert_eq!(length, identifier.len());
                     data.state = PeerState::Connected;
                 }
             }
@@ -403,7 +349,7 @@ impl<'a> ConnectionHandler<'a> {
     fn create_client<'b>(
         source_addr: SocketAddr,
         listener: &UDPListener,
-        psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
+        psks: Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
     ) -> PeerConnection<'a> {
         let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
@@ -462,14 +408,14 @@ impl<'a> ConnectionHandler<'a> {
 
     pub fn get_peers(&self) -> Vec<ConnectionId<'_>> {
         match self.handler {
-            HandlerType::Client(ref c, _) => vec![c.id.clone()],
+            HandlerType::Client(ref c) => vec![c.id.clone()],
             HandlerType::Server(ref s) => s.0.keys().cloned().collect(),
         }
     }
 
     pub fn get_peer_refs(&self) -> Vec<&ConnectionId<'_>> {
         match self.handler {
-            HandlerType::Client(ref c, _) => vec![&c.id],
+            HandlerType::Client(ref c) => vec![&c.id],
             HandlerType::Server(ref s) => s.0.keys().collect(),
         }
     }
@@ -493,7 +439,7 @@ impl<'a> ConnectionHandler<'a> {
             .collect();
 
         match self.handler {
-            HandlerType::Client(ref mut c, _) => Self::send_inner(c, stream_id, &data),
+            HandlerType::Client(ref mut c) => Self::send_inner(c, stream_id, &data),
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     Self::send_inner(peer, stream_id, &data)
@@ -543,7 +489,7 @@ impl<'a> ConnectionHandler<'a> {
         let buffer_length: usize;
 
         match self.handler {
-            HandlerType::Client(ref mut c, _) => match Self::recv_inner(c, stream_id, &mut buf) {
+            HandlerType::Client(ref mut c) => match Self::recv_inner(c, stream_id, &mut buf) {
                 Ok(length) => {
                     buffer_length = length;
                 }
@@ -615,7 +561,7 @@ impl<'a> ConnectionHandler<'a> {
             .collect();
 
         match self.handler {
-            HandlerType::Client(ref mut c, _) => Self::send_dgram_inner(c, data),
+            HandlerType::Client(ref mut c) => Self::send_dgram_inner(c, data),
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     Self::send_dgram_inner(peer, data)
@@ -650,7 +596,7 @@ impl<'a> ConnectionHandler<'a> {
         peer: ConnectionId<'static>,
     ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
         let dgram = match self.handler {
-            HandlerType::Client(ref mut c, _) => c.conn.dgram_recv_buf().unwrap_or(Vec::new()),
+            HandlerType::Client(ref mut c) => c.conn.dgram_recv_buf().unwrap_or(Vec::new()),
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     peer.conn.dgram_recv_buf().unwrap_or(Vec::new())
@@ -665,9 +611,39 @@ impl<'a> ConnectionHandler<'a> {
         Ok(Self::packet_to_bits(BytesMut::from(Bytes::from(dgram))))
     }
 
+    pub fn get_client_token(&mut self) -> Option<Vec<u8>> {
+        if let HandlerType::Server(data) = &mut self.handler {
+            let mut identifier = [0u8; 10];
+            let mut key = [0u8; 32];
+
+            ring::rand::SystemRandom::new()
+                .fill(&mut identifier)
+                .unwrap();
+            ring::rand::SystemRandom::new().fill(&mut key).unwrap();
+
+            let identifier: String = identifier
+                .map(|x| (b'a' + (x % 26)) as char)
+                .into_iter()
+                .collect();
+
+            data.2
+                .lock()
+                .unwrap()
+                .insert(identifier.clone(), (key, false));
+            Some(
+                identifier
+                    .into_bytes()
+                    .into_iter()
+                    .chain(key.into_iter())
+                    .collect(),
+            )
+        } else {
+            None
+        }
+    }
+
     fn new_client(
         server_addr: SocketAddr,
-        identifier: BytesMut,
         supplied_identity: String,
         supplied_psk: Vec<u8>,
     ) -> Self {
@@ -683,17 +659,13 @@ impl<'a> ConnectionHandler<'a> {
         let conn =
             quiche::connect(None, &id, listener.bind_addr, server_addr, &mut config).unwrap();
         Self {
-            handler: HandlerType::Client(
-                PeerConnection {
-                    id,
-                    conn,
-                    state: PeerState::AwaitingConnection,
-                    peer_addr: server_addr,
-                },
-                identifier,
-            ),
+            handler: HandlerType::Client(PeerConnection {
+                id,
+                conn,
+                state: PeerState::AwaitingConnection,
+                peer_addr: server_addr,
+            }),
             listener,
-            unverified_clients: Vec::new(),
         }
     }
 
@@ -708,7 +680,6 @@ impl<'a> ConnectionHandler<'a> {
                 "0.0.0.0".parse().unwrap(),
                 target_port,
             )),
-            unverified_clients: Vec::new(),
         }
     }
     fn get_config(ssl_ctx: SslContextBuilder) -> Config {
@@ -731,7 +702,7 @@ impl<'a> ConnectionHandler<'a> {
     }
 
     fn build_server_ctx(
-        psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
+        psks: Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
     ) -> Result<SslContextBuilder, boring::error::ErrorStack> {
         let mut ctx = SslContextBuilder::new(SslMethod::tls_server())?;
 
@@ -742,10 +713,17 @@ impl<'a> ConnectionHandler<'a> {
 
         ctx.set_psk_server_callback(move |_ssl, identity, out| {
             if let Some(id) = identity {
-                if let Some(psk) = psks.lock().unwrap().get(&*String::from_utf8_lossy(id)) {
+                if let Entry::Occupied(entry) = psks
+                    .lock()
+                    .unwrap()
+                    .entry((*String::from_utf8_lossy(id)).to_owned())
+                {
+                    let value = entry.into_mut();
+                    let psk = value.0;
+                    value.1 = true;
                     let key_len = psk.len();
                     if out.len() >= key_len {
-                        out[..key_len].copy_from_slice(psk);
+                        out[..key_len].copy_from_slice(&psk);
                         return Ok(key_len);
                     }
                 }
