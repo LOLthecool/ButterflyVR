@@ -23,11 +23,11 @@ use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::thread::{self};
 use std::time::{Duration, Instant};
 
-const MAX_DATAGRAM_SIZE: usize = 1350;
+pub const MAX_DATAGRAM_SIZE: usize = 1350;
 const PACKET_QUEUE_CAPACITY: usize = 1000;
-const MAX_CLIENT_CONNECTIONS: usize = 256;
+pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 
-enum ConnectionError {
+pub enum ConnectionError {
     // todo: replace with specific error types
     Generic(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
@@ -157,7 +157,7 @@ impl UDPListener {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum PeerState {
+pub enum PeerState {
     AwaitingConnection,
     EventSync,
     InitObjectSync,
@@ -188,20 +188,13 @@ struct BlockedConnection {
     block_expiry: Instant,
 }
 
-struct ConnectionHandler<'a> {
+pub struct ConnectionHandler<'a> {
     handler: HandlerType<'a>,
     listener: UDPListener,
 }
 
-struct UnverifiedClients<'a> {
-    id: ConnectionId<'a>,
-    nonce: [u8; 16],
-    uuid: [u8; 16],
-    verified: bool,
-}
-
 impl<'a> ConnectionHandler<'a> {
-    fn update(&mut self) {
+    pub fn update(&mut self) {
         match self.handler {
             HandlerType::Server(ref mut data) => {
                 Self::update_server(data, &mut self.listener);
@@ -406,6 +399,10 @@ impl<'a> ConnectionHandler<'a> {
         connection.conn.recv(&mut packet, info).unwrap();
     }
 
+    pub fn is_connection_pacing(&self) -> bool {
+        self.listener.pacing_notifier.try_recv().is_ok()
+    }
+
     pub fn get_peers(&self) -> Vec<ConnectionId<'_>> {
         match self.handler {
             HandlerType::Client(ref c) => vec![c.id.clone()],
@@ -439,7 +436,10 @@ impl<'a> ConnectionHandler<'a> {
             .collect();
 
         match self.handler {
-            HandlerType::Client(ref mut c) => Self::send_inner(c, stream_id, &data),
+            HandlerType::Client(ref mut c) => {
+                debug_assert_eq!(peer, c.id);
+                Self::send_inner(c, stream_id, &data)
+            }
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     Self::send_inner(peer, stream_id, &data)
@@ -489,12 +489,15 @@ impl<'a> ConnectionHandler<'a> {
         let buffer_length: usize;
 
         match self.handler {
-            HandlerType::Client(ref mut c) => match Self::recv_inner(c, stream_id, &mut buf) {
-                Ok(length) => {
-                    buffer_length = length;
+            HandlerType::Client(ref mut c) => {
+                debug_assert_eq!(peer, c.id);
+                match Self::recv_inner(c, stream_id, &mut buf) {
+                    Ok(length) => {
+                        buffer_length = length;
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            },
+            }
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     match Self::recv_inner(peer, stream_id, &mut buf) {
@@ -561,7 +564,10 @@ impl<'a> ConnectionHandler<'a> {
             .collect();
 
         match self.handler {
-            HandlerType::Client(ref mut c) => Self::send_dgram_inner(c, data),
+            HandlerType::Client(ref mut c) => {
+                debug_assert_eq!(peer, c.id);
+                Self::send_dgram_inner(c, data)
+            }
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     Self::send_dgram_inner(peer, data)
@@ -596,7 +602,10 @@ impl<'a> ConnectionHandler<'a> {
         peer: ConnectionId<'static>,
     ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
         let dgram = match self.handler {
-            HandlerType::Client(ref mut c) => c.conn.dgram_recv_buf().unwrap_or(Vec::new()),
+            HandlerType::Client(ref mut c) => {
+                debug_assert_eq!(peer, c.id);
+                c.conn.dgram_recv_buf().unwrap_or(Vec::new())
+            }
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     peer.conn.dgram_recv_buf().unwrap_or(Vec::new())
@@ -611,38 +620,18 @@ impl<'a> ConnectionHandler<'a> {
         Ok(Self::packet_to_bits(BytesMut::from(Bytes::from(dgram))))
     }
 
-    pub fn get_client_token(&mut self) -> Option<Vec<u8>> {
+    pub fn add_client_token(&mut self, identifier: String, key: [u8; 32]) {
         if let HandlerType::Server(data) = &mut self.handler {
-            let mut identifier = [0u8; 10];
-            let mut key = [0u8; 32];
-
-            ring::rand::SystemRandom::new()
-                .fill(&mut identifier)
-                .unwrap();
-            ring::rand::SystemRandom::new().fill(&mut key).unwrap();
-
-            let identifier: String = identifier
-                .map(|x| (b'a' + (x % 26)) as char)
-                .into_iter()
-                .collect();
-
             data.2
                 .lock()
                 .unwrap()
                 .insert(identifier.clone(), (key, false));
-            Some(
-                identifier
-                    .into_bytes()
-                    .into_iter()
-                    .chain(key.into_iter())
-                    .collect(),
-            )
         } else {
-            None
+            debug_assert!(true);
         }
     }
 
-    fn new_client(
+    pub fn new_client(
         server_addr: SocketAddr,
         supplied_identity: String,
         supplied_psk: Vec<u8>,
@@ -669,7 +658,7 @@ impl<'a> ConnectionHandler<'a> {
         }
     }
 
-    fn new_server(target_port: u16) -> Self {
+    pub fn new_server(target_port: u16) -> Self {
         Self {
             handler: HandlerType::Server((
                 HashMap::new(),
