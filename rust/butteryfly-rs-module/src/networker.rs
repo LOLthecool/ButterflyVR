@@ -159,8 +159,6 @@ impl UDPListener {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PeerState {
     AwaitingConnection,
-    EventSync,
-    InitObjectSync,
     Connected,
     Disconnected,
 }
@@ -272,11 +270,11 @@ impl<'a> ConnectionHandler<'a> {
                     }
 
                     if client.conn.is_established() {
-                        client.state = PeerState::EventSync;
+                        client.state = PeerState::Connected;
                     }
                 }
 
-                PeerState::EventSync | PeerState::InitObjectSync | PeerState::Connected => {
+                PeerState::Connected => {
                     if client.conn.is_closed() {
                         client.state = PeerState::Disconnected;
                     }
@@ -319,9 +317,6 @@ impl<'a> ConnectionHandler<'a> {
             }
             PeerState::Disconnected => {
                 todo!()
-            }
-            _ => {
-                panic!("client in unexpected state: {:?}", data.state)
             }
         }
 
@@ -423,10 +418,6 @@ impl<'a> ConnectionHandler<'a> {
         stream_id: u64,
         mut data: BitVec<u64, Lsb0>,
     ) -> std::result::Result<(), ConnectionError> {
-        if stream_id == 0 {
-            panic!("tried to send netnode data on the internal stream");
-        }
-
         data.set_uninitialized(false);
 
         let data: Vec<u8> = data
@@ -479,11 +470,6 @@ impl<'a> ConnectionHandler<'a> {
         stream_id: u64,
     ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
         const STREAM_CHUNK_SIZE: usize = 512;
-
-        if stream_id == 0 {
-            eprintln!("tried to read from internal stream");
-            return Ok(BitVec::new());
-        }
 
         let mut buf = BytesMut::zeroed(STREAM_CHUNK_SIZE);
         let buffer_length: usize;
@@ -749,5 +735,18 @@ impl<'a> ConnectionHandler<'a> {
         });
 
         ctx
+    }
+}
+
+impl<'a> Default for ConnectionHandler<'a> {
+    fn default() -> Self {
+        Self {
+            handler: HandlerType::Server((
+                HashMap::new(),
+                HashMap::new(),
+                Arc::new(Mutex::new(HashMap::new())),
+            )),
+            listener: UDPListener::new_server(SocketAddr::new("0.0.0.0".parse().unwrap(), 3444)),
+        }
     }
 }

@@ -142,16 +142,6 @@ impl NetNodeManager {
         }
     }
     #[func]
-    fn get_id(&self) -> u16 {
-        if self.server.is_some() {
-            self.server.as_ref().unwrap().bind().id
-        } else if self.client.is_some() {
-            self.client.as_ref().unwrap().bind().id
-        } else {
-            panic!("called get_id but no client or server is running");
-        }
-    }
-    #[func]
     fn id_ready(&self) -> bool {
         if self.client.is_none() && self.server.is_none() {
             return false;

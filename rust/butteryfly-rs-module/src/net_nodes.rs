@@ -25,12 +25,12 @@ pub impl NetworkedNode {
     }
     // intended to be overriden, the array should contain all values used in set_networked_values. you must ensure these two functions can interpret each other regardless of the state of either client or server
     #[func(virtual)]
-    pub fn get_networked_values(&self) -> VariantArray {
+    pub fn get_networked_values(&self) -> VarArray {
         panic!("node has no impl for get_networked_values")
     }
     // intended to be overriden, this is where you update the properties of the node with the values from the server. you must ensure these two functions can interpret each other regardless of the state of either client or server
     #[func(virtual)]
-    pub fn set_networked_values(&self, _values: VariantArray) {
+    pub fn set_networked_values(&self, _values: VarArray) {
         panic!("node has no impl for set_networked_values")
     }
     #[func(virtual)]
@@ -41,7 +41,7 @@ pub impl NetworkedNode {
     // generates a packet chunk containing the values from get_networked_values, encodes each value using the network value types
     pub fn get_byte_data(&self, types: &[NetworkedValueTypes]) -> BitVec {
         const AVERAGE_OBJECT_SIZE: usize = 128; // estimated average size, prefers to overallocate than underallocate, probably a better way to do this
-        let data: VariantArray = self.get_networked_values();
+        let data: VarArray = self.get_networked_values();
         let mut byte_data: BitVec = BitVec::with_capacity(data.len() * AVERAGE_OBJECT_SIZE);
 
         byte_data.extend(self.objectid.view_bits::<Lsb0>());
@@ -62,7 +62,7 @@ pub impl NetworkedNode {
         data: &BitSlice<u64>,
         types: &[NetworkedValueTypes],
     ) -> bool {
-        let mut values: VariantArray = VariantArray::new();
+        let mut values: VarArray = VarArray::new();
         while values.len() < types.len() {
             if let Some(value) =
                 serializer::decode_with_known_type(data, pointer, &types[values.len()])

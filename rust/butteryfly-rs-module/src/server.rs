@@ -1,10 +1,12 @@
 // functionallity for the NetNodeManager server
-use crate::messages::*;
 use crate::net_nodes::NetworkedNode;
+use crate::networker::ConnectionHandler;
 use crate::serializer::*;
+use crate::{messages::*, networker};
 use bitvec::prelude::*;
 use godot::classes::Engine;
 use godot::prelude::*;
+use quiche::{Connection, ConnectionId};
 use std::collections::{HashSet, VecDeque};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{cmp, collections::HashMap};
@@ -25,11 +27,8 @@ const HIT_RATE_HISTORY_LENGTH: usize = 128;
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct NetNodeServer {
-    #[var]
-    pub id: u16,
-    next_id: u16,
-    pub networked_nodes: Vec<Gd<NetworkedNode>>,
-    server_networker: ServerNetworker,
+    networked_nodes: Vec<Gd<NetworkedNode>>,
+    server_networker: ConnectionHandler<'static>,
     message_buffer: VecDeque<BitVec<u64, Lsb0>>,
     message_handlers: HashMap<u16, Gd<MessageHandler>>,
     base: Base<Node>,
@@ -42,7 +41,7 @@ pub impl NetNodeServer {
     #[signal]
     pub fn player_left(player: u16);
     pub fn get_player_count(&self) -> usize {
-        self.server_networker.clients.len()
+        self.server_networker.get_peer_refs().len()
     }
     pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &mut NetworkedNode) {
         self.queue_message(MessageHandler::create_id_sync_message(
@@ -658,44 +657,11 @@ impl INode for NetNodeServer {
     }
 }
 
+#[derive(Debug, Default, Clone)]
 struct Client {
-    finished_sync: bool,
+    conn: ConnectionId<'static>,
     remaining_bandwidth: usize,
-    packet_number_c1: u64,
-    packet_number_c2: u64,
-    packet_number_c3: u64,
-    packet_number_c4: u64,
-    packet_number_c5: u64,
-    player_position_object: Option<Gd<Node3D>>,
-    voice_input_stream: Option<usize>,
-    audio_output_stream: Option<usize>,
-    voice_packet_buffer: Vec<(u64, Vec<u8>)>,
-    audio_input_buffer: Vec<f32>,
-    c4_remaining_packet_chunks: u64,
-    c4_packet_chunks: Vec<Vec<u8>>,
-    c4_waiting_packets: HashMap<u64, Vec<u8>>,
-    sync_progress: u64,
-    last_packet_send_time: Instant,
-    reliable_packets: HashMap<(u16, u64), (Vec<u8>, Instant)>,
-    latency: Duration,
-    latency_buffer: VecDeque<Duration>,
-    waiting_acks: HashSet<(u16, u64)>,
-    id: u16,
-    id_received: bool,
     message_buffer_position: usize,
     priorities: Vec<(Gd<NetworkedNode>, i64)>,
-    c1_latency_info: LatencyInfo,
-    next_c3_packet_number: u64,
-    next_c4_packet_number: u64,
-    next_c5_packet_number: u64,
-    c3_buffered_packets: HashMap<u64, BitVec<u64, Lsb0>>,
-    packet_buffers: VecDeque<Vec<(BitVec<u64, Lsb0>)>>,
-}
-#[derive(Debug, Default, Clone)]
-struct LatencyInfo {
-    c1_miss_rate_average_percent: f32,
-    c1_miss_rate_average: f32,
-    c1_hit_rate_average: f32,
-    c1_miss_rate_last_frames: VecDeque<u64>,
-    c1_hit_rate_last_frames: VecDeque<u64>,
+    packet_buffers: VecDeque<Vec<BitVec<u64, Lsb0>>>,
 }

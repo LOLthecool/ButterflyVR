@@ -24,11 +24,11 @@ pub impl MessageHandler {
         unimplemented!()
     }
     #[func(virtual)]
-    fn process_message(&mut self, _values: VariantArray) {
+    fn process_message(&mut self, _values: VarArray) {
         unimplemented!()
     }
     #[func]
-    fn send_message_final(&mut self, values: VariantArray, types: Array<i64>) {
+    fn send_message_final(&mut self, values: VarArray, types: Array<i64>) {
         if values.len() != types.len() {
             godot_warn!("invalid call to send_message_final");
             return;
@@ -72,7 +72,7 @@ pub impl MessageHandler {
     pub fn handle_message(&mut self, packet: &BitSlice<u64, Lsb0>, pointer: &mut usize) {
         let mut idx = 0;
         let mut last_value = Variant::nil();
-        let mut values: VariantArray = VariantArray::new();
+        let mut values: VarArray = VarArray::new();
         while *pointer < packet.len() {
             let value_type =
                 &NetworkedValueTypes::try_from(self.get_value_type(last_value, idx)).unwrap();
@@ -80,7 +80,7 @@ pub impl MessageHandler {
             values.push(&last_value);
             idx += 1;
         }
-        self.apply_deferred(|this| this.process_message(values));
+        self.run_deferred(|this| this.process_message(values));
     }
     pub fn create_id_sync_message(
         object: Gd<Node>,
