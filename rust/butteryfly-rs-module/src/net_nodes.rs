@@ -12,7 +12,7 @@ pub struct NetworkedNode {
     #[var]
     pub objectid: u16,
     #[var]
-    pub owner_id: u16,
+    pub owner_id: PackedByteArray,
     base: Base<Node>,
 }
 
@@ -20,7 +20,7 @@ pub struct NetworkedNode {
 pub impl NetworkedNode {
     // intended to be overriden, the higher the number returned here the more often this node will be updated compared to other nodes
     #[func(virtual)]
-    pub fn get_priority(&self, _clientid: u16) -> i64 {
+    pub fn get_priority(&self, _clientid: PackedByteArray) -> i64 {
         1
     }
     // intended to be overriden, the array should contain all values used in set_networked_values. you must ensure these two functions can interpret each other regardless of the state of either client or server
@@ -112,7 +112,7 @@ impl INode for NetworkedNode {
         }
         if let Some(parent) = self.base().get_parent() {
             if parent.has_meta("owner_id") {
-                self.owner_id = u16::from_variant(&parent.get_meta("owner_id"));
+                self.owner_id = PackedByteArray::from_variant(&parent.get_meta("owner_id"));
             }
         }
         self.base()

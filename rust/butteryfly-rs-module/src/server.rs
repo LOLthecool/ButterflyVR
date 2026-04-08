@@ -27,6 +27,7 @@ const HIT_RATE_HISTORY_LENGTH: usize = 128;
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct NetNodeServer {
+    clients: HashMap<ConnectionId<'static>, Client>,
     networked_nodes: Vec<Gd<NetworkedNode>>,
     server_networker: ConnectionHandler<'static>,
     message_buffer: VecDeque<BitVec<u64, Lsb0>>,
@@ -266,8 +267,12 @@ pub impl NetNodeServer {
         }
     }
     fn tick_server(&mut self) {
-        // cycle buffers, poll for new packets from the networker
-        let new_players = self.server_networker.poll();
+        Self::tick_clients(&mut self.clients);
+
+        self.server_networker.update();
+
+        let clients = self.
+
         if !new_players.is_empty() {
             for player in new_players {
                 self.signals().player_joined().emit(player);
@@ -484,182 +489,57 @@ pub impl NetNodeServer {
                 / (latency_info.c1_hit_rate_average + latency_info.c1_miss_rate_average);
         }
     }
-    fn process_voice_input(&mut self) {
-        const DISTANCE_FALLOFF_START: f32 = 10.0;
-        const DISTANCE_FALLOFF_END: f32 = 15.0;
-        for client in self.server_networker.clients.values_mut() {
-            if client.voice_input_stream.is_none() {
-                client.voice_input_stream = Some(self.voice_manager.create_decoder());
+    fn tick_clients(clients: &mut HashMap<ConnectionId, Client>) {
+        for client in clients.values_mut() {
+            if let Some(mut buffer) = client.packet_buffers.pop_front() {
+                buffer.clear();
+                client.packet_buffers.push_back(buffer);
             }
 
-            if client.voice_packet_buffer.len() < 3 {
-                // if buffer is small then we are consuming packets too fast for the client to keep up and need to slow down
-                return;
-            }
-            let buffer: Vec<u8>;
-            if let Some(packet_idx) = client
-                .voice_packet_buffer
-                .iter()
-                .position(|x| x.0 == client.next_c5_packet_number)
-            {
-                buffer = client.voice_packet_buffer.swap_remove(packet_idx).1;
-            } else {
-                buffer = Vec::new();
-            }
-            client.next_c5_packet_number += 1;
-            client.audio_input_buffer = self
-                .voice_manager
-                .decode_audio(client.voice_input_stream.unwrap(), &buffer);
-        }
-        // todo: would probably be a good idea to use an audio library to handle this for us
-        // then we could properly spatialize audio with hrtf, model room dampening, and handle falloff better
-        let audio_streams: Vec<(Vec<f32>, ClientIndex)> = self
-            .server_networker
-            .clients
-            .values()
-            .map(|x| (x.audio_input_buffer.clone(), x.index))
-            .collect();
-        let positions: Vec<(Vector3, ClientIndex)> = self
-            .server_networker
-            .clients
-            .values()
-            .map(|x| {
-                (
-                    {
-                        if x.player_position_object.is_some() {
-                            x.player_position_object.clone().unwrap().get_position()
-                        } else {
-                            Vector3::INF
-                        }
-                    },
-                    x.index,
-                )
-            })
-            .collect();
-        let networker = &mut self.server_networker;
-        let mut outputs: Vec<(bitvec::vec::BitVec<u64>, ClientIndex)> =
-            Vec::with_capacity(networker.clients.len());
-        // probably dont need this assert but just in case
-        assert!(audio_streams.len() == positions.len());
-        assert!(
-            audio_streams
-                .windows(2)
-                .all(|x| x[0].0.len() == x[1].0.len())
-        ); // asserts all audio streams are same length, should replace with proper handling for malformed data eventually
-        for client in networker.clients.values_mut() {
-            if client.player_position_object.is_none() {
-                continue;
-            }
-            let listener_pos: Vector3 = client
-                .player_position_object
-                .as_ref()
-                .unwrap()
-                .get_position();
-            let listener_rot: Quaternion = client
-                .player_position_object
-                .as_ref()
-                .unwrap()
-                .get_quaternion()
-                .inverse();
-            let mut final_audio: Vec<(f32, f32)> = Vec::new();
-            for audio_source in 0..audio_streams.len() {
-                if audio_streams[audio_source].1 == client.index {
-                    continue;
-                }
-                let l_r_bias: f32; // directionality, -1.0 for fully left, 1.0 for fully right
-                let mut volume: f32 = 1.0;
-                let buffer: Vec<(f32, f32)>;
-                let audio: &[f32] = &audio_streams[audio_source].0;
-                let position: Vector3 = positions[audio_source].0;
-
-                if position == Vector3::INF {
-                    continue;
-                }
-
-                let relative_position: Vector3 = listener_rot * (position - listener_pos);
-
-                let distance = relative_position.length();
-                if distance > DISTANCE_FALLOFF_END {
-                    continue;
-                }
-                if distance > DISTANCE_FALLOFF_START {
-                    volume = 1.0
-                        - ((distance - DISTANCE_FALLOFF_START)
-                            / (DISTANCE_FALLOFF_END - DISTANCE_FALLOFF_START));
-                }
-
-                // pretty bad spatial audio, should probably do this better or replace it with a library
-                l_r_bias = relative_position.normalized_or_zero().x;
-                let right_bias = (l_r_bias / 2.0) + 0.5;
-                let left_bias = ((-l_r_bias) / 2.0) + 0.5;
-                buffer = audio
-                    .iter()
-                    .map(|x| (x * volume * left_bias, x * volume * right_bias))
-                    .collect();
-
-                if final_audio.is_empty() {
-                    final_audio = buffer;
-                } else {
-                    assert!(final_audio.len() == buffer.len()); // might also be unneeded
-                    for idx in 0..final_audio.len() {
-                        let final_sample = final_audio[idx];
-                        let buffer_sample = buffer[idx];
-                        final_audio[idx] = (
-                            (final_sample.0 + buffer_sample.0).clamp(-1.0, 1.0),
-                            (final_sample.1 + buffer_sample.1).clamp(-1.0, 1.0),
-                        )
-                    }
+            let priorities = client.priorities.iter_mut();
+            for priority in priorities {
+                if priority.0.bind().owner_id
+                    != Vec::from(client.conn.clone()).to_godot().to_packed_array()
+                {
+                    let p = priority
+                        .0
+                        .bind()
+                        .get_priority(Vec::from(client.conn.clone()).to_godot().to_packed_array());
+                    priority.1 += p;
                 }
             }
-            if final_audio.is_empty() {
-                final_audio = vec![(0.0, 0.0); audio_streams[0].0.len()];
-            }
-            if client.audio_output_stream.is_none() {
-                client.audio_output_stream = Some(self.voice_manager.create_stereo_encoder())
-            }
-            let tmp: Vec<f32> = final_audio.into_iter().flat_map(|x| [x.0, x.1]).collect();
-            let output_buffer = self
-                .voice_manager
-                .encode_audio(client.audio_output_stream.unwrap(), &tmp);
-            let mut buffer_bits: BitVec<u64, Lsb0> =
-                BitVec::with_capacity(output_buffer.len() * BYTE);
-            for byte in output_buffer {
-                buffer_bits.extend(byte.view_bits::<Lsb0>());
-            }
-            outputs.push((buffer_bits, client.index));
-        }
-        for (buffer_bits, client) in outputs {
-            networker.send(buffer_bits.as_bitslice(), 5, client);
         }
     }
 }
 #[godot_api]
 impl INode for NetNodeServer {
     fn physics_process(&mut self, _delta: f64) {
-        // cycle channel 1 packet buffers
-        for client in self.server_networker.clients.iter_mut() {
-            client.1.packet_buffers.pop_front();
-            client.1.packet_buffers.push_back(Vec::new());
-        }
-        for client in self.server_networker.clients.values_mut() {
-            let priorities = client.priorities.iter_mut();
-            for priority in priorities {
-                if priority.0.bind().owner_id != client.id {
-                    let p = priority.0.bind().get_priority(client.id);
-                    priority.1 += p;
-                }
-            }
-        }
         self.tick_server();
         self.update_network_nodes();
-        self.process_voice_input();
         self.send_packets_server();
     }
 }
 
 #[derive(Debug, Default, Clone)]
+enum ClientState {
+    #[default]
+    AwaitingPSK,
+    AwaitingUuid([u8; 40]),
+    Connected([u8; 16], ClientSubState)
+}
+
+#[derive(Debug, Default, Clone)]
+enum ClientSubState {
+    #[default]
+    EventSync,
+    ObjectSync,
+    Connected,
+}
+
+#[derive(Debug, Default, Clone)]
 struct Client {
     conn: ConnectionId<'static>,
+    state: ClientState,
     remaining_bandwidth: usize,
     message_buffer_position: usize,
     priorities: Vec<(Gd<NetworkedNode>, i64)>,
