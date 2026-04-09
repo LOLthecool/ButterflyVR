@@ -163,22 +163,22 @@ pub enum PeerState {
     Disconnected,
 }
 
-struct PeerConnection<'a> {
-    id: ConnectionId<'a>,
+struct PeerConnection {
+    id: ConnectionId<'static>,
     conn: Connection,
     state: PeerState,
     peer_addr: SocketAddr,
 }
 
-enum HandlerType<'a> {
+enum HandlerType {
     Server(
         (
-            HashMap<quiche::ConnectionId<'a>, PeerConnection<'a>>,
+            HashMap<quiche::ConnectionId<'static>, PeerConnection>,
             HashMap<SocketAddr, BlockedConnection>,
             Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
         ),
     ),
-    Client(PeerConnection<'a>),
+    Client(PeerConnection),
 }
 
 struct BlockedConnection {
@@ -186,12 +186,12 @@ struct BlockedConnection {
     block_expiry: Instant,
 }
 
-pub struct ConnectionHandler<'a> {
-    handler: HandlerType<'a>,
+pub struct ConnectionHandler {
+    handler: HandlerType,
     listener: UDPListener,
 }
 
-impl<'a> ConnectionHandler<'a> {
+impl ConnectionHandler {
     pub fn update(&mut self) {
         match self.handler {
             HandlerType::Server(ref mut data) => {
@@ -206,7 +206,7 @@ impl<'a> ConnectionHandler<'a> {
 
     fn update_server(
         data: &mut (
-            HashMap<ConnectionId<'_>, PeerConnection<'a>>,
+            HashMap<ConnectionId<'_>, PeerConnection>,
             HashMap<SocketAddr, BlockedConnection>,
             Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
         ),
@@ -338,7 +338,7 @@ impl<'a> ConnectionHandler<'a> {
         source_addr: SocketAddr,
         listener: &UDPListener,
         psks: Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
-    ) -> PeerConnection<'a> {
+    ) -> PeerConnection {
         let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
             .fill(&mut scid_bytes)
@@ -384,7 +384,7 @@ impl<'a> ConnectionHandler<'a> {
     fn recv_packet(
         from: SocketAddr,
         mut packet: BytesMut,
-        connection: &mut PeerConnection<'a>,
+        connection: &mut PeerConnection,
         bind_addr: SocketAddr,
     ) {
         let info = RecvInfo {
@@ -398,7 +398,7 @@ impl<'a> ConnectionHandler<'a> {
         self.listener.pacing_notifier.try_recv().is_ok()
     }
 
-    pub fn get_peers(&self) -> Vec<ConnectionId<'_>> {
+    pub fn get_peers(&self) -> Vec<ConnectionId<'static>> {
         match self.handler {
             HandlerType::Client(ref c) => vec![c.id.clone()],
             HandlerType::Server(ref s) => s.0.keys().cloned().collect(),
@@ -414,7 +414,7 @@ impl<'a> ConnectionHandler<'a> {
 
     pub fn send_stream(
         &mut self,
-        peer: ConnectionId<'static>,
+        peer: &ConnectionId<'static>,
         stream_id: u64,
         mut data: BitVec<u64, Lsb0>,
     ) -> std::result::Result<(), ConnectionError> {
@@ -428,7 +428,7 @@ impl<'a> ConnectionHandler<'a> {
 
         match self.handler {
             HandlerType::Client(ref mut c) => {
-                debug_assert_eq!(peer, c.id);
+                debug_assert_eq!(peer, &c.id);
                 Self::send_inner(c, stream_id, &data)
             }
             HandlerType::Server(ref mut s) => {
@@ -466,7 +466,7 @@ impl<'a> ConnectionHandler<'a> {
 
     pub fn recv_stream(
         &mut self,
-        peer: ConnectionId<'static>,
+        peer: &ConnectionId<'static>,
         stream_id: u64,
     ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
         const STREAM_CHUNK_SIZE: usize = 512;
@@ -476,7 +476,7 @@ impl<'a> ConnectionHandler<'a> {
 
         match self.handler {
             HandlerType::Client(ref mut c) => {
-                debug_assert_eq!(peer, c.id);
+                debug_assert_eq!(peer, &c.id);
                 match Self::recv_inner(c, stream_id, &mut buf) {
                     Ok(length) => {
                         buffer_length = length;
@@ -538,7 +538,7 @@ impl<'a> ConnectionHandler<'a> {
 
     pub fn send_datagram(
         &mut self,
-        peer: ConnectionId<'static>,
+        peer: &ConnectionId<'static>,
         mut data: BitVec<u64, Lsb0>,
     ) -> std::result::Result<(), ConnectionError> {
         data.set_uninitialized(false);
@@ -551,7 +551,7 @@ impl<'a> ConnectionHandler<'a> {
 
         match self.handler {
             HandlerType::Client(ref mut c) => {
-                debug_assert_eq!(peer, c.id);
+                debug_assert_eq!(peer, &c.id);
                 Self::send_dgram_inner(c, data)
             }
             HandlerType::Server(ref mut s) => {
@@ -585,11 +585,11 @@ impl<'a> ConnectionHandler<'a> {
 
     pub fn recv_datagram(
         &mut self,
-        peer: ConnectionId<'static>,
+        peer: &ConnectionId<'static>,
     ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
         let dgram = match self.handler {
             HandlerType::Client(ref mut c) => {
-                debug_assert_eq!(peer, c.id);
+                debug_assert_eq!(peer, &c.id);
                 c.conn.dgram_recv_buf().unwrap_or(Vec::new())
             }
             HandlerType::Server(ref mut s) => {
@@ -738,7 +738,7 @@ impl<'a> ConnectionHandler<'a> {
     }
 }
 
-impl<'a> Default for ConnectionHandler<'a> {
+impl<'a> Default for ConnectionHandler {
     fn default() -> Self {
         Self {
             handler: HandlerType::Server((

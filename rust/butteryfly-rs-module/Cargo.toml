@@ -12,6 +12,7 @@ boring = "4.21.2"
 bytes = "1.11.1"
 godot = { version = "0.5.0", features = ["experimental-threads"] }
 quiche = { version = "0.28.0", features = ["boringssl-boring-crate"] }
+rand = "0.10.0"
 ring = "0.17.14"
 
 
