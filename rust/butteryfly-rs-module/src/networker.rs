@@ -10,6 +10,7 @@ use quiche::Connection;
 use quiche::ConnectionId;
 use quiche::RecvInfo;
 use quiche::SendInfo;
+use quiche::StreamIter;
 use ring::rand::SecureRandom;
 use std::collections::HashMap;
 use std::collections::VecDeque;
@@ -394,6 +395,28 @@ impl ConnectionHandler {
         connection.conn.recv(&mut packet, info).unwrap();
     }
 
+    pub fn get_max_dgram_size(&self, peer: &ConnectionId<'static>) -> usize {
+        match self.handler {
+            HandlerType::Client(ref c) => {
+                debug_assert_eq!(peer, &c.id);
+                c.conn
+                    .dgram_max_writable_len()
+                    .map(|x| x * 8)
+                    .unwrap_or(4000)
+            }
+            HandlerType::Server(ref s) => {
+                if let Some(peer) = s.0.get(&peer) {
+                    peer.conn
+                        .dgram_max_writable_len()
+                        .map(|x| x * 8)
+                        .unwrap_or(4000)
+                } else {
+                    0
+                }
+            }
+        }
+    }
+
     pub fn is_connection_pacing(&self) -> bool {
         self.listener.pacing_notifier.try_recv().is_ok()
     }
@@ -409,6 +432,22 @@ impl ConnectionHandler {
         match self.handler {
             HandlerType::Client(ref c) => vec![&c.id],
             HandlerType::Server(ref s) => s.0.keys().collect(),
+        }
+    }
+
+    pub fn get_readable_streams(&self, peer: &ConnectionId<'static>) -> StreamIter {
+        match self.handler {
+            HandlerType::Client(ref c) => {
+                debug_assert_eq!(peer, &c.id);
+                c.conn.readable()
+            }
+            HandlerType::Server(ref s) => {
+                if let Some(peer) = s.0.get(&peer) {
+                    peer.conn.readable()
+                } else {
+                    StreamIter::default()
+                }
+            }
         }
     }
 
