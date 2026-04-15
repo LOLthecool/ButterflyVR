@@ -176,7 +176,7 @@ enum HandlerType {
         (
             HashMap<quiche::ConnectionId<'static>, PeerConnection>,
             HashMap<SocketAddr, BlockedConnection>,
-            Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
+            Arc<Mutex<HashMap<String, [u8; 32]>>>,
         ),
     ),
     Client(PeerConnection),
@@ -209,7 +209,7 @@ impl ConnectionHandler {
         data: &mut (
             HashMap<ConnectionId<'_>, PeerConnection>,
             HashMap<SocketAddr, BlockedConnection>,
-            Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
+            Arc<Mutex<HashMap<String, [u8; 32]>>>,
         ),
         listener: &mut UDPListener,
     ) {
@@ -263,6 +263,15 @@ impl ConnectionHandler {
         for client in data.0.values_mut() {
             match client.state {
                 PeerState::AwaitingConnection => {
+                    if data
+                        .1
+                        .get_mut(&client.peer_addr)
+                        .and_then(|x| x.block_expiry.checked_duration_since(Instant::now()))
+                        .is_some()
+                    {
+                        client.state = PeerState::Disconnected;
+                    }
+
                     if client.conn.is_closed() {
                         client.state = PeerState::Disconnected;
                         ConnectionHandler::update_blocked_connection(
@@ -338,7 +347,7 @@ impl ConnectionHandler {
     fn create_client<'b>(
         source_addr: SocketAddr,
         listener: &UDPListener,
-        psks: Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
+        psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
     ) -> PeerConnection {
         let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
@@ -508,7 +517,7 @@ impl ConnectionHandler {
         peer: &ConnectionId<'static>,
         stream_id: u64,
     ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
-        const STREAM_CHUNK_SIZE: usize = 512;
+        const STREAM_CHUNK_SIZE: usize = 4096;
 
         let mut buf = BytesMut::zeroed(STREAM_CHUNK_SIZE);
         let buffer_length: usize;
@@ -546,6 +555,44 @@ impl ConnectionHandler {
         Ok(buffer_bits)
     }
 
+    pub fn recv_stream_bytes(
+        &mut self,
+        peer: &ConnectionId<'static>,
+        stream_id: u64,
+        max_length: usize,
+    ) -> std::result::Result<BitVec<u8, Lsb0>, ConnectionError> {
+        let mut buf = BytesMut::zeroed(max_length);
+
+        match self.handler {
+            HandlerType::Client(ref mut c) => {
+                debug_assert_eq!(peer, &c.id);
+                match Self::recv_inner(c, stream_id, &mut buf) {
+                    Ok(length) => {
+                        buf.truncate(length);
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            HandlerType::Server(ref mut s) => {
+                if let Some(peer) = s.0.get_mut(&peer) {
+                    match Self::recv_inner(peer, stream_id, &mut buf) {
+                        Ok(length) => {
+                            buf.truncate(length);
+                        }
+                        Err(e) => return Err(e),
+                    }
+                } else {
+                    return Err(ConnectionError::Generic(Box::new(io::Error::new(
+                        ErrorKind::NotFound,
+                        "peer not found",
+                    ))));
+                }
+            }
+        };
+
+        Ok(Self::unaligned_packet_to_bits(buf))
+    }
+
     fn packet_to_bits(buf: BytesMut) -> BitVec<u64, Lsb0> {
         const CHUNK_REQUIRED_ALIGNMENT: usize = 8;
 
@@ -561,6 +608,10 @@ impl ConnectionHandler {
             .collect();
 
         BitVec::from_vec(buf)
+    }
+
+    fn unaligned_packet_to_bits(buf: BytesMut) -> BitVec<u8, Lsb0> {
+        BitVec::from_vec(buf.into())
     }
 
     fn recv_inner(
@@ -647,12 +698,32 @@ impl ConnectionHandler {
 
     pub fn add_client_token(&mut self, identifier: String, key: [u8; 32]) {
         if let HandlerType::Server(data) = &mut self.handler {
-            data.2
-                .lock()
-                .unwrap()
-                .insert(identifier.clone(), (key, false));
+            data.2.lock().unwrap().insert(identifier.clone(), key);
         } else {
             debug_assert!(true);
+        }
+    }
+
+    pub fn disconnect_peer(
+        &mut self,
+        peer: &ConnectionId<'static>,
+        block: bool,
+        err_code: u64,
+        reason: &str,
+    ) {
+        match self.handler {
+            HandlerType::Client(ref mut c) => {
+                debug_assert_eq!(peer, &c.id);
+                let _ = c.conn.close(true, err_code, reason.as_bytes());
+            }
+            HandlerType::Server(ref mut s) => {
+                if let Some(peer) = s.0.get_mut(&peer) {
+                    if block {
+                        Self::update_blocked_connection(s.1.entry(peer.peer_addr));
+                    }
+                    let _ = peer.conn.close(true, err_code, reason.as_bytes());
+                }
+            }
         }
     }
 
@@ -716,7 +787,7 @@ impl ConnectionHandler {
     }
 
     fn build_server_ctx(
-        psks: Arc<Mutex<HashMap<String, ([u8; 32], bool)>>>,
+        psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
     ) -> Result<SslContextBuilder, boring::error::ErrorStack> {
         let mut ctx = SslContextBuilder::new(SslMethod::tls_server())?;
 
@@ -732,12 +803,10 @@ impl ConnectionHandler {
                     .unwrap()
                     .entry((*String::from_utf8_lossy(id)).to_owned())
                 {
-                    let value = entry.into_mut();
-                    let psk = value.0;
-                    value.1 = true;
+                    let psk = entry.into_mut();
                     let key_len = psk.len();
                     if out.len() >= key_len {
-                        out[..key_len].copy_from_slice(&psk);
+                        out[..key_len].copy_from_slice(psk);
                         return Ok(key_len);
                     }
                 }
