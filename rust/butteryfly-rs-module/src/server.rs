@@ -1,17 +1,14 @@
 // functionallity for the NetNodeManager server
+use crate::messages::*;
 use crate::net_nodes::NetworkedNode;
 use crate::networker::ConnectionHandler;
 use crate::serializer::*;
-use crate::{messages::*, networker};
 use bitvec::prelude::*;
-use godot::classes::Engine;
 use godot::prelude::*;
-use quiche::{Connection, ConnectionId};
+use quiche::ConnectionId;
 use rand::{RngExt, SeedableRng};
-use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque, hash_map};
-use std::fmt::DebugTuple;
+use std::collections::{BTreeMap, HashSet, VecDeque, hash_map};
 use std::mem;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{cmp, collections::HashMap};
 
 const CHANNEL_ACK: u16 = u16::MAX;
@@ -47,22 +44,25 @@ pub impl NetNodeServer {
         self.networker.get_peer_refs().len()
     }
     pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &mut NetworkedNode) {
-        self.queue_message(MessageHandler::create_id_sync_message(
-            new_node_ref.clone().upcast(),
-            new_node.objectid,
-            Some(new_node.owner_id),
-        ));
+        self.queue_message(
+            MessageHandler::create_id_sync_message(
+                new_node_ref.clone().upcast(),
+                new_node.objectid,
+                Some(new_node.owner_id.to_vec().try_into().unwrap()),
+            ),
+            0,
+        );
         self.networked_nodes.push(new_node_ref);
     }
     pub fn unregister_node(&mut self, removed_node_ref: Gd<NetworkedNode>) {
-        for client in self.networker.clients.values_mut() {
-            if let Some(idx) = client
-                .priorities
-                .iter()
-                .position(|x| x.0 == removed_node_ref)
-            {
-                client.priorities.remove(idx);
-            }
+        for client in self.clients.values_mut().filter_map(|x| {
+            let ClientState::Connected(ref mut client) = x.state else {
+                return None;
+            };
+            Some(client)
+        }) {
+            let p = mem::take(&mut client.priorities);
+            client.priorities = p.into_iter().filter(|x| x.1 == removed_node_ref).collect()
         }
         if let Some(idx) = self
             .networked_nodes
@@ -72,49 +72,25 @@ pub impl NetNodeServer {
             self.networked_nodes.remove(idx);
         }
     }
-    pub fn unregister_all(&mut self) {
-        // todo: update this
-        self.next_id = 0;
-        self.networked_nodes.clear();
-    }
-    pub fn get_next_object_id(&mut self) -> u16 {
-        self.next_id += 1;
-        self.next_id
-    }
     pub fn register_message(&mut self, handler: Gd<MessageHandler>, message_type: u16) {
         self.message_handlers.insert(message_type, handler);
     }
     pub fn unregister_message(&mut self, message_type: u16) {
         self.message_handlers.remove(&message_type);
     }
-    pub fn queue_message(&mut self, message: BitVec<u64, Lsb0>) {
-        self.message_buffer.push_back(message);
+    pub fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {
+        self.message_buffer.push_back((message, stream));
     }
-    pub fn start_server(&mut self, public_addr: String, bind_addr: String, private_key: [u8; 32]) {
-        const PROTOCOL_ID: u64 = 0;
-        self.networker = ServerNetworker {
-            server: Server::new(bind_addr, PROTOCOL_ID, private_key).unwrap(),
-            public_address: public_addr,
-            private_key,
-            ..Default::default()
-        };
+    pub fn start_server(&mut self, bind_port: u16) {
+        self.networker = ConnectionHandler::new_server(bind_port)
     }
     pub fn get_next_client(&mut self) -> PackedByteArray {
-        let mut result: PackedByteArray = PackedByteArray::new();
-        let tmp: [u8; netcode::CONNECT_TOKEN_BYTES] =
-            self.networker.get_token().try_into_bytes().unwrap();
-        result.extend(tmp);
-        result
-    }
-    pub fn register_player_object(&mut self, client_id: u16, object: Gd<Node3D>) {
-        let client = self
-            .networker
-            .clients
-            .values_mut()
-            .find(|x| x.id == client_id);
-        if let Some(client) = client {
-            client.player_position_object = Some(object);
-        }
+        let psk_identifier = rand::rng().random::<[char; 8]>();
+        let psk_key = rand::rng().random::<[u8; 32]>();
+        self.networker
+            .add_client_token(String::from_iter(psk_identifier.iter()), psk_key);
+        let user_identifier = rand::rng().random::<[u8; 40]>();
+        PackedByteArray::from(user_identifier)
     }
     fn update_network_nodes(&mut self) {
         for client in self.clients.values_mut() {
@@ -495,9 +471,6 @@ pub impl NetNodeServer {
 #[godot_api]
 impl INode for NetNodeServer {
     fn physics_process(&mut self, _delta: f64) {
-        // todo:
-        // finish pub fns
-        // uuid retrival
         self.tick_server();
         self.update_network_nodes();
         self.send_packets_server();
