@@ -28,6 +28,7 @@ pub const MAX_DATAGRAM_SIZE: usize = 1350;
 const PACKET_QUEUE_CAPACITY: usize = 1000;
 pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 
+#[derive(Debug)]
 pub enum ConnectionError {
     // todo: replace with specific error types
     Generic(Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -43,7 +44,7 @@ struct UDPListener {
 impl UDPListener {
     fn new_client(bind_addr: SocketAddr, server_addr: SocketAddr) -> Self {
         let socket = UdpSocket::bind(bind_addr).unwrap();
-        socket.set_nonblocking(true);
+        socket.set_nonblocking(true).unwrap();
         socket.connect(server_addr).unwrap();
 
         let (send_tx, send_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
@@ -64,7 +65,7 @@ impl UDPListener {
     }
     fn new_server(bind_addr: SocketAddr) -> Self {
         let socket = UdpSocket::bind(bind_addr).unwrap();
-        socket.set_nonblocking(true);
+        socket.set_nonblocking(true).unwrap();
 
         let (send_tx, send_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
         let (recv_tx, recv_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
@@ -117,7 +118,7 @@ impl UDPListener {
 
             for (packet, info) in incoming.try_iter() {
                 if info.at <= now {
-                    socket.send_to(&packet, info.to);
+                    socket.send_to(&packet, info.to).unwrap();
                 } else {
                     if delayed_packets.len() > PACKET_QUEUE_CAPACITY
                         || info.at.saturating_duration_since(now)
@@ -134,7 +135,7 @@ impl UDPListener {
 
             while delayed_packets.get(0).map(|x| x.1.at <= now) == Some(true) {
                 let (packet, info) = delayed_packets.pop_front().unwrap();
-                socket.send_to(&packet, info.to);
+                socket.send_to(&packet, info.to).unwrap();
             }
 
             if let Some(packet) = leftover_packet.clone() {
@@ -380,7 +381,7 @@ impl ConnectionHandler {
                 Ok((length, info)) => {
                     out.truncate(length);
                     let out = Bytes::from(out);
-                    sender.send((out, info));
+                    sender.send((out, info)).unwrap();
                 }
                 Err(quiche::Error::Done) => {
                     break;
@@ -402,6 +403,22 @@ impl ConnectionHandler {
             to: bind_addr,
         };
         connection.conn.recv(&mut packet, info).unwrap();
+    }
+
+    pub fn is_connected(&self, peer: &ConnectionId<'static>) -> bool {
+        match self.handler {
+            HandlerType::Client(ref c) => {
+                debug_assert_eq!(peer, &c.id);
+                c.state == PeerState::Connected
+            }
+            HandlerType::Server(ref s) => {
+                if let Some(peer) = s.0.get(&peer) {
+                    peer.state == PeerState::Connected
+                } else {
+                    false
+                }
+            }
+        }
     }
 
     pub fn get_max_dgram_size(&self, peer: &ConnectionId<'static>) -> usize {
@@ -430,17 +447,50 @@ impl ConnectionHandler {
         self.listener.pacing_notifier.try_recv().is_ok()
     }
 
-    pub fn get_peers(&self) -> Vec<ConnectionId<'static>> {
+    pub fn get_peers(&self, include_connecting: bool) -> Vec<ConnectionId<'static>> {
         match self.handler {
-            HandlerType::Client(ref c) => vec![c.id.clone()],
-            HandlerType::Server(ref s) => s.0.keys().cloned().collect(),
+            HandlerType::Client(ref c) => {
+                if include_connecting || c.state == PeerState::Connected {
+                    vec![c.id.clone()]
+                } else {
+                    vec![]
+                }
+            }
+            HandlerType::Server(ref s) => {
+                s.0.iter()
+                    .filter_map(|x| {
+                        if x.1.state == PeerState::Connected || include_connecting {
+                            Some(x.0)
+                        } else {
+                            None
+                        }
+                    })
+                    .cloned()
+                    .collect()
+            }
         }
     }
 
-    pub fn get_peer_refs(&self) -> Vec<&ConnectionId<'_>> {
+    pub fn get_peer_refs(&self, include_connecting: bool) -> Vec<&ConnectionId<'_>> {
         match self.handler {
-            HandlerType::Client(ref c) => vec![&c.id],
-            HandlerType::Server(ref s) => s.0.keys().collect(),
+            HandlerType::Client(ref c) => {
+                if include_connecting || c.state == PeerState::Connected {
+                    vec![&c.id]
+                } else {
+                    vec![]
+                }
+            }
+            HandlerType::Server(ref s) => {
+                s.0.iter()
+                    .filter_map(|x| {
+                        if x.1.state == PeerState::Connected || include_connecting {
+                            Some(x.0)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            }
         }
     }
 
@@ -492,11 +542,23 @@ impl ConnectionHandler {
         }
     }
 
+    pub fn send_identifier(&mut self, identifier: &[u8]) {
+        match self.handler {
+            HandlerType::Client(ref mut server) => Self::send_inner(server, 0, identifier).unwrap(),
+            HandlerType::Server(_) => assert!(false),
+        }
+    }
+
     fn send_inner(
         conn: &mut PeerConnection,
         stream_id: u64,
         data: &[u8],
     ) -> std::result::Result<(), ConnectionError> {
+        let size: u64 = 8 + data.len() as u64;
+        conn.conn
+            .stream_send(stream_id, &size.to_le_bytes(), false)
+            .unwrap();
+
         match conn.conn.stream_send(stream_id, data, false) {
             Ok(length) => {
                 if length != data.len() {
@@ -771,7 +833,7 @@ impl ConnectionHandler {
         let mut config =
             Config::with_boring_ssl_ctx_builder(quiche::PROTOCOL_VERSION, ssl_ctx).unwrap();
         config.discover_pmtu(true);
-        config.set_application_protos(&[b"netnodes-1"]);
+        config.set_application_protos(&[b"netnodes-1"]).unwrap();
         config.set_max_idle_timeout(10000);
         config.set_max_recv_udp_payload_size(MAX_DATAGRAM_SIZE);
         config.set_max_send_udp_payload_size(MAX_DATAGRAM_SIZE);

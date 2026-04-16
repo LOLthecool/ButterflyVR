@@ -5,6 +5,10 @@ mod networker;
 mod serializer;
 mod server;
 
+use std::net::IpAddr;
+use std::net::SocketAddr;
+use std::str::FromStr;
+
 use crate::client::*;
 use crate::messages::MessageHandler;
 use crate::net_nodes::*;
@@ -34,7 +38,7 @@ impl NetNodeManager {
                 .as_mut()
                 .unwrap()
                 .bind_mut()
-                .register_node(node_ref, node);
+                .register_node(node_ref);
         } else if self.client.is_some() {
             self.client
                 .as_mut()
@@ -61,16 +65,6 @@ impl NetNodeManager {
         } // can get called when no client or server is active after client dc so we ignore that case here
     }
     #[func]
-    fn unregister_all(&mut self) {
-        if self.server.is_some() {
-            self.server.as_mut().unwrap().bind_mut().unregister_all();
-        } else if self.client.is_some() {
-            self.client.as_mut().unwrap().bind_mut().unregister_all();
-        } else {
-            godot_warn!("called unregister_all but no client or server is running");
-        }
-    }
-    #[func]
     fn get_next_object_id(&mut self) -> u16 {
         if self.server.is_some() {
             return self
@@ -84,47 +78,41 @@ impl NetNodeManager {
         }
     }
     #[func]
-    fn start_client(&mut self, arr: PackedByteArray) {
+    fn start_client(
+        &mut self,
+        server_ip: String,
+        server_port: i32,
+        psk_identifier: String,
+        psk_key: PackedByteArray,
+        identifier: PackedByteArray,
+    ) {
         let c = NetNodeClient::new_alloc();
         self.base_mut().add_child(&c);
         self.client = Some(c);
-        self.client.as_mut().unwrap().bind_mut().start_client(arr);
+        self.client.as_mut().unwrap().bind_mut().start_client(
+            SocketAddr::new(IpAddr::from_str(&server_ip).unwrap(), server_port as u16),
+            psk_identifier,
+            psk_key.to_vec(),
+            identifier.to_vec().try_into().unwrap(),
+        );
     }
     #[func]
-    fn start_server(&mut self, public_addr: String, bind_addr: String, private_key: [u8; 32]) {
+    fn start_server(&mut self, bind_port: u16) {
         let s = NetNodeServer::new_alloc();
         self.base_mut().add_child(&s);
         self.server = Some(s);
-        let selfref = self.to_gd();
-        self.server
-            .as_mut()
-            .unwrap()
-            .signals()
-            .player_joined()
-            .connect_other(&selfref, NetNodeManager::propogate_player_joined);
-        self.server
-            .as_mut()
-            .unwrap()
-            .signals()
-            .player_left()
-            .connect_other(&selfref, NetNodeManager::propogate_player_left);
         self.server
             .as_mut()
             .unwrap()
             .bind_mut()
-            .start_server(public_addr, bind_addr, private_key);
+            .start_server(bind_port);
         self.is_server = true;
     }
     #[func]
     fn stop(&mut self) {
         self.is_server = false;
         if self.client.is_some() {
-            self.client
-                .as_mut()
-                .unwrap()
-                .bind_mut()
-                .disconnect()
-                .unwrap();
+            self.client.as_mut().unwrap().bind_mut().disconnect();
             self.client.as_mut().unwrap().queue_free();
             self.client = None;
         } else if self.server.is_some() {
@@ -142,64 +130,8 @@ impl NetNodeManager {
         }
     }
     #[func]
-    fn id_ready(&self) -> bool {
-        if self.client.is_none() && self.server.is_none() {
-            return false;
-        }
-        if self.client.is_some()
-            && self.client.as_ref().unwrap().bind().client_networker.state
-                == ClientState::AwaitingID
-        {
-            return false;
-        }
-        return true;
-    }
-    #[func]
     pub fn is_server(&self) -> bool {
         self.is_server
-    }
-    #[func]
-    fn get_networked_nodes(&self) -> Vec<Gd<NetworkedNode>> {
-        if self.client.is_some() {
-            return self.client.as_ref().unwrap().bind().networked_nodes.clone();
-        } else if self.server.is_some() {
-            return self.server.as_ref().unwrap().bind().networked_nodes.clone();
-        } else {
-            panic!("tried to get_networked_nodes but no client or server is running");
-        }
-    }
-    #[func]
-    fn transmit_audio(&mut self, sample_buffer: PackedVector2Array) {
-        if self.client.is_some() {
-            self.client
-                .as_mut()
-                .unwrap()
-                .bind_mut()
-                .transmit_audio(sample_buffer);
-        } else {
-            godot_warn!("tried to transmit_audio but we are not a client")
-        }
-    }
-    #[func]
-    fn get_audio(&mut self) -> Vec<f32> {
-        if self.client.is_some() {
-            self.client.as_mut().unwrap().bind_mut().get_audio()
-        } else {
-            panic!("tried to get_audio but we are not a client")
-        }
-    }
-    #[func]
-    fn register_player_object(&mut self, player: u16, object: Gd<Node3D>) {
-        if self.server.is_some() {
-            return self
-                .server
-                .as_mut()
-                .unwrap()
-                .bind_mut()
-                .register_player_object(player, object);
-        } else {
-            panic!("tried to register_player_object but we are not a server");
-        }
     }
     #[func]
     fn get_player_count(&self) -> i32 {
@@ -209,7 +141,7 @@ impl NetNodeManager {
             panic!("tried to get_player_count but we are not a server");
         }
     }
-    fn register_message_handler(&mut self, handler: Gd<MessageHandler>, message_type: u16) {
+    fn register_message_handler(&mut self, handler: Gd<MessageHandler>, message_type: u64) {
         if self.client.is_some() {
             return self
                 .client
@@ -228,7 +160,7 @@ impl NetNodeManager {
             panic!("tried to register_message_handler but no client or server is running");
         }
     }
-    fn unregister_message_handler(&mut self, message_type: u16) {
+    fn unregister_message_handler(&mut self, message_type: u64) {
         if self.client.is_some() {
             return self
                 .client
@@ -247,28 +179,22 @@ impl NetNodeManager {
             panic!("tried to unregister_message_handler but no client or server is running");
         }
     }
-    fn queue_message(&mut self, message: BitVec<u64, Lsb0>) {
+    fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {
         if self.client.is_some() {
             self.client
                 .as_mut()
                 .unwrap()
                 .bind_mut()
-                .queue_message(message);
+                .queue_message(message, stream);
         } else if self.server.is_some() {
             self.server
                 .as_mut()
                 .unwrap()
                 .bind_mut()
-                .queue_message(message);
+                .queue_message(message, stream);
         } else {
             godot_warn!("tried to queue_message but no client or server is running");
         }
-    }
-    fn propogate_player_joined(&mut self, player: u16) {
-        self.signals().player_joined().emit(player);
-    }
-    fn propogate_player_left(&mut self, player: u16) {
-        self.signals().player_left().emit(player);
     }
     #[signal]
     pub fn player_joined(player: u16);

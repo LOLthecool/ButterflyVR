@@ -1,19 +1,18 @@
 use crate::{
     NetNodeManager,
-    net_nodes::NetworkedNode,
     serializer::{self, NetworkedValueTypes},
 };
 use bitvec::prelude::*;
 use godot::prelude::*;
 
-const BYTE: usize = 8;
 const BYTES2: usize = 16;
 
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct MessageHandler {
+    message_id: u64,
     #[export]
-    pub message_type: u16,
+    stream: i32,
     network_manager: Option<Gd<NetNodeManager>>,
     base: Base<Node>,
 }
@@ -46,7 +45,7 @@ pub impl MessageHandler {
             .map(|x| NetworkedValueTypes::try_from(x).unwrap())
             .collect::<Vec<NetworkedValueTypes>>();
         let mut packet: BitVec<u64, Lsb0> = BitVec::new();
-        packet.extend(self.message_type.view_bits::<Lsb0>());
+        packet.extend(self.message_id.view_bits::<Lsb0>());
         for value in values.iter_shared().enumerate() {
             packet.extend(serializer::encode_with_known_type(
                 &value.1,
@@ -67,7 +66,7 @@ pub impl MessageHandler {
             .as_mut()
             .unwrap()
             .bind_mut()
-            .queue_message(packet);
+            .queue_message(packet, self.stream as u64);
     }
     pub fn handle_message(&mut self, packet: &BitSlice<u64, Lsb0>, pointer: &mut usize) {
         let mut idx = 0;
@@ -82,90 +81,27 @@ pub impl MessageHandler {
         }
         self.run_deferred(|this| this.process_message(values));
     }
-    pub fn create_id_sync_message(
-        object: Gd<Node>,
-        object_id: u16,
-        owner_id: Option<[u8; 16]>,
-    ) -> BitVec<u64, Lsb0> {
-        let mut packet: BitVec<u64, Lsb0> = BitVec::new();
-        packet.extend(0u16.view_bits::<Lsb0>());
-        packet.extend(object_id.view_bits::<Lsb0>());
-        packet.extend(owner_id.unwrap_or([0; 16]).view_bits::<Lsb0>());
-        let mut index_path: Vec<u8> = Vec::with_capacity(8);
-        index_path.push(object.get_index() as u8);
-        let mut last_parent: Option<Gd<Node>>;
-        last_parent = object.get_parent();
-        loop {
-            if let Some(parent) = last_parent {
-                last_parent = parent.get_parent();
-                index_path.push(parent.get_index() as u8);
-            } else {
-                break;
-            }
-        }
-        index_path.pop();
-        for item in index_path.iter().rev() {
-            packet.extend(item.view_bits::<Lsb0>())
-        }
-        packet
-    }
-    pub fn handle_id_sync_message(
-        message: &BitSlice<u64, Lsb0>,
-        pointer: &mut usize,
-        root_object: Gd<Node>,
-    ) {
-        let mut object = Some(root_object);
-
-        let id: u16 = message[*pointer..*pointer + BYTES2].load_le();
-        *pointer += BYTES2;
-
-        let mut owner_id: [u8; 16] = [0; 16];
-
-        for i in 0..16 {
-            owner_id[i] = message[*pointer..*pointer + BYTE].load_le();
-            *pointer += BYTE;
-        }
-
-        while let Some(index) = message.get(*pointer..*pointer + BYTE) {
-            let index: u8 = index.load_le();
-            object = object.unwrap().get_child(index as i32);
-            if object.is_none() {
-                godot_warn!("failed to apply id to object");
-                return;
-            }
-            *pointer += BYTE;
-        }
-        let mut object = object.unwrap();
-        let casted_object = object.try_cast::<NetworkedNode>();
-        if let Ok(mut object) = casted_object {
-            object.bind_mut().objectid = id;
-            object.bind_mut().owner_id = owner_id.to_godot().to_packed_array();
-        } else {
-            object = casted_object.unwrap_err();
-            let casted_object = object.try_cast::<MessageHandler>();
-            if let Ok(mut object) = casted_object {
-                object.bind_mut().message_type = id;
-            }
-        }
-    }
 }
 #[godot_api]
 impl INode for MessageHandler {
     fn enter_tree(&mut self) {
+        self.message_id = rand::random();
+
         self.network_manager = Some(
             self.base()
                 .get_node_as::<NetNodeManager>("/root/NetworkManager"),
         );
+
         self.base()
             .get_node_as::<NetNodeManager>("/root/NetworkManager")
             .bind_mut()
-            .register_message_handler(self.to_gd(), self.message_type);
+            .register_message_handler(self.to_gd(), self.message_id);
     }
     fn exit_tree(&mut self) {
         self.network_manager
             .as_mut()
             .unwrap()
             .bind_mut()
-            .unregister_message_handler(self.message_type);
+            .unregister_message_handler(self.message_id);
     }
 }
