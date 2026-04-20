@@ -94,7 +94,7 @@ pub impl NetNodeClient {
         self.connected = ConnectionStatus::AwaitingConnection(identifier)
     }
     pub fn disconnect(&mut self) {}
-    fn tick_client(&mut self) -> Result<(), ConnectionError> {
+    fn tick(&mut self) -> Result<(), ConnectionError> {
         const MESSAGE_HEADER_SIZE: usize = BYTES8;
 
         self.networker.update()?;
@@ -259,7 +259,7 @@ pub impl NetNodeClient {
             }
         }
     }
-    fn send_packets_client(&mut self) -> Result<(), ConnectionError> {
+    fn send_packets(&mut self) -> Result<(), ConnectionError> {
         const PACKET_MAX_SIZE_THRESHOLD: usize = 80;
         const MINIMUM_CONNECTION_BANDWIDTH: usize = 512;
 
@@ -366,11 +366,11 @@ impl INode for NetNodeClient {
 
         self.tick_priorities();
         let _ = self
-            .tick_client()
+            .tick()
             .inspect_err(|x| godot_error!("error while ticking client: {:?}", x));
         self.update_network_nodes();
         let _ = self
-            .send_packets_client()
+            .send_packets()
             .inspect_err(|x| godot_error!("error while sending packets: {:?}", x));
     }
 }
