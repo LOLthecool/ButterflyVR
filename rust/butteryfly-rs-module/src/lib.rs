@@ -78,6 +78,52 @@ impl NetNodeManager {
         }
     }
     #[func]
+    fn get_unverified_client(&mut self) -> PackedByteArray {
+        if self.server.is_some() {
+            return self
+                .server
+                .as_mut()
+                .unwrap()
+                .bind_mut()
+                .get_unverified_client()
+                .map(|x| x.to_godot().to_packed_array())
+                .unwrap_or(PackedByteArray::new());
+        } else {
+            panic!("called get_unverified_client but we are not a server");
+        }
+    }
+    #[func]
+    fn verify_client(&mut self, identifier: PackedByteArray, uuid: PackedByteArray) {
+        let Ok(identifier) = identifier.to_vec().try_into() else {
+            godot_error!(
+                "verify_client(): identifier was not correct size: should be {:?} got {:?}",
+                40,
+                identifier.len()
+            );
+            return;
+        };
+
+        let Ok(uuid) = uuid.to_vec().try_into() else {
+            godot_error!(
+                "verify_client(): uuid was not correct size: should be {:?} got {:?}",
+                16,
+                uuid.len()
+            );
+            return;
+        };
+
+        if self.server.is_some() {
+            return self
+                .server
+                .as_mut()
+                .unwrap()
+                .bind_mut()
+                .verify_client(identifier, uuid);
+        } else {
+            godot_error!("called verify_client but we are not a server");
+        }
+    }
+    #[func]
     fn start_client(
         &mut self,
         server_ip: String,
@@ -124,7 +170,13 @@ impl NetNodeManager {
     #[func]
     fn get_next_client(&mut self) -> PackedByteArray {
         if self.server.is_some() {
-            self.server.as_mut().unwrap().bind_mut().get_next_client()
+            match self.server.as_mut().unwrap().bind_mut().get_next_client() {
+                Ok(client) => PackedByteArray::from(client),
+                Err(e) => {
+                    godot_error!("failed to get next client: {:?}", e);
+                    PackedByteArray::new()
+                }
+            }
         } else {
             panic!("called get_next_client() but we are not a server");
         }

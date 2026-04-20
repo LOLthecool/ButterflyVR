@@ -1,7 +1,7 @@
 // functionallity for the NetNodeManager server
 use crate::messages::*;
 use crate::net_nodes::NetworkedNode;
-use crate::networker::ConnectionHandler;
+use crate::networker::{ConnectionError, ConnectionHandler};
 use crate::serializer::*;
 use bitvec::prelude::*;
 use godot::prelude::*;
@@ -11,10 +11,11 @@ use std::collections::{BTreeMap, HashSet, VecDeque, hash_map};
 use std::mem;
 use std::{cmp, collections::HashMap};
 
-const BYTES2: usize = 16;
-const BYTES8: usize = 64;
+const BYTE: usize = 8;
+const BYTES2: usize = BYTE * 2;
+const BYTES8: usize = BYTE * 8;
 
-const DGRAM_HEADER_SIZE: usize = BYTES2;
+const DGRAM_HEADER_SIZE: usize = BYTE;
 
 #[derive(GodotClass)]
 #[class(init, base=Node)]
@@ -24,7 +25,7 @@ pub struct NetNodeServer {
     networker: ConnectionHandler,
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
     message_handlers: HashMap<u64, Gd<MessageHandler>>,
-    current_tick: i16,
+    current_tick: i8,
     last_netnode_id: u16,
     base: Base<Node>,
 }
@@ -85,13 +86,12 @@ pub impl NetNodeServer {
         self.networker = ConnectionHandler::new_server(bind_port)
     }
 
-    pub fn get_next_client(&mut self) -> PackedByteArray {
+    pub fn get_next_client(&mut self) -> Result<[u8; 40], ConnectionError> {
         let psk_identifier = rand::rng().random::<[char; 8]>();
         let psk_key = rand::rng().random::<[u8; 32]>();
         self.networker
-            .add_client_token(String::from_iter(psk_identifier.iter()), psk_key);
-        let user_identifier = rand::rng().random::<[u8; 40]>();
-        PackedByteArray::from(user_identifier)
+            .add_client_token(String::from_iter(psk_identifier.iter()), psk_key)?;
+        Ok(rand::rng().random::<[u8; 40]>())
     }
 
     fn tick_client_priorities(clients: &mut HashMap<ConnectionId, Client>) {
@@ -112,12 +112,12 @@ pub impl NetNodeServer {
         }
     }
 
-    fn tick(&mut self) {
+    fn tick(&mut self) -> std::result::Result<(), ConnectionError> {
         const MESSAGE_HEADER_SIZE: usize = BYTES8;
 
         Self::tick_client_priorities(&mut self.clients);
 
-        self.networker.update();
+        self.networker.update()?;
 
         let clients = HashSet::from_iter(self.networker.get_peers(false).into_iter());
 
@@ -267,7 +267,7 @@ pub impl NetNodeServer {
                             continue;
                         }
 
-                        let packet_apply_tick: i16 = packet[0..BYTES2].load_le();
+                        let packet_apply_tick: i8 = packet[0..BYTE].load_le();
 
                         let relative_apply_tick =
                             packet_apply_tick.wrapping_sub(client.tick_number);
@@ -301,16 +301,25 @@ pub impl NetNodeServer {
                 }
             }
         }
+        Ok(())
     }
 
     fn update_network_nodes(&mut self) {
         for client in self.clients.values_mut() {
             if let ClientState::Connected(ref mut client) = client.state {
-                while let Some((_, packet)) = client.unapplied_packets.pop_first() {
+                while let Some(((apply_tick, _), _)) = client.unapplied_packets.first_key_value() {
+                    if apply_tick - client.tick_number > 0 {
+                        break;
+                    }
+
+                    let (_, packet) = client.unapplied_packets.pop_first().unwrap();
+
                     let mut pointer: usize = DGRAM_HEADER_SIZE;
+
                     while pointer + BYTES2 <= packet.len() {
                         let next_obj: u16 = packet[pointer..pointer + BYTES2].load_le();
                         pointer += BYTES2;
+
                         if let Some(tmp) = self
                             .networked_nodes
                             .iter()
@@ -338,7 +347,7 @@ pub impl NetNodeServer {
         }
     }
 
-    fn send_packets(&mut self) {
+    fn send_packets(&mut self) -> std::result::Result<(), ConnectionError> {
         const PACKET_MAX_SIZE_THRESHOLD: usize = 80;
 
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
@@ -370,9 +379,7 @@ pub impl NetNodeServer {
                     remaining_bandwidth -= message.len();
 
                     client.message_buffer_position += 1;
-                    self.networker
-                        .send_stream(conn, *stream, message.clone())
-                        .unwrap();
+                    self.networker.send_stream(conn, *stream, message.clone())?;
                 }
 
                 if client.state == ClientSubState::EventSync {
@@ -456,7 +463,7 @@ pub impl NetNodeServer {
 
                             if packet.len() > DGRAM_HEADER_SIZE {
                                 remaining_bandwidth -= packet.len();
-                                self.networker.send_datagram(conn, packet).unwrap();
+                                self.networker.send_datagram(conn, packet)?;
                                 continue;
                             }
 
@@ -469,14 +476,50 @@ pub impl NetNodeServer {
                 }
             }
         }
+        Ok(())
+    }
+
+    pub fn get_unverified_client(&self) -> Option<[u8; 40]> {
+        self.clients
+            .iter()
+            .filter_map(|x| match x.1.state {
+                ClientState::AwaitingUuid(x) => Some(x),
+                _ => None,
+            })
+            .next()
+    }
+
+    pub fn verify_client(&mut self, identifier: [u8; 40], uuid: [u8; 16]) {
+        if let Some(client) = self
+            .clients
+            .iter_mut()
+            .find(|x| x.1.state == ClientState::AwaitingUuid(identifier))
+        {
+            client.1.state = ClientState::Connected(ConnectedClient::new(uuid));
+        }
     }
 }
 #[godot_api]
 impl INode for NetNodeServer {
     fn physics_process(&mut self, _delta: f64) {
-        self.tick();
+        // todo:
+        // splip self methods into smaller fuctions
+        // splt sections of methods that dont require self into new functions
+        // split common functionality with client into common.rs
+        // clean up serializers.rs and net_nodes.rs
+        // fix messages.rs
+        // run through ai
+        // unit tests
+        // run unit tests through ai
+        // final manual check
+        // e2e testing
+        let _ = self
+            .tick()
+            .inspect_err(|x| godot_error!("error while ticking server: {:?}", x));
         self.update_network_nodes();
-        self.send_packets();
+        let _ = self
+            .send_packets()
+            .inspect_err(|x| godot_error!("error while sending packets: {:?}", x));
     }
 }
 
@@ -512,8 +555,8 @@ struct ConnectedClient {
     message_buffer_position: usize,
     // the array here is to make each key unique
     priorities: BTreeMap<(i64, [u8; 16]), Gd<NetworkedNode>>,
-    unapplied_packets: BTreeMap<(i16, [u8; 16]), BitVec<u64, Lsb0>>,
-    tick_number: i16,
+    unapplied_packets: BTreeMap<(i8, [u8; 16]), BitVec<u64, Lsb0>>,
+    tick_number: i8,
 }
 
 impl ConnectedClient {

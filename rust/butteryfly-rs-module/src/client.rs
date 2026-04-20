@@ -1,7 +1,7 @@
 // functionallity for the NetNodeManager client
 use crate::messages::*;
 use crate::net_nodes::NetworkedNode;
-use crate::networker::ConnectionHandler;
+use crate::networker::{ConnectionError, ConnectionHandler};
 use crate::serializer::*;
 use bitvec::prelude::*;
 use godot::prelude::*;
@@ -51,19 +51,22 @@ pub impl NetNodeClient {
         self.networked_nodes.push(new_node_ref);
     }
     pub fn unregister_node(&mut self, removed_node_ref: Gd<NetworkedNode>) {
-        self.networked_nodes.remove(
-            self.networked_nodes
-                .iter()
-                .position(|x| *x == removed_node_ref)
-                .unwrap(),
-        );
-        if let Some(n) = self
+        let Some(pos) = self
+            .networked_nodes
+            .iter()
+            .position(|x| *x == removed_node_ref)
+        else {
+            return;
+        };
+        self.networked_nodes.remove(pos);
+        let Some(pos) = self
             .owned_nodes
             .iter()
             .position(|x| x.0 == removed_node_ref)
-        {
-            self.owned_nodes.remove(n);
-        }
+        else {
+            return;
+        };
+        self.owned_nodes.remove(pos);
     }
     pub fn register_message(&mut self, handler: Gd<MessageHandler>, message_type: u64) {
         if self.message_handlers.contains_key(&message_type) {
@@ -91,10 +94,10 @@ pub impl NetNodeClient {
         self.connected = ConnectionStatus::AwaitingConnection(identifier)
     }
     pub fn disconnect(&mut self) {}
-    fn tick_client(&mut self) {
+    fn tick_client(&mut self) -> Result<(), ConnectionError> {
         const MESSAGE_HEADER_SIZE: usize = BYTES8;
 
-        self.networker.update();
+        self.networker.update()?;
 
         let server = &self.networker.get_peers(false)[0];
 
@@ -229,6 +232,7 @@ pub impl NetNodeClient {
         if late_packets > (total_packets / 100) {
             self.server_tick_number -= 1;
         }
+        Ok(())
     }
     fn update_network_nodes(&mut self) {
         while let Some((_, packet)) = self.unapplied_packets.pop_first() {
@@ -255,7 +259,7 @@ pub impl NetNodeClient {
             }
         }
     }
-    fn send_packets_client(&mut self) {
+    fn send_packets_client(&mut self) -> Result<(), ConnectionError> {
         const PACKET_MAX_SIZE_THRESHOLD: usize = 80;
         const MINIMUM_CONNECTION_BANDWIDTH: usize = 512;
 
@@ -281,8 +285,7 @@ pub impl NetNodeClient {
             remaining_bandwidth -= message.len();
 
             self.networker
-                .send_stream(server, stream, message.clone())
-                .unwrap();
+                .send_stream(server, stream, message.clone())?;
         }
 
         // channel 1 (syncing)
@@ -313,7 +316,7 @@ pub impl NetNodeClient {
 
             if packet.len() > DGRAM_HEADER_SIZE {
                 remaining_bandwidth -= packet.len();
-                self.networker.send_datagram(server, packet).unwrap();
+                self.networker.send_datagram(server, packet)?;
                 continue;
             }
 
@@ -322,6 +325,7 @@ pub impl NetNodeClient {
         if remaining_bandwidth <= PACKET_MAX_SIZE_THRESHOLD {
             self.bandwidth_budget_per_tick += self.bandwidth_budget_per_tick / 10;
         }
+        Ok(())
     }
     fn tick_priorities(&mut self) {
         for node in self.owned_nodes.iter_mut() {
@@ -334,22 +338,39 @@ pub impl NetNodeClient {
 #[godot_api]
 impl INode for NetNodeClient {
     fn physics_process(&mut self, _delta: f64) {
-        // todo: handle disconnection
+        // todo:
+        // splip self methods into smaller fuctions
+        // splt sections of methods that dont require self into new functions
+        // split common functionality with server into common.rs
+        // clean up serializers.rs and net_nodes.rs
+        // fix messages.rs
+        // run through ai
+        // unit tests
+        // run unit tests through ai
+        // final manual check
+        // e2e testing
+        // handle disconnection
         if let ConnectionStatus::AwaitingConnection(identifier) = self.connected {
             if self
                 .networker
                 .is_connected(&self.networker.get_peers(true)[0])
             {
                 self.connected = ConnectionStatus::Connected;
-                self.networker.send_identifier(&identifier);
+                if let Err(e) = self.networker.send_identifier(&identifier) {
+                    eprintln!("Failed to send identifier: {:?}", e);
+                }
             } else {
                 return;
             }
         }
 
         self.tick_priorities();
-        self.tick_client();
+        let _ = self
+            .tick_client()
+            .inspect_err(|x| godot_error!("error while ticking client: {:?}", x));
         self.update_network_nodes();
-        self.send_packets_client();
+        let _ = self
+            .send_packets_client()
+            .inspect_err(|x| godot_error!("error while sending packets: {:?}", x));
     }
 }

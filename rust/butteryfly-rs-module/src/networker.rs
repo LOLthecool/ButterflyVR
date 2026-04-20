@@ -15,8 +15,7 @@ use ring::rand::SecureRandom;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::collections::hash_map::Entry;
-use std::io;
-use std::io::ErrorKind;
+use std::fmt::Debug;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -25,13 +24,32 @@ use std::thread::{self};
 use std::time::{Duration, Instant};
 
 pub const MAX_DATAGRAM_SIZE: usize = 1350;
-const PACKET_QUEUE_CAPACITY: usize = 1000;
+const PACKET_QUEUE_CAPACITY: usize = 1024;
 pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 
 #[derive(Debug)]
 pub enum ConnectionError {
-    // todo: replace with specific error types
-    Generic(Box<dyn std::error::Error + Send + Sync + 'static>),
+    InvalidHandlerType,
+    PeerNotFound,
+    BufferFull,
+    InvalidDatagramLength,
+    InvalidDatagram,
+    #[allow(dead_code)]
+    QuicheError(quiche::Error),
+    #[allow(dead_code)]
+    GenericError(Box<dyn Debug + Send>),
+}
+
+impl<T: std::error::Error + Send + 'static> From<Box<T>> for ConnectionError {
+    fn from(err: Box<T>) -> Self {
+        ConnectionError::GenericError(err)
+    }
+}
+
+impl From<quiche::Error> for ConnectionError {
+    fn from(err: quiche::Error) -> Self {
+        ConnectionError::QuicheError(err)
+    }
 }
 
 struct UDPListener {
@@ -43,8 +61,7 @@ struct UDPListener {
 
 impl UDPListener {
     fn new_client(bind_addr: SocketAddr, server_addr: SocketAddr) -> Self {
-        let socket = UdpSocket::bind(bind_addr).unwrap();
-        socket.set_nonblocking(true).unwrap();
+        let socket = Arc::new(UdpSocket::bind(bind_addr).unwrap());
         socket.connect(server_addr).unwrap();
 
         let (send_tx, send_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
@@ -52,8 +69,14 @@ impl UDPListener {
 
         let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
 
+        let socket_ref = socket.clone();
         thread::spawn(move || {
-            UDPListener::listening_thread(send_rx, recv_tx, excessive_pacing_notifier_tx, socket);
+            UDPListener::sending_thread(send_rx, excessive_pacing_notifier_tx, socket_ref);
+        });
+
+        let socket_ref = socket.clone();
+        thread::spawn(move || {
+            UDPListener::receiving_thread(recv_tx, socket_ref);
         });
 
         Self {
@@ -64,16 +87,21 @@ impl UDPListener {
         }
     }
     fn new_server(bind_addr: SocketAddr) -> Self {
-        let socket = UdpSocket::bind(bind_addr).unwrap();
-        socket.set_nonblocking(true).unwrap();
+        let socket = Arc::new(UdpSocket::bind(bind_addr).unwrap());
 
         let (send_tx, send_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
         let (recv_tx, recv_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
 
         let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
 
+        let socket_ref = socket.clone();
         thread::spawn(move || {
-            UDPListener::listening_thread(send_rx, recv_tx, excessive_pacing_notifier_tx, socket);
+            UDPListener::sending_thread(send_rx, excessive_pacing_notifier_tx, socket_ref);
+        });
+
+        let socket_ref = socket.clone();
+        thread::spawn(move || {
+            UDPListener::receiving_thread(recv_tx, socket_ref);
         });
 
         Self {
@@ -84,34 +112,27 @@ impl UDPListener {
         }
     }
 
-    // retrieves a single packet from the socket, if available
-    fn poll(socket: &mut UdpSocket) -> Option<(SocketAddr, BytesMut)> {
-        let mut buffer = BytesMut::with_capacity(MAX_DATAGRAM_SIZE);
-        match socket.recv_from(&mut buffer) {
-            Ok((len, from)) => {
-                buffer.truncate(len);
-                Some((from, buffer))
-            }
-            Err(e) if e.kind() == ErrorKind::WouldBlock => None,
-            Err(e) => panic!("failed to poll udp socket: {:?}", e),
+    fn receiving_thread(outgoing: SyncSender<(Bytes, SocketAddr)>, socket: Arc<UdpSocket>) {
+        loop {
+            let mut buffer = BytesMut::with_capacity(MAX_DATAGRAM_SIZE);
+            let (len, from) = socket.recv_from(&mut buffer).unwrap();
+            buffer.truncate(len);
+            let packet = buffer.freeze();
+            outgoing.send((packet, from)).unwrap()
         }
     }
-    // todo: check if this needs to handle channel disconnections
-    fn listening_thread(
+
+    fn sending_thread(
         incoming: Receiver<(Bytes, SendInfo)>,
-        outgoing: SyncSender<(Bytes, SocketAddr)>,
         excessive_pacing_notifier: SyncSender<()>,
-        mut socket: UdpSocket,
+        socket: Arc<UdpSocket>,
     ) {
         // generally we dont want to be queuing packets to send across multiple ticks
         // better to just send less data per frame in the priority accumulator
-        const MAX_PACING_DELAY: u64 = 16;
+        const MAX_PACING_DELAY: Duration = Duration::from_millis(17);
 
         let mut delayed_packets: VecDeque<(Bytes, SendInfo)> =
             VecDeque::with_capacity(PACKET_QUEUE_CAPACITY);
-
-        // to avoid blocking we cant always send
-        let mut leftover_packet: Option<(Bytes, SocketAddr)> = None;
 
         loop {
             let now = Instant::now();
@@ -121,10 +142,9 @@ impl UDPListener {
                     socket.send_to(&packet, info.to).unwrap();
                 } else {
                     if delayed_packets.len() > PACKET_QUEUE_CAPACITY
-                        || info.at.saturating_duration_since(now)
-                            > Duration::from_millis(MAX_PACING_DELAY)
+                        || info.at.saturating_duration_since(now) > MAX_PACING_DELAY
                     {
-                        // only care about excessive pacing on a per tick basis
+                        // only check for excessive pacing on a per tick basis
                         // so we dont care beyond a single event getting through
                         let _ = excessive_pacing_notifier.try_send(());
                     } else {
@@ -137,23 +157,6 @@ impl UDPListener {
                 let (packet, info) = delayed_packets.pop_front().unwrap();
                 socket.send_to(&packet, info.to).unwrap();
             }
-
-            if let Some(packet) = leftover_packet.clone() {
-                if outgoing.try_send((packet.0, packet.1)).is_err() {
-                    thread::sleep(Duration::from_millis(1));
-                    continue;
-                } else {
-                    leftover_packet = None;
-                }
-            }
-
-            while let Some((source, packet)) = UDPListener::poll(&mut socket) {
-                let packet = packet.freeze();
-                if outgoing.try_send((packet.clone(), source)).is_err() {
-                    leftover_packet = Some((packet, source));
-                }
-            }
-            thread::sleep(Duration::from_millis(1));
         }
     }
 }
@@ -172,6 +175,17 @@ struct PeerConnection {
     peer_addr: SocketAddr,
 }
 
+impl Debug for PeerConnection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PeerConnection")
+            .field("id", &self.id)
+            .field("state", &self.state)
+            .field("peer_addr", &self.peer_addr)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
 enum HandlerType {
     Server(
         (
@@ -183,6 +197,7 @@ enum HandlerType {
     Client(PeerConnection),
 }
 
+#[derive(Debug)]
 struct BlockedConnection {
     block_count: u64,
     block_expiry: Instant,
@@ -194,16 +209,17 @@ pub struct ConnectionHandler {
 }
 
 impl ConnectionHandler {
-    pub fn update(&mut self) {
+    pub fn update(&mut self) -> Result<(), ConnectionError> {
         match self.handler {
             HandlerType::Server(ref mut data) => {
-                Self::update_server(data, &mut self.listener);
+                Self::update_server(data, &mut self.listener)?;
             }
 
             HandlerType::Client(ref mut data) => {
-                Self::update_client(data, &mut self.listener);
+                Self::update_client(data, &mut self.listener)?;
             }
         }
+        Ok(())
     }
 
     fn update_server(
@@ -213,7 +229,7 @@ impl ConnectionHandler {
             Arc<Mutex<HashMap<String, [u8; 32]>>>,
         ),
         listener: &mut UDPListener,
-    ) {
+    ) -> Result<(), ConnectionError> {
         for client in data.0.values_mut() {
             client.conn.on_timeout();
         }
@@ -254,11 +270,11 @@ impl ConnectionHandler {
                         source_addr,
                         &listener,
                         data.2.clone(),
-                    ))
+                    )?)
                 }
             };
 
-            ConnectionHandler::recv_packet(source_addr, packet, client, listener.bind_addr);
+            ConnectionHandler::recv_packet(source_addr, packet, client, listener.bind_addr)?;
         }
 
         for client in data.0.values_mut() {
@@ -299,16 +315,20 @@ impl ConnectionHandler {
             .retain(|_, client| client.state != PeerState::Disconnected);
 
         for client in data.0.values_mut() {
-            ConnectionHandler::send_packets(client, &mut listener.send);
+            ConnectionHandler::send_packets(client, &mut listener.send)?;
         }
+        Ok(())
     }
 
-    fn update_client(data: &mut PeerConnection, listener: &mut UDPListener) {
+    fn update_client(
+        data: &mut PeerConnection,
+        listener: &mut UDPListener,
+    ) -> Result<(), ConnectionError> {
         data.conn.on_timeout();
 
         for (packet, source_addr) in listener.recv.try_iter() {
             let packet: BytesMut = packet.into();
-            ConnectionHandler::recv_packet(source_addr, packet, data, listener.bind_addr);
+            ConnectionHandler::recv_packet(source_addr, packet, data, listener.bind_addr)?;
         }
 
         match data.state {
@@ -331,7 +351,8 @@ impl ConnectionHandler {
             }
         }
 
-        ConnectionHandler::send_packets(data, &mut listener.send);
+        ConnectionHandler::send_packets(data, &mut listener.send)?;
+        Ok(())
     }
 
     fn update_blocked_connection(entry: Entry<SocketAddr, BlockedConnection>) {
@@ -349,7 +370,7 @@ impl ConnectionHandler {
         source_addr: SocketAddr,
         listener: &UDPListener,
         psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
-    ) -> PeerConnection {
+    ) -> Result<PeerConnection, ConnectionError> {
         let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
             .fill(&mut scid_bytes)
@@ -364,17 +385,19 @@ impl ConnectionHandler {
             listener.bind_addr,
             source_addr,
             &mut ConnectionHandler::get_config(ssl_ctx),
-        )
-        .unwrap();
+        )?;
 
-        PeerConnection {
+        Ok(PeerConnection {
             id: scid.clone(),
             conn,
             state: PeerState::AwaitingConnection,
             peer_addr: source_addr,
-        }
+        })
     }
-    fn send_packets(connection: &mut PeerConnection, sender: &mut SyncSender<(Bytes, SendInfo)>) {
+    fn send_packets(
+        connection: &mut PeerConnection,
+        sender: &mut SyncSender<(Bytes, SendInfo)>,
+    ) -> Result<(), ConnectionError> {
         loop {
             let mut out = BytesMut::zeroed(MAX_DATAGRAM_SIZE);
             match connection.conn.send(&mut out) {
@@ -384,10 +407,10 @@ impl ConnectionHandler {
                     sender.send((out, info)).unwrap();
                 }
                 Err(quiche::Error::Done) => {
-                    break;
+                    return Ok(());
                 }
                 Err(e) => {
-                    panic!("error sending: {:?}", e)
+                    return Err(ConnectionError::QuicheError(e));
                 }
             }
         }
@@ -397,12 +420,13 @@ impl ConnectionHandler {
         mut packet: BytesMut,
         connection: &mut PeerConnection,
         bind_addr: SocketAddr,
-    ) {
+    ) -> Result<(), ConnectionError> {
         let info = RecvInfo {
             from,
             to: bind_addr,
         };
-        connection.conn.recv(&mut packet, info).unwrap();
+        connection.conn.recv(&mut packet, info)?;
+        Ok(())
     }
 
     pub fn is_connected(&self, peer: &ConnectionId<'static>) -> bool {
@@ -533,19 +557,19 @@ impl ConnectionHandler {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     Self::send_inner(peer, stream_id, &data)
                 } else {
-                    Err(ConnectionError::Generic(Box::new(io::Error::new(
-                        ErrorKind::NotFound,
-                        "peer not found",
-                    ))))
+                    Err(ConnectionError::PeerNotFound)
                 }
             }
         }
     }
 
-    pub fn send_identifier(&mut self, identifier: &[u8]) {
+    pub fn send_identifier(
+        &mut self,
+        identifier: &[u8],
+    ) -> std::result::Result<(), ConnectionError> {
         match self.handler {
-            HandlerType::Client(ref mut server) => Self::send_inner(server, 0, identifier).unwrap(),
-            HandlerType::Server(_) => assert!(false),
+            HandlerType::Client(ref mut server) => Self::send_inner(server, 0, identifier),
+            HandlerType::Server(_) => Err(ConnectionError::InvalidHandlerType),
         }
     }
 
@@ -556,21 +580,17 @@ impl ConnectionHandler {
     ) -> std::result::Result<(), ConnectionError> {
         let size: u64 = 8 + data.len() as u64;
         conn.conn
-            .stream_send(stream_id, &size.to_le_bytes(), false)
-            .unwrap();
+            .stream_send(stream_id, &size.to_le_bytes(), false)?;
 
         match conn.conn.stream_send(stream_id, data, false) {
             Ok(length) => {
                 if length != data.len() {
-                    Err(ConnectionError::Generic(Box::new(io::Error::new(
-                        ErrorKind::WouldBlock,
-                        "stream buffer is full",
-                    ))))
+                    Err(ConnectionError::BufferFull)
                 } else {
                     Ok(())
                 }
             }
-            Err(e) => Err(ConnectionError::Generic(Box::new(e))),
+            Err(e) => Err(ConnectionError::QuicheError(e)),
         }
     }
 
@@ -603,15 +623,12 @@ impl ConnectionHandler {
                         Err(e) => return Err(e),
                     }
                 } else {
-                    return Err(ConnectionError::Generic(Box::new(io::Error::new(
-                        ErrorKind::NotFound,
-                        "peer not found",
-                    ))));
+                    return Err(ConnectionError::PeerNotFound);
                 }
             }
         };
 
-        let mut buffer_bits = Self::packet_to_bits(buf);
+        let mut buffer_bits = Self::packet_to_bits(buf)?;
 
         buffer_bits.truncate(buffer_length * 8);
         Ok(buffer_bits)
@@ -644,10 +661,7 @@ impl ConnectionHandler {
                         Err(e) => return Err(e),
                     }
                 } else {
-                    return Err(ConnectionError::Generic(Box::new(io::Error::new(
-                        ErrorKind::NotFound,
-                        "peer not found",
-                    ))));
+                    return Err(ConnectionError::PeerNotFound);
                 }
             }
         };
@@ -655,10 +669,12 @@ impl ConnectionHandler {
         Ok(Self::unaligned_packet_to_bits(buf))
     }
 
-    fn packet_to_bits(buf: BytesMut) -> BitVec<u64, Lsb0> {
+    fn packet_to_bits(buf: BytesMut) -> Result<BitVec<u64, Lsb0>, ConnectionError> {
         const CHUNK_REQUIRED_ALIGNMENT: usize = 8;
 
-        assert_eq!(buf.len() % CHUNK_REQUIRED_ALIGNMENT, 0);
+        if buf.len() % CHUNK_REQUIRED_ALIGNMENT != 0 {
+            return Err(ConnectionError::InvalidDatagram);
+        }
 
         let (buf, []) = buf.as_chunks::<8>() else {
             unreachable!()
@@ -669,7 +685,7 @@ impl ConnectionHandler {
             .map(|x| u64::from_le_bytes((*x).into()))
             .collect();
 
-        BitVec::from_vec(buf)
+        Ok(BitVec::from_vec(buf))
     }
 
     fn unaligned_packet_to_bits(buf: BytesMut) -> BitVec<u8, Lsb0> {
@@ -684,7 +700,7 @@ impl ConnectionHandler {
         match conn.conn.stream_recv(stream_id, buf) {
             Ok((length, _)) => Ok(length),
             Err(quiche::Error::Done) => Ok(0),
-            Err(e) => return Err(ConnectionError::Generic(Box::new(e))),
+            Err(e) => return Err(ConnectionError::QuicheError(e)),
         }
     }
 
@@ -710,10 +726,7 @@ impl ConnectionHandler {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     Self::send_dgram_inner(peer, data)
                 } else {
-                    Err(ConnectionError::Generic(Box::new(io::Error::new(
-                        ErrorKind::NotFound,
-                        "peer not found",
-                    ))))
+                    Err(ConnectionError::PeerNotFound)
                 }
             }
         }
@@ -724,14 +737,11 @@ impl ConnectionHandler {
         data: Vec<u8>,
     ) -> std::result::Result<(), ConnectionError> {
         if data.len() > conn.conn.dgram_max_writable_len().unwrap_or(0) {
-            return Err(ConnectionError::Generic(Box::new(io::Error::new(
-                ErrorKind::InvalidData,
-                "datagram too large",
-            ))));
+            return Err(ConnectionError::InvalidDatagramLength);
         }
         match conn.conn.dgram_send_buf(data) {
             Ok(_) => Ok(()),
-            Err(e) => Err(ConnectionError::Generic(Box::new(e))),
+            Err(e) => Err(ConnectionError::QuicheError(e)),
         }
     }
 
@@ -748,21 +758,23 @@ impl ConnectionHandler {
                 if let Some(peer) = s.0.get_mut(&peer) {
                     peer.conn.dgram_recv_buf().unwrap_or(Vec::new())
                 } else {
-                    return Err(ConnectionError::Generic(Box::new(io::Error::new(
-                        ErrorKind::NotFound,
-                        "peer not found",
-                    ))));
+                    return Err(ConnectionError::PeerNotFound);
                 }
             }
         };
-        Ok(Self::packet_to_bits(BytesMut::from(Bytes::from(dgram))))
+        Self::packet_to_bits(BytesMut::from(Bytes::from(dgram)))
     }
 
-    pub fn add_client_token(&mut self, identifier: String, key: [u8; 32]) {
+    pub fn add_client_token(
+        &mut self,
+        identifier: String,
+        key: [u8; 32],
+    ) -> Result<(), ConnectionError> {
         if let HandlerType::Server(data) = &mut self.handler {
             data.2.lock().unwrap().insert(identifier.clone(), key);
+            Ok(())
         } else {
-            debug_assert!(true);
+            Err(ConnectionError::InvalidHandlerType)
         }
     }
 
