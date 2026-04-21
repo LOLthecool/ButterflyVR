@@ -1,21 +1,19 @@
 // functionallity for the NetNodeManager server
-use crate::messages::*;
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionError, ConnectionHandler};
 use crate::serializer::*;
+use crate::{common, messages::MessageHandler};
 use bitvec::prelude::*;
 use godot::prelude::*;
 use quiche::ConnectionId;
 use rand::{RngExt, SeedableRng};
-use std::collections::{BTreeMap, HashSet, VecDeque, hash_map};
+use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::mem;
 use std::{cmp, collections::HashMap};
 
 const BYTE: usize = 8;
 const BYTES2: usize = BYTE * 2;
-const BYTES8: usize = BYTE * 8;
 
-const MESSAGE_HEADER_SIZE: usize = BYTES8;
 const DGRAM_HEADER_SIZE: usize = BYTE;
 
 #[derive(GodotClass)]
@@ -47,7 +45,7 @@ pub impl NetNodeServer {
         self.networked_nodes.push(new_node_ref);
     }
 
-    pub fn unregister_node(&mut self, removed_node_ref: Gd<NetworkedNode>) {
+    pub fn unregister_node(&mut self, removed_node_ref: &Gd<NetworkedNode>) {
         for client in self.clients.values_mut().filter_map(|x| {
             let ClientState::Connected(ref mut client) = x.state else {
                 return None;
@@ -55,12 +53,12 @@ pub impl NetNodeServer {
             Some(client)
         }) {
             let p = mem::take(&mut client.priorities);
-            client.priorities = p.into_iter().filter(|x| x.1 == removed_node_ref).collect()
+            client.priorities = p.into_iter().filter(|x| &x.1 == removed_node_ref).collect();
         }
         if let Some(idx) = self
             .networked_nodes
             .iter()
-            .position(|x| *x == removed_node_ref)
+            .position(|x| x == removed_node_ref)
         {
             self.networked_nodes.remove(idx);
         }
@@ -84,14 +82,14 @@ pub impl NetNodeServer {
     }
 
     pub fn start_server(&mut self, bind_port: u16) {
-        self.networker = ConnectionHandler::new_server(bind_port)
+        self.networker = ConnectionHandler::new_server(bind_port);
     }
 
     pub fn get_next_client(&mut self) -> Result<[u8; 40], ConnectionError> {
         let psk_identifier = rand::rng().random::<[char; 8]>();
         let psk_key = rand::rng().random::<[u8; 32]>();
         self.networker
-            .add_client_token(String::from_iter(psk_identifier.iter()), psk_key)?;
+            .add_client_token(psk_identifier.iter().collect(), psk_key)?;
         Ok(rand::rng().random::<[u8; 40]>())
     }
 
@@ -105,7 +103,7 @@ pub impl NetNodeServer {
                 // this dosent catch some changes to networked_nodes but that should be fine
                 if client.priorities.len() != networked_nodes.len() {
                     client.priorities.clear();
-                    for node_ref in networked_nodes.iter() {
+                    for node_ref in networked_nodes {
                         let mut r = [0; 16];
                         random.fill(&mut r);
                         client.priorities.insert((0, r), node_ref.clone());
@@ -121,7 +119,7 @@ pub impl NetNodeServer {
                         priority.0.0 += p;
                         priority
                     })
-                    .collect()
+                    .collect();
             }
         }
     }
@@ -135,7 +133,7 @@ pub impl NetNodeServer {
 
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
 
-        for (client_id, client) in self.clients.iter_mut() {
+        for (client_id, client) in &mut self.clients {
             let client_id = client_id.clone();
             match client.state {
                 ClientState::AwaitingIdentifier => {
@@ -158,19 +156,20 @@ pub impl NetNodeServer {
                         while let Ok(stream_chunk) =
                             self.networker.recv_stream(client_id.clone(), stream)
                         {
-                            Self::handle_stream_chunk(
+                            common::handle_stream_chunk(
                                 stream,
-                                stream_chunk,
-                                client,
+                                &stream_chunk,
+                                &mut client.incomplete_messages,
                                 &mut self.message_buffer,
                                 &mut self.message_handlers,
                             );
                         }
                     }
 
-                    Self::handle_datagrams(
-                        client_id.clone(),
-                        client,
+                    common::handle_datagrams(
+                        &client_id,
+                        &mut client.tick_number,
+                        &mut client.unapplied_packets,
                         &mut self.networker,
                         &mut random,
                     );
@@ -270,70 +269,65 @@ pub impl NetNodeServer {
                 while remaining_bandwidth > PACKET_MAX_SIZE_THRESHOLD {
                     let mut packet: BitVec<u64> = BitVec::with_capacity(max_dgram_size);
 
-                    match client.state {
-                        ClientSubState::ObjectSync(ref mut objects) => {
-                            if let Some(object) = objects.get_mut(0) {
-                                let node_ref = object;
-                                let node = Gd::bind(node_ref);
+                    if let ClientSubState::ObjectSync(ref mut objects) = client.state {
+                        if let Some(object) = objects.get_mut(0) {
+                            let node_ref = object;
+                            let node = Gd::bind(node_ref);
 
-                                let tmp = node.get_byte_data(&node.get_networked_values_types());
+                            let tmp = node.get_byte_data(&node.get_networked_values_types());
 
-                                drop(node);
+                            drop(node);
 
-                                if tmp.len() + packet.len()
-                                    > cmp::min(remaining_bandwidth, max_dgram_size)
-                                {
-                                    break;
-                                }
-
-                                packet.extend_from_bitslice(tmp.as_bitslice());
-                                objects.pop();
-                            } else {
-                                client.state = ClientSubState::Connected;
+                            if tmp.len() + packet.len()
+                                > cmp::min(remaining_bandwidth, max_dgram_size)
+                            {
+                                break;
                             }
+
+                            packet.extend_from_bitslice(tmp.as_bitslice());
+                            objects.pop();
+                        } else {
+                            client.state = ClientSubState::Connected;
                         }
-                        _ => {
-                            self.current_tick = self.current_tick.wrapping_add(1);
+                    } else {
+                        self.current_tick = self.current_tick.wrapping_add(1);
 
-                            packet.extend_from_bitslice(
-                                (self.current_tick as u16).view_bits::<Lsb0>(),
-                            );
-                            debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
+                        packet.extend_from_bitslice((self.current_tick as u8).view_bits::<Lsb0>());
+                        debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
 
-                            let old_map = mem::take(&mut client.priorities);
-                            client.priorities = old_map
-                                .into_iter()
-                                .map(|mut value| {
-                                    if value.0.0 != 0 {
-                                        let node_ref = &value.1;
-                                        let node = Gd::bind(node_ref);
+                        let old_map = mem::take(&mut client.priorities);
+                        client.priorities = old_map
+                            .into_iter()
+                            .map(|mut value| {
+                                if value.0.0 != 0 {
+                                    let node_ref = &value.1;
+                                    let node = Gd::bind(node_ref);
 
-                                        let tmp =
-                                            node.get_byte_data(&node.get_networked_values_types());
+                                    let tmp =
+                                        node.get_byte_data(&node.get_networked_values_types());
 
-                                        drop(node);
+                                    drop(node);
 
-                                        if tmp.len() + packet.len()
-                                            > cmp::min(remaining_bandwidth, max_dgram_size)
-                                        {
-                                            return value;
-                                        }
-
-                                        packet.extend_from_bitslice(tmp.as_bitslice());
-                                        value.0.0 = 0;
+                                    if tmp.len() + packet.len()
+                                        > cmp::min(remaining_bandwidth, max_dgram_size)
+                                    {
+                                        return value;
                                     }
-                                    value
-                                })
-                                .collect();
 
-                            if packet.len() > DGRAM_HEADER_SIZE {
-                                remaining_bandwidth -= packet.len();
-                                self.networker.send_datagram(conn.clone(), packet)?;
-                                continue;
-                            }
+                                    packet.extend_from_bitslice(tmp.as_bitslice());
+                                    value.0.0 = 0;
+                                }
+                                value
+                            })
+                            .collect();
 
-                            break;
+                        if packet.len() > DGRAM_HEADER_SIZE {
+                            remaining_bandwidth -= packet.len();
+                            self.networker.send_datagram(conn.clone(), packet)?;
+                            continue;
                         }
+
+                        break;
                     }
                 }
                 if remaining_bandwidth <= PACKET_MAX_SIZE_THRESHOLD {
@@ -348,7 +342,8 @@ pub impl NetNodeServer {
         clients: &mut HashMap<ConnectionId<'static>, Client>,
         networker: &ConnectionHandler,
     ) {
-        let client_list = HashSet::from_iter(networker.get_peers(false).into_iter());
+        let client_list: HashSet<ConnectionId<'static>> =
+            networker.get_peers(false).into_iter().collect();
 
         let tmp = clients.keys().cloned().collect();
         let new_players: Vec<ConnectionId> = client_list.difference(&tmp).cloned().collect();
@@ -356,7 +351,7 @@ pub impl NetNodeServer {
         let tmp = clients.keys().cloned().collect::<HashSet<ConnectionId>>();
         let dc_clients: Vec<ConnectionId> = tmp.difference(&client_list).cloned().collect();
 
-        for player in new_players.into_iter() {
+        for player in new_players {
             let player: ConnectionId = player;
             clients.insert(player.clone(), Client::new(player));
         }
@@ -366,155 +361,11 @@ pub impl NetNodeServer {
         }
     }
 
-    fn handle_stream_chunk(
-        stream: u64,
-        stream_chunk: BitVec<u64, Lsb0>,
-        client: &mut ConnectedClient,
-        message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
-        message_handlers: &mut HashMap<u64, Gd<MessageHandler>>,
-    ) {
-        if stream_chunk.len() == 0 {
-            return;
-        }
-
-        let mut stream_chunk = stream_chunk.as_bitslice();
-
-        if let hash_map::Entry::Occupied(mut entry) = client.incomplete_messages.entry(stream) {
-            let &mut (ref mut length, ref mut incomplete) = entry.get_mut();
-
-            let length = length.unwrap_or_else(|| {
-                let missing = incomplete.len() - BYTES8;
-                // todo: this assumes we will always have enough data to fill the length field
-                // not sure if that is true
-                incomplete.extend_from_bitslice(&stream_chunk[..missing]);
-
-                *length = Some(incomplete[..BYTES8].load_le());
-                length.unwrap()
-            });
-
-            let mut pointer = BYTES8;
-
-            // should never be 0 since we would have already finished
-            let remaining = length - incomplete.len();
-
-            if remaining > stream_chunk.len() {
-                incomplete.extend_from_bitslice(stream_chunk);
-                return;
-            }
-
-            incomplete.extend_from_bitslice(&stream_chunk[..remaining]);
-
-            let handler: u64 = incomplete[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
-            pointer += MESSAGE_HEADER_SIZE;
-
-            if let Some(handler) = message_handlers.get_mut(&handler) {
-                handler
-                    .bind_mut()
-                    .handle_message(incomplete.as_bitslice(), &mut pointer);
-            }
-
-            let (_, (_, value)) = entry.remove_entry();
-            message_buffer.push_back((value, stream));
-
-            (_, stream_chunk) = stream_chunk.split_at(remaining);
-        }
-
-        loop {
-            if stream_chunk.is_empty() {
-                break;
-            }
-
-            if stream_chunk.len() < BYTES8 {
-                client
-                    .incomplete_messages
-                    .insert(stream, (None, stream_chunk.to_bitvec()));
-                break;
-            }
-
-            let length: usize = stream_chunk[..BYTES8].load_le();
-            let mut pointer = BYTES8;
-
-            if stream_chunk.len() < length {
-                client
-                    .incomplete_messages
-                    .insert(stream, (Some(length), stream_chunk.to_bitvec()));
-                break;
-            }
-
-            let incomplete_stream;
-            (incomplete_stream, stream_chunk) = stream_chunk.split_at(length);
-
-            let handler: u64 = incomplete_stream[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
-            pointer += MESSAGE_HEADER_SIZE;
-
-            if let Some(handler) = message_handlers.get_mut(&handler) {
-                handler
-                    .bind_mut()
-                    .handle_message(incomplete_stream, &mut pointer);
-            }
-            message_buffer.push_back((incomplete_stream.to_bitvec(), stream));
-        }
-    }
-
-    fn handle_datagrams(
-        client_id: ConnectionId,
-        client: &mut ConnectedClient,
-        networker: &mut ConnectionHandler,
-        random: &mut rand::rngs::SmallRng,
-    ) {
-        client.tick_number += 1;
-
-        let mut late_packets: usize = 0;
-        let mut total_packets: usize = 0;
-        let mut got_next_tick_packet: bool = false;
-
-        while let Ok(packet) = networker.recv_datagram(client_id.clone()) {
-            let packet: BitVec<u64> = packet;
-            if packet.len() < DGRAM_HEADER_SIZE {
-                godot_warn!("got c1 packet with invalid size");
-                continue;
-            }
-
-            let packet_apply_tick: i8 = packet[0..BYTE].load_le();
-
-            let relative_apply_tick = packet_apply_tick.wrapping_sub(client.tick_number);
-
-            total_packets += 1;
-
-            if relative_apply_tick <= client.tick_number {
-                late_packets += 1;
-                continue;
-            }
-
-            if relative_apply_tick == client.tick_number + 1 {
-                got_next_tick_packet = true;
-            }
-
-            let mut r = [0; 16];
-            random.fill(&mut r);
-
-            client
-                .unapplied_packets
-                .insert((packet_apply_tick, r), packet);
-        }
-
-        if !got_next_tick_packet {
-            client.tick_number += 1;
-        }
-
-        if late_packets > (total_packets / 100) {
-            client.tick_number -= 1;
-        }
-    }
-
     pub fn get_unverified_client(&self) -> Option<[u8; 40]> {
-        self.clients
-            .iter()
-            .filter_map(|x| match x.1.state {
-                ClientState::AwaitingUuid(x) => Some(x),
-                _ => None,
-            })
-            .next()
+        self.clients.iter().find_map(|x| match x.1.state {
+            ClientState::AwaitingUuid(x) => Some(x),
+            _ => None,
+        })
     }
 
     pub fn verify_client(&mut self, identifier: [u8; 40], uuid: [u8; 16]) {
@@ -532,8 +383,7 @@ impl INode for NetNodeServer {
     fn physics_process(&mut self, _delta: f64) {
         // todo:
         // split common functionality with client into common.rs
-        // clean up serializers.rs and net_nodes.rs
-        // fix messages.rs
+        // clean up / fix serializers.rs, messages.rs and net_nodes.rs
         // run through ai
         // unit tests
         // run unit tests through ai
@@ -542,7 +392,9 @@ impl INode for NetNodeServer {
         let _ = self
             .tick()
             .inspect_err(|x| godot_error!("error while ticking server: {:?}", x));
+
         self.update_network_nodes();
+
         let _ = self
             .send_packets()
             .inspect_err(|x| godot_error!("error while sending packets: {:?}", x));
@@ -559,7 +411,7 @@ impl Client {
     fn new(conn: ConnectionId<'static>) -> Self {
         Self {
             conn,
-            state: Default::default(),
+            state: ClientState::default(),
         }
     }
 }
@@ -589,13 +441,13 @@ impl ConnectedClient {
     fn new(uuid: [u8; 16]) -> Self {
         const INITIAL_CLIENT_BANDWIDTH: usize = 8000;
         Self {
-            uuid: uuid,
-            state: Default::default(),
+            uuid,
+            state: ClientSubState::default(),
             bandwidth_budget_per_tick: INITIAL_CLIENT_BANDWIDTH,
-            incomplete_messages: Default::default(),
+            incomplete_messages: HashMap::default(),
             message_buffer_position: Default::default(),
-            priorities: Default::default(),
-            unapplied_packets: Default::default(),
+            priorities: BTreeMap::default(),
+            unapplied_packets: BTreeMap::default(),
             tick_number: Default::default(),
         }
     }

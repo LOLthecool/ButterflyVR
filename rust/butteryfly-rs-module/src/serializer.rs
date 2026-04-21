@@ -1,14 +1,14 @@
 // serialization functions for networkednode values
 use bitvec::prelude::*;
 use godot::prelude::*;
-use std::{borrow::Cow, i64};
+use std::borrow::Cow;
 
 const BYTE: usize = 8;
 const BYTES2: usize = 16;
 const BYTES4: usize = 32;
 const BYTES8: usize = 64;
 // all possible ways a value can be encoded for the network
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum NetworkedValueTypes {
     Nil,
     Bool,
@@ -24,16 +24,16 @@ impl TryFrom<i64> for NetworkedValueTypes {
     type Error = Cow<'static, str>;
     fn try_from(value: i64) -> Result<Self, Self::Error> {
         match value {
-            -2 => Ok(NetworkedValueTypes::Nil),
+            -2 => Ok(Self::Nil),
             -1 => Err(Cow::Borrowed("invalid type")),
-            0 => Ok(NetworkedValueTypes::Bool),
-            1 => Ok(NetworkedValueTypes::Unsigned8),
-            2 => Ok(NetworkedValueTypes::Unsigned16),
-            3 => Ok(NetworkedValueTypes::Signed64),
-            4 => Ok(NetworkedValueTypes::Float32),
-            5 => Ok(NetworkedValueTypes::Vector3),
-            6 => Ok(NetworkedValueTypes::String),
-            7 => Ok(NetworkedValueTypes::ByteArray),
+            0 => Ok(Self::Bool),
+            1 => Ok(Self::Unsigned8),
+            2 => Ok(Self::Unsigned16),
+            3 => Ok(Self::Signed64),
+            4 => Ok(Self::Float32),
+            5 => Ok(Self::Vector3),
+            6 => Ok(Self::String),
+            7 => Ok(Self::ByteArray),
             _ => Err(Cow::Owned(format!(
                 "tried to parse nonexistent type {:#?}",
                 value

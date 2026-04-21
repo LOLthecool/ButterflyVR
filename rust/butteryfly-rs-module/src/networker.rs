@@ -42,13 +42,13 @@ pub enum ConnectionError {
 
 impl<T: std::error::Error + Send + 'static> From<Box<T>> for ConnectionError {
     fn from(err: Box<T>) -> Self {
-        ConnectionError::GenericError(err)
+        Self::GenericError(err)
     }
 }
 
 impl From<quiche::Error> for ConnectionError {
     fn from(err: quiche::Error) -> Self {
-        ConnectionError::QuicheError(err)
+        Self::QuicheError(err)
     }
 }
 
@@ -71,12 +71,12 @@ impl UDPListener {
 
         let socket_ref = socket.clone();
         thread::spawn(move || {
-            UDPListener::sending_thread(send_rx, excessive_pacing_notifier_tx, socket_ref);
+            Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref);
         });
 
-        let socket_ref = socket.clone();
+        let socket_ref = socket;
         thread::spawn(move || {
-            UDPListener::receiving_thread(recv_tx, socket_ref);
+            Self::receiving_thread(&recv_tx, &socket_ref);
         });
 
         Self {
@@ -96,12 +96,12 @@ impl UDPListener {
 
         let socket_ref = socket.clone();
         thread::spawn(move || {
-            UDPListener::sending_thread(send_rx, excessive_pacing_notifier_tx, socket_ref);
+            Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref);
         });
 
-        let socket_ref = socket.clone();
+        let socket_ref = socket;
         thread::spawn(move || {
-            UDPListener::receiving_thread(recv_tx, socket_ref);
+            Self::receiving_thread(&recv_tx, &socket_ref);
         });
 
         Self {
@@ -112,20 +112,20 @@ impl UDPListener {
         }
     }
 
-    fn receiving_thread(outgoing: SyncSender<(Bytes, SocketAddr)>, socket: Arc<UdpSocket>) {
+    fn receiving_thread(outgoing: &SyncSender<(Bytes, SocketAddr)>, socket: &Arc<UdpSocket>) {
         loop {
             let mut buffer = BytesMut::with_capacity(MAX_DATAGRAM_SIZE);
             let (len, from) = socket.recv_from(&mut buffer).unwrap();
             buffer.truncate(len);
             let packet = buffer.freeze();
-            outgoing.send((packet, from)).unwrap()
+            outgoing.send((packet, from)).unwrap();
         }
     }
 
     fn sending_thread(
-        incoming: Receiver<(Bytes, SendInfo)>,
-        excessive_pacing_notifier: SyncSender<()>,
-        socket: Arc<UdpSocket>,
+        incoming: &Receiver<(Bytes, SendInfo)>,
+        excessive_pacing_notifier: &SyncSender<()>,
+        socket: &Arc<UdpSocket>,
     ) {
         // generally we dont want to be queuing packets to send across multiple ticks
         // better to just send less data per frame in the priority accumulator
@@ -140,20 +140,18 @@ impl UDPListener {
             for (packet, info) in incoming.try_iter() {
                 if info.at <= now {
                     socket.send_to(&packet, info.to).unwrap();
+                } else if delayed_packets.len() > PACKET_QUEUE_CAPACITY
+                    || info.at.saturating_duration_since(now) > MAX_PACING_DELAY
+                {
+                    // only check for excessive pacing on a per tick basis
+                    // so we dont care beyond a single event getting through
+                    let _ = excessive_pacing_notifier.try_send(());
                 } else {
-                    if delayed_packets.len() > PACKET_QUEUE_CAPACITY
-                        || info.at.saturating_duration_since(now) > MAX_PACING_DELAY
-                    {
-                        // only check for excessive pacing on a per tick basis
-                        // so we dont care beyond a single event getting through
-                        let _ = excessive_pacing_notifier.try_send(());
-                    } else {
-                        delayed_packets.push_back((packet, info));
-                    }
+                    delayed_packets.push_back((packet, info));
                 }
             }
 
-            while delayed_packets.get(0).map(|x| x.1.at <= now) == Some(true) {
+            while delayed_packets.front().is_some_and(|x| x.1.at <= now) {
                 let (packet, info) = delayed_packets.pop_front().unwrap();
                 socket.send_to(&packet, info.to).unwrap();
             }
@@ -181,20 +179,20 @@ impl Debug for PeerConnection {
             .field("id", &self.id)
             .field("state", &self.state)
             .field("peer_addr", &self.peer_addr)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
+type ServerState = (
+    HashMap<ConnectionIdWorkaround, PeerConnection>,
+    HashMap<SocketAddr, BlockedConnection>,
+    Arc<Mutex<HashMap<String, [u8; 32]>>>,
+);
+
 #[derive(Debug)]
 enum HandlerType {
-    Server(
-        (
-            HashMap<ConnectionIdWorkaround, PeerConnection>,
-            HashMap<SocketAddr, BlockedConnection>,
-            Arc<Mutex<HashMap<String, [u8; 32]>>>,
-        ),
-    ),
-    Client(PeerConnection),
+    Server(ServerState),
+    Client(Box<PeerConnection>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -242,11 +240,7 @@ impl ConnectionHandler {
     }
 
     fn update_server(
-        data: &mut (
-            HashMap<ConnectionIdWorkaround, PeerConnection>,
-            HashMap<SocketAddr, BlockedConnection>,
-            Arc<Mutex<HashMap<String, [u8; 32]>>>,
-        ),
+        data: &mut ServerState,
         listener: &mut UDPListener,
     ) -> Result<(), ConnectionError> {
         for client in data.0.values_mut() {
@@ -258,7 +252,7 @@ impl ConnectionHandler {
             let hdr = match quiche::Header::from_slice(&mut packet, quiche::MAX_CONN_ID_LEN) {
                 Ok(v) => v,
                 Err(e) => {
-                    eprintln!("Failed to parse header: {:?}", e);
+                    eprintln!("Failed to parse header: {e:?}");
                     continue;
                 }
             };
@@ -276,7 +270,7 @@ impl ConnectionHandler {
                     if let Some(block) = data.1.get_mut(&source_addr)
                         && block.block_expiry > Instant::now()
                     {
-                        eprintln!("Blocked connection from {:?}", source_addr);
+                        eprintln!("Blocked connection from {source_addr:?}");
                         continue;
                     }
 
@@ -285,15 +279,11 @@ impl ConnectionHandler {
                         continue;
                     }
 
-                    entry.insert(ConnectionHandler::create_client(
-                        source_addr,
-                        &listener,
-                        data.2.clone(),
-                    )?)
+                    entry.insert(Self::create_client(source_addr, listener, data.2.clone())?)
                 }
             };
 
-            ConnectionHandler::recv_packet(source_addr, packet, client, listener.bind_addr)?;
+            Self::recv_packet(source_addr, packet, client, listener.bind_addr)?;
         }
 
         for client in data.0.values_mut() {
@@ -310,9 +300,7 @@ impl ConnectionHandler {
 
                     if client.conn.is_closed() {
                         client.state = PeerState::Disconnected;
-                        ConnectionHandler::update_blocked_connection(
-                            data.1.entry(client.peer_addr),
-                        );
+                        Self::update_blocked_connection(data.1.entry(client.peer_addr));
                     }
 
                     if client.conn.is_established() {
@@ -334,7 +322,7 @@ impl ConnectionHandler {
             .retain(|_, client| client.state != PeerState::Disconnected);
 
         for client in data.0.values_mut() {
-            ConnectionHandler::send_packets(client, &mut listener.send)?;
+            Self::send_packets(client, &mut listener.send)?;
         }
         Ok(())
     }
@@ -347,7 +335,7 @@ impl ConnectionHandler {
 
         for (packet, source_addr) in listener.recv.try_iter() {
             let packet: BytesMut = packet.into();
-            ConnectionHandler::recv_packet(source_addr, packet, data, listener.bind_addr)?;
+            Self::recv_packet(source_addr, packet, data, listener.bind_addr)?;
         }
 
         match data.state {
@@ -370,7 +358,7 @@ impl ConnectionHandler {
             }
         }
 
-        ConnectionHandler::send_packets(data, &mut listener.send)?;
+        Self::send_packets(data, &mut listener.send)?;
         Ok(())
     }
 
@@ -378,14 +366,15 @@ impl ConnectionHandler {
         entry
             .and_modify(|e| {
                 e.block_count += 1;
-                e.block_expiry = Instant::now() + Duration::from_secs(e.block_count * e.block_count)
+                e.block_expiry =
+                    Instant::now() + Duration::from_secs(e.block_count * e.block_count);
             })
-            .or_insert(BlockedConnection {
+            .or_insert_with(|| BlockedConnection {
                 block_count: 1,
                 block_expiry: Instant::now(),
             });
     }
-    fn create_client<'b>(
+    fn create_client(
         source_addr: SocketAddr,
         listener: &UDPListener,
         psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
@@ -396,14 +385,14 @@ impl ConnectionHandler {
             .unwrap();
         let scid = quiche::ConnectionId::from_vec(scid_bytes.to_vec());
 
-        let ssl_ctx = ConnectionHandler::build_server_ctx(psks).unwrap();
+        let ssl_ctx = Self::build_server_ctx(psks).unwrap();
 
         let conn = quiche::accept(
             &scid,
             None,
             listener.bind_addr,
             source_addr,
-            &mut ConnectionHandler::get_config(ssl_ctx),
+            &mut Self::get_config(ssl_ctx),
         )?;
 
         Ok(PeerConnection {
@@ -455,11 +444,8 @@ impl ConnectionHandler {
                 c.state == PeerState::Connected
             }
             HandlerType::Server(ref s) => {
-                if let Some(peer) = s.0.get(&peer.into()) {
-                    peer.state == PeerState::Connected
-                } else {
-                    false
-                }
+                s.0.get(&peer.into())
+                    .is_some_and(|peer| peer.state == PeerState::Connected)
             }
         }
     }
@@ -468,21 +454,11 @@ impl ConnectionHandler {
         match self.handler {
             HandlerType::Client(ref c) => {
                 debug_assert_eq!(peer, c.id);
-                c.conn
-                    .dgram_max_writable_len()
-                    .map(|x| x * 8)
-                    .unwrap_or(4000)
+                c.conn.dgram_max_writable_len().map_or(4000, |x| x * 8)
             }
-            HandlerType::Server(ref s) => {
-                if let Some(peer) = s.0.get(&peer.into()) {
-                    peer.conn
-                        .dgram_max_writable_len()
-                        .map(|x| x * 8)
-                        .unwrap_or(4000)
-                } else {
-                    0
-                }
-            }
+            HandlerType::Server(ref s) => s.0.get(&peer.into()).map_or(0, |peer| {
+                peer.conn.dgram_max_writable_len().map_or(4000, |x| x * 8)
+            }),
         }
     }
 
@@ -543,11 +519,8 @@ impl ConnectionHandler {
                 c.conn.readable()
             }
             HandlerType::Server(ref s) => {
-                if let Some(peer) = s.0.get(&peer.into()) {
-                    peer.conn.readable()
-                } else {
-                    StreamIter::default()
-                }
+                s.0.get(&peer.into())
+                    .map_or_else(StreamIter::default, |peer| peer.conn.readable())
             }
         }
     }
@@ -571,13 +544,10 @@ impl ConnectionHandler {
                 debug_assert_eq!(peer, c.id);
                 Self::send_inner(c, stream_id, &data)
             }
-            HandlerType::Server(ref mut s) => {
-                if let Some(peer) = s.0.get_mut(&peer.into()) {
-                    Self::send_inner(peer, stream_id, &data)
-                } else {
-                    Err(ConnectionError::PeerNotFound)
-                }
-            }
+            HandlerType::Server(ref mut s) => s.0.get_mut(&peer.into()).map_or_else(
+                || Err(ConnectionError::PeerNotFound),
+                |peer| Self::send_inner(peer, stream_id, &data),
+            ),
         }
     }
 
@@ -602,10 +572,10 @@ impl ConnectionHandler {
 
         match conn.conn.stream_send(stream_id, data, false) {
             Ok(length) => {
-                if length != data.len() {
-                    Err(ConnectionError::BufferFull)
-                } else {
+                if length == data.len() {
                     Ok(())
+                } else {
+                    Err(ConnectionError::BufferFull)
                 }
             }
             Err(e) => Err(ConnectionError::QuicheError(e)),
@@ -644,9 +614,9 @@ impl ConnectionHandler {
                     return Err(ConnectionError::PeerNotFound);
                 }
             }
-        };
+        }
 
-        let mut buffer_bits = Self::packet_to_bits(buf)?;
+        let mut buffer_bits = Self::packet_to_bits(&buf.freeze())?;
 
         buffer_bits.truncate(buffer_length * 8);
         Ok(buffer_bits)
@@ -682,15 +652,15 @@ impl ConnectionHandler {
                     return Err(ConnectionError::PeerNotFound);
                 }
             }
-        };
+        }
 
         Ok(Self::unaligned_packet_to_bits(buf))
     }
 
-    fn packet_to_bits(buf: BytesMut) -> Result<BitVec<u64, Lsb0>, ConnectionError> {
+    fn packet_to_bits(buf: &Bytes) -> Result<BitVec<u64, Lsb0>, ConnectionError> {
         const CHUNK_REQUIRED_ALIGNMENT: usize = 8;
 
-        if buf.len() % CHUNK_REQUIRED_ALIGNMENT != 0 {
+        if !buf.len().is_multiple_of(CHUNK_REQUIRED_ALIGNMENT) {
             return Err(ConnectionError::InvalidDatagram);
         }
 
@@ -698,10 +668,7 @@ impl ConnectionHandler {
             unreachable!()
         };
 
-        let buf: Vec<u64> = buf
-            .into_iter()
-            .map(|x| u64::from_le_bytes((*x).into()))
-            .collect();
+        let buf: Vec<u64> = buf.iter().map(|x| u64::from_le_bytes(*x)).collect();
 
         Ok(BitVec::from_vec(buf))
     }
@@ -718,7 +685,7 @@ impl ConnectionHandler {
         match conn.conn.stream_recv(stream_id, buf) {
             Ok((length, _)) => Ok(length),
             Err(quiche::Error::Done) => Ok(0),
-            Err(e) => return Err(ConnectionError::QuicheError(e)),
+            Err(e) => Err(ConnectionError::QuicheError(e)),
         }
     }
 
@@ -740,13 +707,10 @@ impl ConnectionHandler {
                 debug_assert_eq!(peer, c.id);
                 Self::send_dgram_inner(c, data)
             }
-            HandlerType::Server(ref mut s) => {
-                if let Some(peer) = s.0.get_mut(&peer.into()) {
-                    Self::send_dgram_inner(peer, data)
-                } else {
-                    Err(ConnectionError::PeerNotFound)
-                }
-            }
+            HandlerType::Server(ref mut s) => s.0.get_mut(&peer.into()).map_or_else(
+                || Err(ConnectionError::PeerNotFound),
+                |peer| Self::send_dgram_inner(peer, data),
+            ),
         }
     }
 
@@ -757,10 +721,9 @@ impl ConnectionHandler {
         if data.len() > conn.conn.dgram_max_writable_len().unwrap_or(0) {
             return Err(ConnectionError::InvalidDatagramLength);
         }
-        match conn.conn.dgram_send_buf(data) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(ConnectionError::QuicheError(e)),
-        }
+        conn.conn
+            .dgram_send_buf(data)
+            .map_err(ConnectionError::QuicheError)
     }
 
     pub fn recv_datagram(
@@ -780,7 +743,7 @@ impl ConnectionHandler {
                 }
             }
         };
-        Self::packet_to_bits(BytesMut::from(Bytes::from(dgram)))
+        Self::packet_to_bits(&Bytes::from(dgram))
     }
 
     pub fn add_client_token(
@@ -789,7 +752,7 @@ impl ConnectionHandler {
         key: [u8; 32],
     ) -> Result<(), ConnectionError> {
         if let HandlerType::Server(data) = &mut self.handler {
-            data.2.lock().unwrap().insert(identifier.clone(), key);
+            data.2.lock().unwrap().insert(identifier, key);
             Ok(())
         } else {
             Err(ConnectionError::InvalidHandlerType)
@@ -824,8 +787,8 @@ impl ConnectionHandler {
         supplied_identity: String,
         supplied_psk: Vec<u8>,
     ) -> Self {
-        let ssl_ctx = ConnectionHandler::build_client_ctx(supplied_identity, supplied_psk);
-        let mut config = ConnectionHandler::get_config(ssl_ctx);
+        let ssl_ctx = Self::build_client_ctx(supplied_identity, supplied_psk);
+        let mut config = Self::get_config(ssl_ctx);
         let mut id = vec![0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new().fill(&mut id).unwrap();
         let id = ConnectionId::from_vec(id);
@@ -836,12 +799,12 @@ impl ConnectionHandler {
         let conn =
             quiche::connect(None, &id, listener.bind_addr, server_addr, &mut config).unwrap();
         Self {
-            handler: HandlerType::Client(PeerConnection {
+            handler: HandlerType::Client(Box::new(PeerConnection {
                 id,
                 conn,
                 state: PeerState::AwaitingConnection,
                 peer_addr: server_addr,
-            }),
+            })),
             listener,
         }
     }
@@ -864,13 +827,13 @@ impl ConnectionHandler {
             Config::with_boring_ssl_ctx_builder(quiche::PROTOCOL_VERSION, ssl_ctx).unwrap();
         config.discover_pmtu(true);
         config.set_application_protos(&[b"netnodes-1"]).unwrap();
-        config.set_max_idle_timeout(10000);
+        config.set_max_idle_timeout(10_000);
         config.set_max_recv_udp_payload_size(MAX_DATAGRAM_SIZE);
         config.set_max_send_udp_payload_size(MAX_DATAGRAM_SIZE);
-        config.set_initial_max_data(1000000);
-        config.set_initial_max_stream_data_bidi_local(900000);
-        config.set_initial_max_stream_data_bidi_remote(900000);
-        config.set_initial_max_stream_data_uni(900000);
+        config.set_initial_max_data(1_000_000);
+        config.set_initial_max_stream_data_bidi_local(900_000);
+        config.set_initial_max_stream_data_bidi_remote(900_000);
+        config.set_initial_max_stream_data_uni(900_000);
         config.set_initial_max_streams_bidi(10);
         config.set_initial_max_streams_uni(10);
         config.enable_dgram(true, 1000, 1000);
@@ -889,20 +852,20 @@ impl ConnectionHandler {
         ctx.set_verify(SslVerifyMode::NONE);
 
         ctx.set_psk_server_callback(move |_ssl, identity, out| {
-            if let Some(id) = identity {
-                if let Entry::Occupied(entry) = psks
+            if let Some(id) = identity
+                && let Entry::Occupied(entry) = psks
                     .lock()
                     .unwrap()
                     .entry((*String::from_utf8_lossy(id)).to_owned())
-                {
-                    let psk = entry.into_mut();
-                    let key_len = psk.len();
-                    if out.len() >= key_len {
-                        out[..key_len].copy_from_slice(psk);
-                        return Ok(key_len);
-                    }
+            {
+                let psk = entry.into_mut();
+                let key_len = psk.len();
+                if out.len() >= key_len {
+                    out[..key_len].copy_from_slice(psk);
+                    return Ok(key_len);
                 }
             }
+
             Ok(0)
         });
 
@@ -938,7 +901,7 @@ impl ConnectionHandler {
     }
 }
 
-impl<'a> Default for ConnectionHandler {
+impl Default for ConnectionHandler {
     fn default() -> Self {
         Self {
             handler: HandlerType::Server((
