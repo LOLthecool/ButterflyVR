@@ -1,12 +1,9 @@
 // serialization functions for networkednode values
-use bitvec::prelude::*;
+use crate::common::{BYTE, BYTES2, BYTES4, BYTES8};
+use bitvec::{field::BitField, prelude::*};
 use godot::prelude::*;
 use std::borrow::Cow;
 
-const BYTE: usize = 8;
-const BYTES2: usize = 16;
-const BYTES4: usize = 32;
-const BYTES8: usize = 64;
 // all possible ways a value can be encoded for the network
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum NetworkedValueTypes {
@@ -35,8 +32,7 @@ impl TryFrom<i64> for NetworkedValueTypes {
             6 => Ok(Self::String),
             7 => Ok(Self::ByteArray),
             _ => Err(Cow::Owned(format!(
-                "tried to parse nonexistent type {:#?}",
-                value
+                "tried to parse nonexistent type {value:#?}",
             ))),
         }
     }
@@ -44,7 +40,7 @@ impl TryFrom<i64> for NetworkedValueTypes {
 pub fn decode_with_known_type(
     data: &BitSlice<u64>,
     pointer: &mut usize,
-    object_type: &NetworkedValueTypes,
+    object_type: NetworkedValueTypes,
 ) -> Option<Variant> {
     match object_type {
         NetworkedValueTypes::Nil => Some(Variant::nil()),
@@ -138,7 +134,7 @@ pub fn decode_with_known_type(
                     str::from_utf8(
                         &data[*pointer..*pointer + (length * BYTE)]
                             .chunks_exact(BYTE)
-                            .map(|x| x.load_le::<u8>())
+                            .map(BitField::load_le::<u8>)
                             .collect::<Vec<u8>>(),
                     )
                     .unwrap_or("")
@@ -147,7 +143,7 @@ pub fn decode_with_known_type(
                 *pointer += length * BYTE;
                 return result;
             }
-            return None;
+            None
         }
 
         NetworkedValueTypes::ByteArray => {
@@ -160,20 +156,20 @@ pub fn decode_with_known_type(
                 let result = Some(
                     data[*pointer..*pointer + (length * BYTE)]
                         .chunks_exact(BYTE)
-                        .map(|x| x.load_le::<u8>())
+                        .map(BitField::load_le::<u8>)
                         .collect::<Vec<u8>>()
                         .to_variant(),
                 );
                 *pointer += length * BYTE;
                 return result;
             }
-            return None;
+            None
         }
     }
 }
 pub fn encode_with_known_type(
     object: &Variant,
-    object_type: &NetworkedValueTypes,
+    object_type: NetworkedValueTypes,
 ) -> BitVec<u64, Lsb0> {
     match object_type {
         NetworkedValueTypes::Nil => BitVec::new(),

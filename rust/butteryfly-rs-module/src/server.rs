@@ -1,7 +1,8 @@
+use crate::common::{BYTE, BYTES2};
 // functionallity for the NetNodeManager server
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionError, ConnectionHandler};
-use crate::serializer::*;
+use crate::serializer::NetworkedValueTypes;
 use crate::{common, messages::MessageHandler};
 use bitvec::prelude::*;
 use godot::prelude::*;
@@ -10,9 +11,6 @@ use rand::{RngExt, SeedableRng};
 use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::mem;
 use std::{cmp, collections::HashMap};
-
-const BYTE: usize = 8;
-const BYTES2: usize = BYTE * 2;
 
 const DGRAM_HEADER_SIZE: usize = BYTE;
 
@@ -381,14 +379,6 @@ pub impl NetNodeServer {
 #[godot_api]
 impl INode for NetNodeServer {
     fn physics_process(&mut self, _delta: f64) {
-        // todo:
-        // split common functionality with client into common.rs
-        // clean up / fix serializers.rs, messages.rs and net_nodes.rs
-        // run through ai
-        // unit tests
-        // run unit tests through ai
-        // final manual check
-        // e2e testing
         let _ = self
             .tick()
             .inspect_err(|x| godot_error!("error while ticking server: {:?}", x));

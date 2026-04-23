@@ -5,11 +5,13 @@ use quiche::ConnectionId;
 use rand::RngExt;
 use std::collections::{BTreeMap, HashMap, VecDeque, hash_map};
 
-const BYTE: usize = 8;
-const BYTES8: usize = BYTE * 8;
+pub const BYTE: usize = 8;
+pub const BYTES2: usize = BYTE * 2;
+pub const BYTES4: usize = BYTE * 4;
+pub const BYTES8: usize = BYTE * 8;
 
-const MESSAGE_HEADER_SIZE: usize = BYTES8;
-const DGRAM_HEADER_SIZE: usize = BYTE;
+pub const MESSAGE_HEADER_SIZE: usize = BYTES8;
+pub const DGRAM_HEADER_SIZE: usize = BYTE;
 
 pub fn handle_stream_chunk(
     stream: u64,

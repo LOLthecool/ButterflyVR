@@ -322,7 +322,7 @@ impl ConnectionHandler {
             .retain(|_, client| client.state != PeerState::Disconnected);
 
         for client in data.0.values_mut() {
-            Self::send_packets(client, &mut listener.send)?;
+            Self::send_packets(client, &listener.send)?;
         }
         Ok(())
     }
@@ -358,7 +358,7 @@ impl ConnectionHandler {
             }
         }
 
-        Self::send_packets(data, &mut listener.send)?;
+        Self::send_packets(data, &listener.send)?;
         Ok(())
     }
 
@@ -404,7 +404,7 @@ impl ConnectionHandler {
     }
     fn send_packets(
         connection: &mut PeerConnection,
-        sender: &mut SyncSender<(Bytes, SendInfo)>,
+        sender: &SyncSender<(Bytes, SendInfo)>,
     ) -> Result<(), ConnectionError> {
         loop {
             let mut out = BytesMut::zeroed(MAX_DATAGRAM_SIZE);
@@ -535,8 +535,8 @@ impl ConnectionHandler {
 
         let data: Vec<u8> = data
             .into_vec()
-            .iter()
-            .flat_map(|x| x.to_le_bytes())
+            .into_iter()
+            .flat_map(u64::to_le_bytes)
             .collect();
 
         match self.handler {

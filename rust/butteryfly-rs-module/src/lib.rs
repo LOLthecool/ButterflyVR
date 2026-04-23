@@ -1,5 +1,13 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 
+// todo:
+// doc strings
+// run through ai
+// unit tests
+// run unit tests through ai
+// final manual check
+// e2e testing
+
 mod client;
 mod common;
 mod messages;
@@ -44,7 +52,7 @@ impl NetNodeManager {
             godot_warn!("called register_node but no client or server is running");
         }
     }
-    fn unregister_node(&mut self, node_ref: Gd<NetworkedNode>) {
+    fn unregister_node(&mut self, node_ref: &Gd<NetworkedNode>) {
         if let Some(server) = &mut self.server {
             server.bind_mut().unregister_node(&node_ref);
         } else if let Some(client) = &mut self.client {
@@ -65,8 +73,7 @@ impl NetNodeManager {
             return server
                 .bind_mut()
                 .get_unverified_client()
-                .map(|x| x.to_godot().to_packed_array())
-                .unwrap_or(PackedByteArray::new());
+                .map_or_else(PackedByteArray::new, |x| x.to_godot().to_packed_array());
         }
         godot_error!("called get_unverified_client but we are not a server");
         PackedByteArray::new()
@@ -100,7 +107,7 @@ impl NetNodeManager {
     fn start_client(
         &mut self,
         server_ip: String,
-        server_port: i32,
+        server_port: u16,
         psk_identifier: String,
         psk_key: PackedByteArray,
         identifier: PackedByteArray,
@@ -108,7 +115,7 @@ impl NetNodeManager {
         let mut c = NetNodeClient::new_alloc();
         self.base_mut().add_child(&c);
         c.bind_mut().start_client(
-            SocketAddr::new(IpAddr::from_str(&server_ip).unwrap(), server_port as u16),
+            SocketAddr::new(IpAddr::from_str(&server_ip).unwrap(), server_port),
             psk_identifier,
             psk_key.to_vec(),
             identifier.to_vec().try_into().unwrap(),

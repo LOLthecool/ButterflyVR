@@ -21,27 +21,33 @@ pub impl NetworkedNode {
     // intended to be overriden, the higher the number returned here the more often this node will be updated compared to other nodes
     #[func(virtual)]
     pub fn get_server_priority(&self, _clientid: PackedByteArray) -> i64 {
-        1
+        panic!("node has no impl for get_server_priority. this should never happen")
     }
 
     #[func(virtual)]
     pub fn get_client_priority(&self) -> i64 {
-        1
+        panic!("node has no impl for get_client_priority. this should never happen")
     }
 
     // intended to be overriden, the array should contain all values used in set_networked_values. you must ensure these two functions can interpret each other regardless of the state of either client or server
     #[func(virtual)]
     pub fn get_networked_values(&self) -> VarArray {
-        panic!("node has no impl for get_networked_values")
+        panic!("node has no impl for get_networked_values. this should never happen")
     }
     // intended to be overriden, this is where you update the properties of the node with the values from the server. you must ensure these two functions can interpret each other regardless of the state of either client or server
     #[func(virtual)]
     pub fn set_networked_values(&self, _values: VarArray) {
-        panic!("node has no impl for set_networked_values")
+        panic!("node has no impl for set_networked_values. this should never happen")
     }
     #[func(virtual)]
     pub fn on_owner_dc(&mut self) {
-        return;
+        panic!("node has no impl for on_owner_dc. this should never happen")
+    }
+    // intended to be overriden, determines how values from get_networked_values are encoded in the packet, types are provided using the enum values. encoding must be valid for the variant type
+    // called in loop with incrementing idx until -1 is returned
+    #[func(virtual)]
+    fn get_networked_value_type(&self, _idx: i64) -> i64 {
+        panic!("node has no impl for get_networked_values_type. this should never happen")
     }
 
     // generates a packet chunk containing the values from get_networked_values, encodes each value using the network value types
@@ -55,7 +61,7 @@ pub impl NetworkedNode {
             // network values and network value types must match
             byte_data.extend(serializer::encode_with_known_type(
                 &inner_value,
-                &types[index],
+                types[index],
             ));
         }
         byte_data
@@ -71,7 +77,7 @@ pub impl NetworkedNode {
         let mut values: VarArray = VarArray::new();
         while values.len() < types.len() {
             if let Some(value) =
-                serializer::decode_with_known_type(data, pointer, &types[values.len()])
+                serializer::decode_with_known_type(data, pointer, types[values.len()])
             {
                 values.push(&value);
             } else {
@@ -81,12 +87,6 @@ pub impl NetworkedNode {
         }
         self.set_networked_values(values);
         true
-    }
-    // intended to be overriden, determines how values from get_networked_values are encoded in the packet, types are provided using the enum values. encoding must be valid for the variant type
-    // called in loop with incrementing idx until -1 is returned
-    #[func(virtual)]
-    fn get_networked_value_type(&self, _idx: i64) -> i64 {
-        panic!("node has no impl for get_networked_values_type")
     }
     // collects network value types into a vec by calling get_networked_value_type until -1 is returned
     pub fn get_networked_values_types(&self) -> Vec<NetworkedValueTypes> {
@@ -116,10 +116,10 @@ impl INode for NetworkedNode {
                 .bind_mut()
                 .get_next_object_id();
         }
-        if let Some(parent) = self.base().get_parent() {
-            if parent.has_meta("owner_id") {
-                self.owner_id = PackedByteArray::from_variant(&parent.get_meta("owner_id"));
-            }
+        if let Some(parent) = self.base().get_parent()
+            && parent.has_meta("owner_id")
+        {
+            self.owner_id = PackedByteArray::from_variant(&parent.get_meta("owner_id"));
         }
         self.base()
             .get_node_as::<NetNodeManager>("/root/NetworkManager")
@@ -130,6 +130,6 @@ impl INode for NetworkedNode {
         self.base()
             .get_node_as::<NetNodeManager>("/root/NetworkManager")
             .bind_mut()
-            .unregister_node(self.to_gd());
+            .unregister_node(&self.to_gd());
     }
 }

@@ -1,4 +1,5 @@
 // functionallity for the NetNodeManager client
+use crate::common::BYTES2;
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionError, ConnectionHandler};
 use crate::serializer::NetworkedValueTypes;
@@ -9,8 +10,6 @@ use rand::SeedableRng;
 use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
 use std::{cmp, collections::HashMap};
-
-const BYTES2: usize = 16;
 
 const DGRAM_HEADER_SIZE: usize = BYTES2;
 
@@ -43,7 +42,7 @@ enum ConnectionStatus {
 
 #[godot_api]
 pub impl NetNodeClient {
-    pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &mut NetworkedNode) {
+    pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &NetworkedNode) {
         if new_node.owner_id == self.uuid.to_vec().to_godot().to_packed_array() {
             self.owned_nodes.push((new_node_ref.clone(), 0));
         }
@@ -227,16 +226,6 @@ pub impl NetNodeClient {
 #[godot_api]
 impl INode for NetNodeClient {
     fn physics_process(&mut self, _delta: f64) {
-        // todo:
-        // clippy
-        // clean up serializers.rs and net_nodes.rs
-        // fix messages.rs
-        // run through ai
-        // unit tests
-        // run unit tests through ai
-        // final manual check
-        // e2e testing
-        // handle disconnection
         if let ConnectionStatus::AwaitingConnection(identifier) = self.connected {
             if self
                 .networker

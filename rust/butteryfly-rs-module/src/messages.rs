@@ -1,11 +1,10 @@
 use crate::{
     NetNodeManager,
+    common::{BYTES8, MESSAGE_HEADER_SIZE},
     serializer::{self, NetworkedValueTypes},
 };
 use bitvec::prelude::*;
 use godot::prelude::*;
-
-const BYTES2: usize = 16;
 
 #[derive(GodotClass)]
 #[class(init, base=Node)]
@@ -47,10 +46,7 @@ pub impl MessageHandler {
         let mut packet: BitVec<u64, Lsb0> = BitVec::new();
         packet.extend(self.message_id.view_bits::<Lsb0>());
         for value in values.iter_shared().enumerate() {
-            packet.extend(serializer::encode_with_known_type(
-                &value.1,
-                &types[value.0],
-            ));
+            packet.extend(serializer::encode_with_known_type(&value.1, types[value.0]));
         }
 
         if self
@@ -60,7 +56,8 @@ pub impl MessageHandler {
             .bind_mut()
             .is_server()
         {
-            self.handle_message(packet.clone().as_bitslice(), &mut BYTES2.clone());
+            let mut pointer = BYTES8 + MESSAGE_HEADER_SIZE;
+            self.handle_message(packet.clone().as_bitslice(), &mut pointer);
         }
         self.network_manager
             .as_mut()
@@ -74,7 +71,7 @@ pub impl MessageHandler {
         let mut values: VarArray = VarArray::new();
         while *pointer < packet.len() {
             let value_type =
-                &NetworkedValueTypes::try_from(self.get_value_type(last_value, idx)).unwrap();
+                NetworkedValueTypes::try_from(self.get_value_type(last_value, idx)).unwrap();
             last_value = serializer::decode_with_known_type(packet, pointer, value_type).unwrap();
             values.push(&last_value);
             idx += 1;
