@@ -1,4 +1,4 @@
-use crate::common::{BYTE, BYTES2};
+use crate::common::{DGRAM_HEADER_SIZE, NetNodesConnectionId, OBJECT_HEADER_SIZE};
 // functionallity for the NetNodeManager server
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionError, ConnectionHandler};
@@ -12,12 +12,10 @@ use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::mem;
 use std::{cmp, collections::HashMap};
 
-const DGRAM_HEADER_SIZE: usize = BYTE;
-
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct NetNodeServer {
-    clients: HashMap<ConnectionId<'static>, Client>,
+    clients: HashMap<NetNodesConnectionId, Client>,
     networked_nodes: Vec<Gd<NetworkedNode>>,
     networker: ConnectionHandler,
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
@@ -36,7 +34,7 @@ pub impl NetNodeServer {
     pub fn player_left();
 
     pub fn get_player_count(&self) -> usize {
-        self.networker.get_peer_refs(false).len()
+        self.networker.get_peers(false).len()
     }
 
     pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>) {
@@ -92,7 +90,7 @@ pub impl NetNodeServer {
     }
 
     fn tick_client_priorities(
-        clients: &mut HashMap<ConnectionId, Client>,
+        clients: &mut HashMap<NetNodesConnectionId, Client>,
         networked_nodes: &[Gd<NetworkedNode>],
     ) {
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
@@ -112,7 +110,9 @@ pub impl NetNodeServer {
                     .into_iter()
                     .map(|mut priority| {
                         let p = priority.1.bind().get_server_priority(
-                            Vec::from(conn.clone()).to_godot().to_packed_array(),
+                            Vec::from(ConnectionId::from(conn))
+                                .to_godot()
+                                .to_packed_array(),
                         );
                         priority.0.0 += p;
                         priority
@@ -132,10 +132,9 @@ pub impl NetNodeServer {
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
 
         for (client_id, client) in &mut self.clients {
-            let client_id = client_id.clone();
             match client.state {
                 ClientState::AwaitingIdentifier => {
-                    if let Ok(data) = self.networker.recv_stream_bytes(client_id.clone(), 0, 40) {
+                    if let Ok(data) = self.networker.recv_stream_bytes(client_id, 0, 40) {
                         if let Ok(identifier) = data.into_vec().try_into() {
                             client.state = ClientState::AwaitingUuid(identifier);
                         } else {
@@ -150,10 +149,8 @@ pub impl NetNodeServer {
                 }
                 ClientState::AwaitingUuid(_) => {}
                 ClientState::Connected(ref mut client) => {
-                    for stream in self.networker.get_readable_streams(client_id.clone()) {
-                        while let Ok(stream_chunk) =
-                            self.networker.recv_stream(client_id.clone(), stream)
-                        {
+                    for stream in self.networker.get_readable_streams(client_id) {
+                        while let Ok(stream_chunk) = self.networker.recv_stream(client_id, stream) {
                             common::handle_stream_chunk(
                                 stream,
                                 &stream_chunk,
@@ -165,7 +162,7 @@ pub impl NetNodeServer {
                     }
 
                     common::handle_datagrams(
-                        &client_id,
+                        client_id,
                         &mut client.tick_number,
                         &mut client.unapplied_packets,
                         &mut self.networker,
@@ -189,9 +186,9 @@ pub impl NetNodeServer {
 
                     let mut pointer: usize = DGRAM_HEADER_SIZE;
 
-                    while pointer + BYTES2 <= packet.len() {
-                        let next_obj: u16 = packet[pointer..pointer + BYTES2].load_le();
-                        pointer += BYTES2;
+                    while pointer + OBJECT_HEADER_SIZE <= packet.len() {
+                        let next_obj: u16 = packet[pointer..pointer + OBJECT_HEADER_SIZE].load_le();
+                        pointer += OBJECT_HEADER_SIZE;
 
                         if let Some(tmp) = self
                             .networked_nodes
@@ -223,8 +220,7 @@ pub impl NetNodeServer {
     fn send_packets(&mut self) -> std::result::Result<(), ConnectionError> {
         const PACKET_MAX_SIZE_THRESHOLD: usize = 80;
 
-        for client in self.clients.values_mut() {
-            let conn = client.conn.clone();
+        for (conn, client) in &mut self.clients {
             if let ClientState::Connected(ref mut client) = client.state {
                 const MINIMUM_CONNECTION_BANDWIDTH: usize = 512;
 
@@ -232,7 +228,7 @@ pub impl NetNodeServer {
                     .bandwidth_budget_per_tick
                     .max(MINIMUM_CONNECTION_BANDWIDTH);
 
-                let max_dgram_size: usize = self.networker.get_max_dgram_size(conn.clone());
+                let max_dgram_size: usize = self.networker.get_max_dgram_size(conn);
 
                 if self.networker.is_connection_pacing() {
                     client.bandwidth_budget_per_tick /= 2;
@@ -250,8 +246,7 @@ pub impl NetNodeServer {
                     remaining_bandwidth -= message.len();
 
                     client.message_buffer_position += 1;
-                    self.networker
-                        .send_stream(conn.clone(), *stream, message.clone())?;
+                    self.networker.send_stream(conn, *stream, message.clone())?;
                 }
 
                 if client.state == ClientSubState::EventSync {
@@ -321,7 +316,7 @@ pub impl NetNodeServer {
 
                         if packet.len() > DGRAM_HEADER_SIZE {
                             remaining_bandwidth -= packet.len();
-                            self.networker.send_datagram(conn.clone(), packet)?;
+                            self.networker.send_datagram(conn, packet)?;
                             continue;
                         }
 
@@ -337,25 +332,23 @@ pub impl NetNodeServer {
     }
 
     fn update_client_list(
-        clients: &mut HashMap<ConnectionId<'static>, Client>,
+        clients: &mut HashMap<NetNodesConnectionId, Client>,
         networker: &ConnectionHandler,
     ) {
-        let client_list: HashSet<ConnectionId<'static>> =
+        let client_list: HashSet<NetNodesConnectionId> =
             networker.get_peers(false).into_iter().collect();
-
         let tmp = clients.keys().cloned().collect();
-        let new_players: Vec<ConnectionId> = client_list.difference(&tmp).cloned().collect();
 
-        let tmp = clients.keys().cloned().collect::<HashSet<ConnectionId>>();
-        let dc_clients: Vec<ConnectionId> = tmp.difference(&client_list).cloned().collect();
+        let new_players: Vec<&NetNodesConnectionId> = client_list.difference(&tmp).collect();
+        let dc_clients: Vec<&NetNodesConnectionId> = tmp.difference(&client_list).collect();
 
         for player in new_players {
-            let player: ConnectionId = player;
-            clients.insert(player.clone(), Client::new(player));
+            let player: &NetNodesConnectionId = player;
+            clients.insert(player.clone(), Client::new());
         }
 
         for dc_client in dc_clients {
-            clients.remove(&dc_client);
+            clients.remove(dc_client);
         }
     }
 
@@ -393,14 +386,12 @@ impl INode for NetNodeServer {
 
 #[derive(Debug, Clone)]
 struct Client {
-    conn: ConnectionId<'static>,
     state: ClientState,
 }
 
 impl Client {
-    fn new(conn: ConnectionId<'static>) -> Self {
+    fn new() -> Self {
         Self {
-            conn,
             state: ClientState::default(),
         }
     }

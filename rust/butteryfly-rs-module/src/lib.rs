@@ -4,9 +4,6 @@
 // doc strings
 // run through ai
 // unit tests
-// run unit tests through ai
-// final manual check
-// e2e testing
 
 mod client;
 mod common;
@@ -35,48 +32,68 @@ unsafe impl ExtensionLibrary for MyExtension {}
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 struct NetNodeManager {
-    client: Option<Gd<NetNodeClient>>,
-    server: Option<Gd<NetNodeServer>>,
-    is_server: bool,
+    inner: Inner,
     base: Base<Node>,
+}
+
+#[derive(Debug, Default)]
+enum Inner {
+    #[default]
+    None,
+    Client(Gd<NetNodeClient>),
+    Server(Gd<NetNodeServer>),
 }
 
 #[godot_api]
 impl NetNodeManager {
     fn register_node(&mut self, node_ref: Gd<NetworkedNode>, node: &mut NetworkedNode) {
-        if let Some(server) = &mut self.server {
-            server.bind_mut().register_node(node_ref);
-        } else if let Some(client) = &mut self.client {
-            client.bind_mut().register_node(node_ref, node);
-        } else {
-            godot_warn!("called register_node but no client or server is running");
+        match self.inner {
+            Inner::Server(ref mut server) => {
+                server.bind_mut().register_node(node_ref);
+            }
+            Inner::Client(ref mut client) => {
+                client.bind_mut().register_node(node_ref, node);
+            }
+            Inner::None => {
+                godot_warn!("called register_node but no client or server is running");
+            }
         }
     }
     fn unregister_node(&mut self, node_ref: &Gd<NetworkedNode>) {
-        if let Some(server) = &mut self.server {
-            server.bind_mut().unregister_node(&node_ref);
-        } else if let Some(client) = &mut self.client {
-            client.bind_mut().unregister_node(&node_ref);
-        } // can get called when no client or server is active after client dc so we ignore that case here
+        match self.inner {
+            Inner::Server(ref mut server) => {
+                server.bind_mut().unregister_node(node_ref);
+            }
+            Inner::Client(ref mut client) => {
+                client.bind_mut().unregister_node(node_ref);
+            }
+            Inner::None => {
+                // can get called when no client or server is active after client dc so we ignore that case here
+            }
+        }
     }
     #[func]
     fn get_next_object_id(&mut self) -> u16 {
-        if let Some(server) = &mut self.server {
-            return server.bind_mut().get_next_object_id();
+        match self.inner {
+            Inner::Server(ref mut server) => server.bind_mut().get_next_object_id(),
+            _ => {
+                godot_error!("called get_next_object_id but we are not a server");
+                0
+            }
         }
-        godot_error!("called get_next_object_id but we are not a server");
-        0
     }
     #[func]
     fn get_unverified_client(&mut self) -> PackedByteArray {
-        if let Some(server) = &mut self.server {
-            return server
+        match self.inner {
+            Inner::Server(ref mut server) => server
                 .bind_mut()
                 .get_unverified_client()
-                .map_or_else(PackedByteArray::new, |x| x.to_godot().to_packed_array());
+                .map_or_else(PackedByteArray::new, |x| x.to_godot().to_packed_array()),
+            _ => {
+                godot_error!("called get_unverified_client but we are not a server");
+                PackedByteArray::new()
+            }
         }
-        godot_error!("called get_unverified_client but we are not a server");
-        PackedByteArray::new()
     }
     #[func]
     fn verify_client(&mut self, identifier: PackedByteArray, uuid: PackedByteArray) {
@@ -98,10 +115,14 @@ impl NetNodeManager {
             return;
         };
 
-        if let Some(server) = &mut self.server {
-            return server.bind_mut().verify_client(identifier, uuid);
+        match self.inner {
+            Inner::Server(ref mut server) => {
+                server.bind_mut().verify_client(identifier, uuid);
+            }
+            _ => {
+                godot_error!("called verify_client but we are not a server");
+            }
         }
-        godot_error!("called verify_client but we are not a server");
     }
     #[func]
     fn start_client(
@@ -120,80 +141,89 @@ impl NetNodeManager {
             psk_key.to_vec(),
             identifier.to_vec().try_into().unwrap(),
         );
-        self.client = Some(c);
+        self.inner = Inner::Client(c);
     }
     #[func]
     fn start_server(&mut self, bind_port: u16) {
         let mut s = NetNodeServer::new_alloc();
         self.base_mut().add_child(&s);
         s.bind_mut().start_server(bind_port);
-        self.server = Some(s);
-        self.is_server = true;
+        self.inner = Inner::Server(s);
     }
     #[func]
     fn stop(&mut self) {
-        self.is_server = false;
-        if let Some(mut client) = self.client.take() {
-            client.bind_mut().disconnect();
-            client.queue_free();
-        } else if self.server.is_some() {
-            todo!(
-                "server does not have graceful stop functionality yet, ensure clients have disconnected then kill the server process"
-            )
+        match self.inner {
+            Inner::Client(ref mut client) => {
+                client.bind_mut().disconnect();
+                client.queue_free();
+            }
+            Inner::Server(_) => {
+                todo!(
+                    "server does not have graceful stop functionality yet, ensure clients have disconnected then kill the server process"
+                )
+            }
+            Inner::None => {}
         }
     }
     #[func]
     fn get_next_client(&mut self) -> PackedByteArray {
-        if let Some(server) = &mut self.server {
-            match server.bind_mut().get_next_client() {
+        match self.inner {
+            Inner::Server(ref mut server) => match server.bind_mut().get_next_client() {
                 Ok(client) => PackedByteArray::from(client),
                 Err(e) => {
                     godot_error!("failed to get next client: {:?}", e);
                     PackedByteArray::new()
                 }
+            },
+            _ => {
+                godot_error!("called get_next_client() but we are not a server");
+                PackedByteArray::new()
             }
-        } else {
-            godot_error!("called get_next_client() but we are not a server");
-            PackedByteArray::new()
         }
     }
     #[func]
     pub fn is_server(&self) -> bool {
-        self.is_server
+        matches!(self.inner, Inner::Server(_))
     }
     #[func]
     fn get_player_count(&self) -> i32 {
-        if let Some(server) = &self.server {
-            return server.bind().get_player_count() as i32;
+        match &self.inner {
+            Inner::Server(server) => server.bind().get_player_count() as i32,
+            _ => {
+                godot_error!("tried to get_player_count but we are not a server");
+                0
+            }
         }
-        godot_error!("tried to get_player_count but we are not a server");
-        0
     }
     fn register_message_handler(&mut self, handler: Gd<MessageHandler>, message_type: u64) {
-        if let Some(client) = &mut self.client {
-            return client.bind_mut().register_message(handler, message_type);
+        match &mut self.inner {
+            Inner::Client(client) => client.bind_mut().register_message(handler, message_type),
+            Inner::Server(server) => server.bind_mut().register_message(handler, message_type),
+            _ => {
+                godot_error!(
+                    "tried to register_message_handler but no client or server is running"
+                );
+            }
         }
-        if let Some(server) = &mut self.server {
-            return server.bind_mut().register_message(handler, message_type);
-        }
-        godot_error!("tried to register_message_handler but no client or server is running");
     }
     fn unregister_message_handler(&mut self, message_type: u64) {
-        if let Some(client) = &mut self.client {
-            return client.bind_mut().unregister_message(message_type);
+        match &mut self.inner {
+            Inner::Client(client) => client.bind_mut().unregister_message(message_type),
+            Inner::Server(server) => server.bind_mut().unregister_message(message_type),
+            _ => {
+                godot_error!(
+                    "tried to unregister_message_handler but no client or server is running"
+                );
+            }
         }
-        if let Some(server) = &mut self.server {
-            return server.bind_mut().unregister_message(message_type);
-        }
-        godot_error!("tried to unregister_message_handler but no client or server is running");
     }
     fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {
-        if let Some(client) = &mut self.client {
-            client.bind_mut().queue_message(message, stream);
-        } else if let Some(server) = &mut self.server {
-            server.bind_mut().queue_message(message, stream);
-        } else {
-            godot_warn!("tried to queue_message but no client or server is running");
+        match &mut self.inner {
+            Inner::Client(client) => client.bind_mut().queue_message(message, stream),
+            Inner::Server(server) => server.bind_mut().queue_message(message, stream),
+            _ => {
+                godot_warn!("tried to queue_message but no client or server is running");
+            }
         }
     }
     #[signal]

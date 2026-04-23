@@ -1,9 +1,11 @@
 use crate::{messages::MessageHandler, networker::ConnectionHandler};
 use bitvec::prelude::*;
 use godot::prelude::*;
-use quiche::ConnectionId;
 use rand::RngExt;
-use std::collections::{BTreeMap, HashMap, VecDeque, hash_map};
+use std::{
+    collections::{BTreeMap, HashMap, VecDeque, hash_map},
+    rc::Rc,
+};
 
 pub const BYTE: usize = 8;
 pub const BYTES2: usize = BYTE * 2;
@@ -12,6 +14,26 @@ pub const BYTES8: usize = BYTE * 8;
 
 pub const MESSAGE_HEADER_SIZE: usize = BYTES8;
 pub const DGRAM_HEADER_SIZE: usize = BYTE;
+pub const OBJECT_HEADER_SIZE: usize = BYTES2;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct NetNodesConnectionId {
+    id_bytes: Rc<Vec<u8>>,
+}
+
+impl From<quiche::ConnectionId<'_>> for NetNodesConnectionId {
+    fn from(value: quiche::ConnectionId<'_>) -> Self {
+        Self {
+            id_bytes: Rc::new(value.into()),
+        }
+    }
+}
+
+impl<'a> From<&'a NetNodesConnectionId> for quiche::ConnectionId<'a> {
+    fn from(value: &'a NetNodesConnectionId) -> Self {
+        Self::from_ref(Rc::as_ref(&value.id_bytes).as_slice())
+    }
+}
 
 pub fn handle_stream_chunk(
     stream: u64,
@@ -100,7 +122,7 @@ pub fn handle_stream_chunk(
 }
 
 pub fn handle_datagrams(
-    client_id: &ConnectionId,
+    client_id: &NetNodesConnectionId,
     tick_number: &mut i8,
     unapplied_packets: &mut BTreeMap<(i8, [u8; 16]), BitVec<u64, Lsb0>>,
     networker: &mut ConnectionHandler,
@@ -112,7 +134,7 @@ pub fn handle_datagrams(
     let mut total_packets: usize = 0;
     let mut got_next_tick_packet: bool = false;
 
-    while let Ok(packet) = networker.recv_datagram(client_id.clone()) {
+    while let Ok(packet) = networker.recv_datagram(client_id) {
         let packet: BitVec<u64> = packet;
         if packet.len() < DGRAM_HEADER_SIZE {
             godot_warn!("got c1 packet with invalid size");

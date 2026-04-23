@@ -1,5 +1,4 @@
-// functionallity for the NetNodeManager client
-use crate::common::BYTES2;
+use crate::common::{DGRAM_HEADER_SIZE, OBJECT_HEADER_SIZE};
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionError, ConnectionHandler};
 use crate::serializer::NetworkedValueTypes;
@@ -10,8 +9,6 @@ use rand::SeedableRng;
 use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
 use std::{cmp, collections::HashMap};
-
-const DGRAM_HEADER_SIZE: usize = BYTES2;
 
 #[derive(GodotClass)]
 #[class(init, base=Node)]
@@ -98,11 +95,12 @@ pub impl NetNodeClient {
         self.networker.update()?;
 
         let server = self.networker.get_peers(false).pop().unwrap();
+        let server = &server;
 
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
 
-        for stream in self.networker.get_readable_streams(server.clone()) {
-            while let Ok(stream_chunk) = self.networker.recv_stream(server.clone(), stream) {
+        for stream in self.networker.get_readable_streams(server) {
+            while let Ok(stream_chunk) = self.networker.recv_stream(server, stream) {
                 common::handle_stream_chunk(
                     stream,
                     &stream_chunk,
@@ -114,7 +112,7 @@ pub impl NetNodeClient {
         }
 
         common::handle_datagrams(
-            &server,
+            server,
             &mut self.server_tick_number,
             &mut self.unapplied_packets,
             &mut self.networker,
@@ -125,9 +123,9 @@ pub impl NetNodeClient {
     fn update_network_nodes(&mut self) {
         while let Some((_, packet)) = self.unapplied_packets.pop_first() {
             let mut pointer: usize = DGRAM_HEADER_SIZE;
-            while pointer + BYTES2 <= packet.len() {
-                let next_obj: u16 = packet[pointer..pointer + BYTES2].load_le();
-                pointer += BYTES2;
+            while pointer + OBJECT_HEADER_SIZE <= packet.len() {
+                let next_obj: u16 = packet[pointer..pointer + OBJECT_HEADER_SIZE].load_le();
+                pointer += OBJECT_HEADER_SIZE;
                 if let Some(tmp) = self
                     .networked_nodes
                     .iter()
@@ -152,12 +150,13 @@ pub impl NetNodeClient {
         const MINIMUM_CONNECTION_BANDWIDTH: usize = 512;
 
         let server = self.networker.get_peers(false).pop().unwrap();
+        let server = &server;
 
         self.bandwidth_budget_per_tick = self
             .bandwidth_budget_per_tick
             .max(MINIMUM_CONNECTION_BANDWIDTH);
 
-        let max_dgram_size: usize = self.networker.get_max_dgram_size(server.clone());
+        let max_dgram_size: usize = self.networker.get_max_dgram_size(server);
 
         if self.networker.is_connection_pacing() {
             self.bandwidth_budget_per_tick /= 2;
@@ -173,7 +172,7 @@ pub impl NetNodeClient {
             remaining_bandwidth -= message.len();
 
             self.networker
-                .send_stream(server.clone(), stream, message.clone())?;
+                .send_stream(server, stream, message.clone())?;
         }
 
         // channel 1 (syncing)
@@ -204,7 +203,7 @@ pub impl NetNodeClient {
 
             if packet.len() > DGRAM_HEADER_SIZE {
                 remaining_bandwidth -= packet.len();
-                self.networker.send_datagram(server.clone(), packet)?;
+                self.networker.send_datagram(server, packet)?;
                 continue;
             }
 
@@ -229,7 +228,7 @@ impl INode for NetNodeClient {
         if let ConnectionStatus::AwaitingConnection(identifier) = self.connected {
             if self
                 .networker
-                .is_connected(self.networker.get_peers(true).pop().unwrap())
+                .is_connected(self.networker.get_peers(true).first().unwrap())
             {
                 self.connected = ConnectionStatus::Connected;
                 if let Err(e) = self.networker.send_identifier(&identifier) {
