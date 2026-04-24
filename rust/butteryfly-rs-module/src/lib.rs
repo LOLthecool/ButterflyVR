@@ -1,5 +1,33 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 
+//! Low level networking library for the Godot engine.
+//!
+//! Currently, Godot provides two networking APIs:
+//! the low-level [`MultiplayerPeer`] API and the high-level [`MultiplayerAPI`] API.
+//! while these both offer low level access to send raw packets directly,
+//! their high level implementations lack the control necessary to optimise networking.
+//! sending raw packets, however, requires that the user implements the entire networking protocol themselves.
+//! NetNodes intends to be a middle ground, offering the user bit level control over their data representation,
+//! while also being as optimised and convienient as possible by default.
+//!
+//! note: this library is currently for internal use only. it can be used in other projects,
+//! but the API is subject to change and is not guaranteed to be stable, and many usercases will be poorly supported
+//!
+//! features:
+//! - zero type overhead by default, encoding and decoding is done symmetrically by a single user defined GDScript function
+//! - multiple serialization options for each data type, both lossless and lossy, with various quantization levels
+//! - branching type decoding using previously decoded data, allowing unneeded data to skip encoding
+//! - reliable, ordered messages for sending and receiving data
+//! - independent ordered networking streams
+//! - flexible node based networking
+//! - secure quic based networking
+//!
+//! upcoming features:
+//! - delta encoding, usable by both the type serializer and the user defined GDScript function
+//!
+//! getting started:
+//!
+
 // todo:
 // doc strings
 // run through ai
