@@ -12,8 +12,7 @@ use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::mem;
 use std::{cmp, collections::HashMap};
 
-#[derive(GodotClass)]
-#[class(init, base=Node)]
+#[derive(Default)]
 pub struct NetNodeServer {
     clients: HashMap<NetNodesConnectionId, Client>,
     networked_nodes: Vec<Gd<NetworkedNode>>,
@@ -22,17 +21,9 @@ pub struct NetNodeServer {
     message_handlers: HashMap<u64, Gd<MessageHandler>>,
     current_tick: i8,
     last_netnode_id: u16,
-    base: Base<Node>,
 }
 
-#[godot_api]
 pub impl NetNodeServer {
-    #[signal]
-    pub fn player_joined();
-
-    #[signal]
-    pub fn player_left();
-
     pub fn get_player_count(&self) -> usize {
         self.networker.get_peers(false).len()
     }
@@ -368,10 +359,8 @@ pub impl NetNodeServer {
             client.1.state = ClientState::Connected(ConnectedClient::new(uuid));
         }
     }
-}
-#[godot_api]
-impl INode for NetNodeServer {
-    fn physics_process(&mut self, _delta: f64) {
+
+    fn physics_process_inner(&mut self, _delta: f64) {
         let _ = self
             .tick()
             .inspect_err(|x| godot_error!("error while ticking server: {:?}", x));
@@ -383,7 +372,6 @@ impl INode for NetNodeServer {
             .inspect_err(|x| godot_error!("error while sending packets: {:?}", x));
     }
 }
-
 #[derive(Debug, Clone)]
 struct Client {
     state: ClientState,

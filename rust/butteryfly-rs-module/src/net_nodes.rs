@@ -6,11 +6,23 @@ use crate::{
 
 use bitvec::prelude::*;
 use godot::prelude::*;
+
+/// A networked node that can be used to synchronize state between clients and the server.
+/// every physics tick, the node will call [`get_byte_data`] and send the result to the server
+/// using the type information in [`get_networked_values_types`] and values in [`get_networked_values`].
+/// it will also receive updates from the server using [`set_networked_values`].
+/// a client or server must be running before a NetworkedNode can be added to the scene tree.
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct NetworkedNode {
+    /// The unique object ID of this node. it is assigned by the server when the node is added to the scene tree.
+    /// and synced to clients using an internal MessageHandler.
     #[var]
     pub objectid: u16,
+    /// the UUID of the owner of this node.
+    /// in a gameserver, the owner will be able to update this node on the server's behalf, however the server may subject given values to anticheat checks.
+    /// in an instance server, the updates from the owner will be applied directly on other clients and
+    /// applied immediately by the owner, effectively giving the owner 0 latency.
     #[var]
     pub owner_id: PackedByteArray,
     base: Base<Node>,
@@ -18,35 +30,52 @@ pub struct NetworkedNode {
 
 #[godot_api]
 pub impl NetworkedNode {
-    // intended to be overriden, the higher the number returned here the more often this node will be updated compared to other nodes
+    /// Used by the server when updating this node's priority value. priority is accumulated on a tick by tick basis.
+    /// and every tick the nodes with the highest priority are sent by the network and have their priority reset to 0.
+    /// priority is calculated seperately for each client and the client_id parameter should be used to differentiate between clients.
+    /// for example, you can divide a base priority value by the distance between the NetworkedNode
+    /// and the client's character's position.
     #[func(virtual)]
-    pub fn get_server_priority(&self, _clientid: PackedByteArray) -> i64 {
+    pub fn get_server_priority(&self, clientid: PackedByteArray) -> i64 {
         panic!("node has no impl for get_server_priority. this should never happen")
     }
 
+    /// Used by the client when updating this node's priority value. priority is accumulated on a tick by tick basis.
+    /// and every tick the nodes with the highest priority are sent by the network and have their priority reset to 0.
+    /// the client will only send updates for nodes it owns, and this generally means the client will have
+    /// sufficient bandwidth to send every node on every tick.
+    /// this function should only matter in cases where the client is syncing many nodes to the server
     #[func(virtual)]
     pub fn get_client_priority(&self) -> i64 {
         panic!("node has no impl for get_client_priority. this should never happen")
     }
 
-    // intended to be overriden, the array should contain all values used in set_networked_values. you must ensure these two functions can interpret each other regardless of the state of either client or server
+    /// Returns the networked values of this node as a VarArray.
+    /// This should always return every value that can by synced by the client, and any conditional values
+    /// should be excluded when getting the types.
     #[func(virtual)]
     pub fn get_networked_values(&self) -> VarArray {
         panic!("node has no impl for get_networked_values. this should never happen")
     }
-    // intended to be overriden, this is where you update the properties of the node with the values from the server. you must ensure these two functions can interpret each other regardless of the state of either client or server
+
+    /// Sets the networked values of this node from a VarArray.
+    // todo: more docs for this
     #[func(virtual)]
-    pub fn set_networked_values(&self, _values: VarArray) {
+    pub fn set_networked_values(&self, values: VarArray) {
         panic!("node has no impl for set_networked_values. this should never happen")
     }
+
+    /// Called when the owner disconnects from the server.
+    /// Default implementation does nothing, but can be overridden to handle cleanup.
+    /// An example is the player's character, which deletes itself when the owner disconnects.
+    #[func]
+    pub fn on_owner_dc(&mut self) {}
+
+    /// Determines how values from get_networked_values are encoded in the packet,
+    /// types are provided using the enum values. encoding must be valid for the variant type
+    /// called in loop with incrementing idx until -1 is returned
     #[func(virtual)]
-    pub fn on_owner_dc(&mut self) {
-        panic!("node has no impl for on_owner_dc. this should never happen")
-    }
-    // intended to be overriden, determines how values from get_networked_values are encoded in the packet, types are provided using the enum values. encoding must be valid for the variant type
-    // called in loop with incrementing idx until -1 is returned
-    #[func(virtual)]
-    fn get_networked_value_type(&self, _idx: i64) -> i64 {
+    fn get_networked_value_type(&self, idx: i64) -> i64 {
         panic!("node has no impl for get_networked_values_type. this should never happen")
     }
 

@@ -10,8 +10,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
 use std::{cmp, collections::HashMap};
 
-#[derive(GodotClass)]
-#[class(init, base=Node)]
+#[derive(Default)]
 pub struct NetNodeClient {
     connected: ConnectionStatus,
     uuid: [u8; 16],
@@ -26,18 +25,16 @@ pub struct NetNodeClient {
     message_handlers: HashMap<u64, Gd<MessageHandler>>,
     server_tick_number: i8,
     current_tick: i8,
-    base: Base<Node>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]
 enum ConnectionStatus {
-    AwaitingConnection([u8; 40]),
+    AwaitingConnection(Vec<u8>),
     Connected,
     #[default]
     Invalid,
 }
 
-#[godot_api]
 pub impl NetNodeClient {
     pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &NetworkedNode) {
         if new_node.owner_id == self.uuid.to_vec().to_godot().to_packed_array() {
@@ -83,9 +80,10 @@ pub impl NetNodeClient {
         server_addr: SocketAddr,
         psk_identifier: String,
         psk_key: Vec<u8>,
-        identifier: [u8; 40],
     ) {
         self.networker = ConnectionHandler::new_client(server_addr, psk_identifier, psk_key);
+        let mut identifier = psk_identifier.as_bytes().to_vec();
+        identifier.extend(psk_key);
         self.connected = ConnectionStatus::AwaitingConnection(identifier);
     }
     pub fn disconnect(&mut self) {
@@ -221,9 +219,6 @@ pub impl NetNodeClient {
 
         owned_nodes.sort_by(|a, b| a.1.cmp(&b.1));
     }
-}
-#[godot_api]
-impl INode for NetNodeClient {
     fn physics_process(&mut self, _delta: f64) {
         if let ConnectionStatus::AwaitingConnection(identifier) = self.connected {
             if self
