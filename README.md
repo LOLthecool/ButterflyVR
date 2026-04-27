@@ -36,4 +36,4 @@ If you wish to contribute please see the [contributing](contributing.md) file.
 If you wish to open an issue please use the available templates and fill in the requested information
 
 ## license
-ButterflyVR is licensed under GPLv3
+ButterflyVR is licensed under the MIT license
