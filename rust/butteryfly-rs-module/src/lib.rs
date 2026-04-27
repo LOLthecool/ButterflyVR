@@ -183,11 +183,13 @@ impl NetNodeManager {
         &mut self,
         server_ip: String,
         server_port: u16,
+        uuid: PackedByteArray,
         psk_identifier: String,
         psk_key: PackedByteArray,
     ) {
         self.inner = Inner::Client(NetNodeClient::new(
             SocketAddr::new(IpAddr::from_str(&server_ip).unwrap(), server_port),
+            uuid.to_vec().try_into().unwrap(),
             psk_identifier,
             psk_key.to_vec(),
         ));

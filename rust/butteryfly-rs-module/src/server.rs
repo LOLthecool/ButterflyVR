@@ -1,4 +1,4 @@
-use crate::common::{DGRAM_HEADER_SIZE, NetNodesConnectionId, OBJECT_HEADER_SIZE};
+use crate::common::{BYTES2, DGRAM_HEADER_SIZE, NetNodesConnectionId, OBJECT_HEADER_SIZE};
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionError, ConnectionHandler};
 use crate::serializer::NetworkedValueTypes;
@@ -39,7 +39,7 @@ impl NetNodeServer {
             Some(client)
         }) {
             let p = mem::take(&mut client.priorities);
-            client.priorities = p.into_iter().filter(|x| &x.1 == removed_node_ref).collect();
+            client.priorities = p.into_iter().filter(|x| &x.1 != removed_node_ref).collect();
         }
         if let Some(idx) = self
             .networked_nodes
@@ -80,11 +80,12 @@ impl NetNodeServer {
     }
 
     pub fn get_next_client(&mut self) -> Result<[u8; 40], ConnectionError> {
-        let psk_identifier = rand::rng().random::<[char; 8]>();
+        let psk_identifier = rand::rng().random::<[u8; 8]>();
         let psk_key = rand::rng().random::<[u8; 32]>();
-        self.networker
-            .add_client_token(psk_identifier.iter().collect(), psk_key)?;
-        Ok(rand::rng().random::<[u8; 40]>())
+        self.networker.add_client_token(psk_identifier, psk_key)?;
+        let mut token = Vec::from(psk_identifier);
+        token.extend(&psk_key);
+        Ok(token.try_into().unwrap())
     }
 
     fn tick_client_priorities(
@@ -132,8 +133,9 @@ impl NetNodeServer {
         for (client_id, client) in &mut self.clients {
             match client.state {
                 ClientState::AwaitingIdentifier => {
-                    if let Ok(data) = self.networker.recv_stream_bytes(client_id, 0, 40) {
-                        if let Ok(identifier) = data.into_vec().try_into() {
+                    if let Ok(data) = self.networker.recv_stream_bytes(client_id, 0, 48) {
+                        // need to skip the length prefix
+                        if let Ok(identifier) = data.into_vec()[8..].try_into() {
                             client.state = ClientState::AwaitingUuid(identifier);
                         } else {
                             self.networker.disconnect_peer(
@@ -262,7 +264,7 @@ impl NetNodeServer {
                     let mut packet: BitVec<u64> = BitVec::with_capacity(max_dgram_size);
 
                     if let ClientSubState::ObjectSync(ref mut objects) = client.state {
-                        if let Some(object) = objects.get_mut(0) {
+                        if let Some(object) = objects.last_mut() {
                             let node_ref = object;
                             let node = Gd::bind(node_ref);
 
@@ -290,6 +292,7 @@ impl NetNodeServer {
                         let old_map = mem::take(&mut client.priorities);
                         client.priorities = old_map
                             .into_iter()
+                            .rev()
                             .map(|mut value| {
                                 if value.0.0 != 0 {
                                     let node_ref = &value.1;
@@ -298,14 +301,14 @@ impl NetNodeServer {
                                     let tmp =
                                         node.get_byte_data(&node.get_networked_values_types());
 
-                                    drop(node);
-
-                                    if tmp.len() + packet.len()
+                                    if tmp.len() + packet.len() + BYTES2
                                         > cmp::min(remaining_bandwidth, max_dgram_size)
                                     {
+                                        drop(node);
                                         return value;
                                     }
 
+                                    packet.extend(node.objectid.view_bits::<Lsb0>());
                                     packet.extend_from_bitslice(tmp.as_bitslice());
                                     value.0.0 = 0;
                                 }

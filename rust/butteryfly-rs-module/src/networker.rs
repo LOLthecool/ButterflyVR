@@ -118,7 +118,7 @@ impl UDPListener {
 
     fn receiving_thread(outgoing: &SyncSender<(Bytes, SocketAddr)>, socket: &Arc<UdpSocket>) {
         loop {
-            let mut buffer = BytesMut::with_capacity(MAX_DATAGRAM_SIZE);
+            let mut buffer = BytesMut::zeroed(MAX_DATAGRAM_SIZE);
             let (len, from) = socket.recv_from(&mut buffer).unwrap();
             buffer.truncate(len);
             let packet = buffer.freeze();
@@ -141,18 +141,18 @@ impl UDPListener {
         loop {
             let now = Instant::now();
 
-            for (packet, info) in incoming.try_iter() {
-                if info.at <= now {
-                    socket.send_to(&packet, info.to).unwrap();
-                } else if delayed_packets.len() > PACKET_QUEUE_CAPACITY
-                    || info.at.saturating_duration_since(now) > MAX_PACING_DELAY
-                {
-                    // only check for excessive pacing on a per tick basis
-                    // so we dont care beyond a single event getting through
-                    let _ = excessive_pacing_notifier.try_send(());
-                } else {
-                    delayed_packets.push_back((packet, info));
-                }
+            let (packet, info) = incoming.recv().unwrap();
+
+            if info.at <= now {
+                socket.send_to(&packet, info.to).unwrap();
+            } else if delayed_packets.len() > PACKET_QUEUE_CAPACITY
+                || info.at.saturating_duration_since(now) > MAX_PACING_DELAY
+            {
+                // only check for excessive pacing on a per tick basis
+                // so we dont care beyond a single event getting through
+                let _ = excessive_pacing_notifier.try_send(());
+            } else {
+                delayed_packets.push_back((packet, info));
             }
 
             while delayed_packets.front().is_some_and(|x| x.1.at <= now) {
@@ -190,7 +190,7 @@ impl Debug for PeerConnection {
 type ServerState = (
     HashMap<NetNodesConnectionId, PeerConnection>,
     HashMap<SocketAddr, BlockedConnection>,
-    Arc<Mutex<HashMap<String, [u8; 32]>>>,
+    Arc<Mutex<HashMap<[u8; 8], [u8; 32]>>>,
 );
 
 #[derive(Debug)]
@@ -357,14 +357,14 @@ impl ConnectionHandler {
             })
             .or_insert_with(|| BlockedConnection {
                 block_count: 1,
-                block_expiry: Instant::now(),
+                block_expiry: Instant::now() + Duration::from_secs(1),
             });
     }
 
     fn create_client(
         source_addr: SocketAddr,
         listener: &UDPListener,
-        psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
+        psks: Arc<Mutex<HashMap<[u8; 8], [u8; 32]>>>,
     ) -> Result<PeerConnection, ConnectionError> {
         let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
@@ -707,11 +707,11 @@ impl ConnectionHandler {
             HandlerType::Client(ref mut c) => {
                 let peer: ConnectionId = peer.into();
                 debug_assert_eq!(peer, c.id);
-                c.conn.dgram_recv_buf().unwrap_or(Vec::new())
+                c.conn.dgram_recv_buf()?
             }
             HandlerType::Server(ref mut s) => {
                 if let Some(peer) = s.0.get_mut(peer) {
-                    peer.conn.dgram_recv_buf().unwrap_or(Vec::new())
+                    peer.conn.dgram_recv_buf()?
                 } else {
                     return Err(ConnectionError::PeerNotFound);
                 }
@@ -722,7 +722,7 @@ impl ConnectionHandler {
 
     pub fn add_client_token(
         &mut self,
-        identifier: String,
+        identifier: [u8; 8],
         key: [u8; 32],
     ) -> Result<(), ConnectionError> {
         if let HandlerType::Server(data) = &mut self.handler {
@@ -767,10 +767,8 @@ impl ConnectionHandler {
         let mut id = vec![0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new().fill(&mut id).unwrap();
         let id = ConnectionId::from_vec(id);
-        let listener = UDPListener::new_client(
-            SocketAddr::new("0.0.0.0".parse().unwrap(), server_addr.port()),
-            server_addr,
-        );
+        let listener =
+            UDPListener::new_client(SocketAddr::new("0.0.0.0".parse().unwrap(), 0), server_addr);
         let conn =
             quiche::connect(None, &id, listener.bind_addr, server_addr, &mut config).unwrap();
         Self {
@@ -818,7 +816,7 @@ impl ConnectionHandler {
     }
 
     fn build_server_ctx(
-        psks: Arc<Mutex<HashMap<String, [u8; 32]>>>,
+        psks: Arc<Mutex<HashMap<[u8; 8], [u8; 32]>>>,
     ) -> Result<SslContextBuilder, boring::error::ErrorStack> {
         let mut ctx = SslContextBuilder::new(SslMethod::tls_server())?;
 
@@ -828,11 +826,8 @@ impl ConnectionHandler {
         ctx.set_verify(SslVerifyMode::NONE);
 
         ctx.set_psk_server_callback(move |_ssl, identity, out| {
-            if let Some(id) = identity
-                && let Entry::Occupied(entry) = psks
-                    .lock()
-                    .unwrap()
-                    .entry((*String::from_utf8_lossy(id)).to_owned())
+            if let Some(Ok(id)) = identity.map(|x| x.try_into())
+                && let Entry::Occupied(entry) = psks.lock().unwrap().entry(id)
             {
                 let psk = entry.into_mut();
                 let key_len = psk.len();

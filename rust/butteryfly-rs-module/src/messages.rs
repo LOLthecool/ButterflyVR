@@ -85,8 +85,11 @@ pub impl MessageHandler {
         let mut values: VarArray = VarArray::new();
         let mut types: Array<i64> = Array::new();
         while *pointer < packet.len() {
-            let value_type =
-                NetworkedValueTypes::try_from(self.get_value_type(last_value, idx)).unwrap();
+            let value_type = self.get_value_type(last_value, idx);
+            if value_type == -1 {
+                break;
+            }
+            let value_type = NetworkedValueTypes::try_from(value_type).unwrap();
             last_value = serializer::decode_with_known_type(packet, pointer, value_type).unwrap();
             values.push(&last_value);
             types.push(value_type as i64);

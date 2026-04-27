@@ -53,19 +53,21 @@ pub fn handle_stream_chunk(
         let &mut (ref mut length, ref mut incomplete) = entry.get_mut();
 
         let length = length.unwrap_or_else(|| {
-            let missing = incomplete.len() - BYTES8;
+            let missing = BYTES8 - incomplete.len();
             // TODO: this assumes we will always have enough data to fill the length field
             // not sure if that is true
             incomplete.extend_from_bitslice(&stream_chunk[..missing]);
 
+            (_, stream_chunk) = stream_chunk.split_at(missing);
+
             *length = Some(incomplete[..BYTES8].load_le());
-            length.unwrap()
+            // length is in bytes but we need it in bits
+            length.unwrap() * 8
         });
 
-        let mut pointer = BYTES8;
-
-        // should never be 0 since we would have already finished
         let remaining = length - incomplete.len();
+        // should never be 0 since we would have already finished
+        assert!(remaining > 0);
 
         if remaining > stream_chunk.len() {
             incomplete.extend_from_bitslice(stream_chunk);
@@ -74,6 +76,7 @@ pub fn handle_stream_chunk(
 
         incomplete.extend_from_bitslice(&stream_chunk[..remaining]);
 
+        let mut pointer = BYTES8;
         let handler: u64 = incomplete[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
         pointer += MESSAGE_HEADER_SIZE;
 
@@ -83,14 +86,13 @@ pub fn handle_stream_chunk(
                 handler
                     .bind_mut()
                     .handle_message(incomplete, &mut pointer, !is_server);
-            message_buffer.push_back((
-                MessageHandler::generate_packet(values, types, handler.bind().get_message_id()),
-                stream,
-            ));
+            if is_server {
+                message_buffer.push_back((
+                    MessageHandler::generate_packet(values, types, handler.bind().get_message_id()),
+                    stream,
+                ));
+            }
         }
-
-        let (_, (_, value)) = entry.remove_entry();
-        message_buffer.push_back((value, stream));
 
         (_, stream_chunk) = stream_chunk.split_at(remaining);
     }
@@ -105,7 +107,8 @@ pub fn handle_stream_chunk(
             break;
         }
 
-        let length: usize = stream_chunk[..BYTES8].load_le();
+        // length is in bytes but we need it in bits
+        let length: usize = stream_chunk[..BYTES8].load_le::<usize>() * 8;
         let mut pointer = BYTES8;
 
         if stream_chunk.len() < length {
@@ -125,10 +128,12 @@ pub fn handle_stream_chunk(
                 handler
                     .bind_mut()
                     .handle_message(incomplete_stream, &mut pointer, !is_server);
-            message_buffer.push_back((
-                MessageHandler::generate_packet(values, types, handler.bind().get_message_id()),
-                stream,
-            ));
+            if is_server {
+                message_buffer.push_back((
+                    MessageHandler::generate_packet(values, types, handler.bind().get_message_id()),
+                    stream,
+                ));
+            }
         }
     }
 }
@@ -159,12 +164,12 @@ pub fn handle_datagrams(
 
         total_packets += 1;
 
-        if relative_apply_tick <= *tick_number {
+        if relative_apply_tick <= 0 {
             late_packets += 1;
             continue;
         }
 
-        if relative_apply_tick == *tick_number + 1 {
+        if relative_apply_tick == 1 {
             got_next_tick_packet = true;
         }
 

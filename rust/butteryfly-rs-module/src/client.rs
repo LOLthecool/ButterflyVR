@@ -75,12 +75,17 @@ impl NetNodeClient {
     pub fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {
         self.message_buffer.push_back((message, stream));
     }
-    pub fn new(server_addr: SocketAddr, psk_identifier: String, psk_key: Vec<u8>) -> Self {
+    pub fn new(
+        server_addr: SocketAddr,
+        uuid: [u8; 16],
+        psk_identifier: String,
+        psk_key: Vec<u8>,
+    ) -> Self {
         let mut identifier = psk_identifier.as_bytes().to_vec();
         identifier.extend(&psk_key);
         NetNodeClient {
             connected: ConnectionStatus::AwaitingConnection(identifier),
-            uuid: Default::default(),
+            uuid,
             networker: ConnectionHandler::new_client(server_addr, psk_identifier, psk_key),
             networked_nodes: Default::default(),
             owned_nodes: Default::default(),
@@ -190,7 +195,7 @@ impl NetNodeClient {
             packet.extend_from_bitslice((self.current_tick as u8).view_bits::<Lsb0>());
             debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
 
-            for (node_ref, priority) in &mut self.owned_nodes {
+            for (node_ref, priority) in self.owned_nodes.iter_mut().rev() {
                 if *priority != 0 {
                     let node = Gd::bind(node_ref);
 
