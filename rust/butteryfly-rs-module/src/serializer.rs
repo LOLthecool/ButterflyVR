@@ -1,10 +1,9 @@
-// serialization functions for networkednode values
 use crate::common::{BYTE, BYTES2, BYTES4, BYTES8};
 use bitvec::{field::BitField, prelude::*};
 use godot::prelude::*;
 use std::borrow::Cow;
 
-// all possible ways a value can be encoded for the network
+/// All possible ways a value can be encoded for the network.
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum NetworkedValueTypes {
     Nil,
@@ -37,6 +36,7 @@ impl TryFrom<i64> for NetworkedValueTypes {
         }
     }
 }
+
 pub fn decode_with_known_type(
     data: &BitSlice<u64>,
     pointer: &mut usize,
@@ -167,6 +167,7 @@ pub fn decode_with_known_type(
         }
     }
 }
+
 pub fn encode_with_known_type(
     object: &Variant,
     object_type: NetworkedValueTypes,

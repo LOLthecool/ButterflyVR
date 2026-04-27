@@ -7,20 +7,20 @@ use bitvec::prelude::*;
 use godot::prelude::*;
 
 /// A networked node that can be used to synchronize state between clients and the server.
-/// every physics tick, the node will call [`get_byte_data`] and send the result to the server
+/// Every physics tick, the node will call [`get_byte_data`] and send the result to the server
 /// using the type information in [`get_networked_values_types`] and values in [`get_networked_values`].
-/// it will also receive updates from the server using [`set_networked_values`].
-/// a client or server must be running before a NetworkedNode can be added to the scene tree.
+/// It will also receive updates from the server using [`set_networked_values`].
+/// A client or server must be running before a `NetworkedNode` can be added to the scene tree.
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct NetworkedNode {
-    /// The unique object ID of this node. it is assigned by the server when the node is added to the scene tree.
-    /// and synced to clients using the internal MessageHandler.
+    /// The unique object ID of this node. It is assigned by the server when the node is added to the scene tree,
+    /// and synced to clients using the internal `MessageHandler`.
     #[var]
     pub objectid: u16,
-    /// the UUID of the owner of this node.
-    /// in a gameserver, the owner will be able to update this node on the server's behalf, however the server may subject given values to anticheat checks.
-    /// in an instance server, the updates from the owner will be applied directly on other clients and
+    /// The UUID of the owner of this node.
+    /// In a game server, the owner will be able to update this node on the server's behalf; however, the server may subject given values to anti-cheat checks.
+    /// In an instance server, the updates from the owner will be applied directly on other clients and
     /// applied immediately by the owner, effectively giving the owner 0 latency.
     #[var]
     pub owner_id: PackedByteArray,
@@ -30,28 +30,28 @@ pub struct NetworkedNode {
 #[allow(unused)]
 #[godot_api]
 pub impl NetworkedNode {
-    /// Used by the server when updating this node's priority value. priority is accumulated on a tick by tick basis.
-    /// and every tick the nodes with the highest priority are sent by the network and have their priority reset to 0.
-    /// priority is calculated seperately for each client and the client_id parameter should be used to differentiate between clients.
-    /// for example, you can divide a base priority value by the distance between the NetworkedNode
+    /// Used by the server when updating this node's priority value. Priority is accumulated on a tick-by-tick basis.
+    /// Every tick, the nodes with the highest priority are sent by the network and have their priority reset to 0.
+    /// Priority is calculated separately for each client, and the `client_id` parameter should be used to differentiate between clients.
+    /// For example, you can divide a base priority value by the distance between the `NetworkedNode`
     /// and the client's character's position.
     #[func(virtual)]
     pub fn get_server_priority(&self, clientid: PackedByteArray) -> i64 {
         panic!("node has no impl for get_server_priority. this should never happen")
     }
 
-    /// Used by the client when updating this node's priority value. priority is accumulated on a tick by tick basis.
-    /// and every tick the nodes with the highest priority are sent by the network and have their priority reset to 0.
-    /// the client will only send updates for nodes it owns, and this generally means the client will have
+    /// Used by the client when updating this node's priority value. Priority is accumulated on a tick-by-tick basis.
+    /// Every tick, the nodes with the highest priority are sent by the network and have their priority reset to 0.
+    /// The client will only send updates for nodes it owns, and this generally means the client will have
     /// sufficient bandwidth to send every node on every tick.
-    /// this function should only matter in cases where the client is syncing many nodes to the server
+    /// This function should only matter in cases where the client is syncing many nodes to the server.
     #[func(virtual)]
     pub fn get_client_priority(&self) -> i64 {
         panic!("node has no impl for get_client_priority. this should never happen")
     }
 
     /// Returns the networked values of this node as a VarArray.
-    /// This should always return every value that can by synced by the client, and any conditional values
+    /// This should always return every value that can be synced by the client, and any conditional values
     /// should be excluded when getting the types.
     #[func(virtual)]
     pub fn get_networked_values(&self) -> VarArray {
@@ -59,15 +59,15 @@ pub impl NetworkedNode {
     }
 
     /// Sets the networked values of this node from a VarArray.
-    // todo: more docs for this
+    // TODO: Add more documentation.
     #[func(virtual)]
     pub fn set_networked_values(&self, values: VarArray) {
         panic!("node has no impl for set_networked_values. this should never happen")
     }
 
-    /// Determines how values from get_networked_values are encoded in the packet,
-    /// types are provided using the enum values. encoding must be valid for the variant type
-    /// called in loop with incrementing idx until -1 is returned
+    /// Determines how values from `get_networked_values` are encoded in the packet.
+    /// Types are provided using the enum values. Encoding must be valid for the variant type.
+    /// Called in a loop with incrementing `idx` until `-1` is returned.
     #[func(virtual)]
     fn get_networked_value_type(&self, idx: i64) -> i64 {
         panic!("node has no impl for get_networked_values_type. this should never happen")
@@ -79,7 +79,7 @@ pub impl NetworkedNode {
     #[func]
     pub fn on_owner_dc(&mut self) {}
 
-    // generates a packet chunk containing the values from get_networked_values, encodes each value using the network value types
+    /// Generates a packet chunk containing the values from `get_networked_values`, encoding each value using the network value types.
     pub fn get_byte_data(&self, types: &[NetworkedValueTypes]) -> BitVec {
         const AVERAGE_OBJECT_SIZE: usize = 128; // estimated average size, prefers to overallocate than underallocate, probably a better way to do this
         let data: VarArray = self.get_networked_values();
@@ -96,7 +96,7 @@ pub impl NetworkedNode {
         byte_data
     }
 
-    // decodes a packet chunk into the variant values used in set_networked_values
+    /// Decodes a packet chunk into the variant values used in `set_networked_values`.
     pub fn update_networked_values(
         &self,
         pointer: &mut usize,
@@ -117,7 +117,7 @@ pub impl NetworkedNode {
         self.set_networked_values(values);
         true
     }
-    // collects network value types into a vec by calling get_networked_value_type until -1 is returned
+    /// Collects network value types into a `Vec` by calling `get_networked_value_type` until `-1` is returned.
     pub fn get_networked_values_types(&self) -> Vec<NetworkedValueTypes> {
         let mut values: Vec<NetworkedValueTypes> = Vec::new();
         for i in 0..1000 {
@@ -130,6 +130,7 @@ pub impl NetworkedNode {
         values
     }
 }
+
 #[godot_api]
 impl INode for NetworkedNode {
     fn enter_tree(&mut self) {

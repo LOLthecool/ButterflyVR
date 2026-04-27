@@ -7,14 +7,14 @@ use bitvec::prelude::*;
 use godot::prelude::*;
 
 /// A node for sending reliable, ordered messages over the network.
-/// whenever a message is sent on a client, the server will receive it, 'clean' it using clean_message,
-/// processes it using process_message, and then broadcasts the cleaned message it to all clients.
-/// when the server sends a message, it processes it directly and broadcasts it to all clients.
-/// messages are ordered when on the same stream, but can arrive out of order relative to other streams
+/// Whenever a message is sent on a client, the server will receive it, 'clean' it using `clean_message`,
+/// processes it using `process_message`, and then broadcasts the cleaned message to all clients.
+/// When the server sends a message, it processes it directly and broadcasts it to all clients.
+/// Messages are ordered when on the same stream, but can arrive out of order relative to other streams
 /// or the state of NetworkedNodes.
-/// each MessageHandler has a unique message_id, id 0 is used for internal messages such as syncing ids
-/// for MessageHandlers or NetworkedNodes.
-/// a client or server must be running before a MessageHandler can be added to the scene tree.
+/// Each `MessageHandler` has a unique `message_id`; ID 0 is used for internal messages such as syncing IDs
+/// for `MessageHandler`s or `NetworkedNode`s.
+/// A client or server must be running before a `MessageHandler` can be added to the scene tree.
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct MessageHandler {
@@ -28,32 +28,32 @@ pub struct MessageHandler {
 #[allow(unused)]
 #[godot_api]
 pub impl MessageHandler {
-    /// Determines how values in a message are encoded in the packet,
-    /// types are provided using the enum values. encoding must be valid for the variant type
-    /// called in loop with incrementing idx until -1 is returned.
-    /// previous_value is the value of the last decoded / encoded index, or Nil if this is the first value
-    /// this can be used to implement conditional decoding of values.
-    /// if you skip a value when decoding, it is recommended to return Nil for that index.
+    /// Determines how values in a message are encoded in the packet.
+    /// Types are provided using the enum values. Encoding must be valid for the variant type.
+    /// Called in a loop with incrementing `idx` until `-1` is returned.
+    /// `previous_value` is the value of the last decoded/encoded index, or `Nil` if this is the first value.
+    /// This can be used to implement conditional decoding of values.
+    /// If you skip a value when decoding, it is recommended to return `Nil` for that index.
     #[func(virtual)]
     fn get_value_type(&mut self, previous_value: Variant, idx: i64) -> i64 {
         unimplemented!()
     }
-    /// this function is what applies the effects of a decoded message to the client / server.
-    /// this is called after the message has been cleaned and therefore should trust the values in the message.
+    /// This function applies the effects of a decoded message to the client/server.
+    /// This is called after the message has been cleaned and therefore should trust the values in the message.
     #[func(virtual)]
     fn process_message(&mut self, values: VarArray) {
         unimplemented!()
     }
-    /// this function acts as a form of anti cheat, when the server receives a message it cleans it first.
-    /// this cleaning can change values before the message is applied or sent to the clients.
-    /// removing, adding, or changing the types of values is not intended and will likely cause the message to fail to decode.
-    /// a message failing to decode instantly stops the instance as it could desync the client and server.
+    /// This function acts as a form of anti-cheat; when the server receives a message it cleans it first.
+    /// This cleaning can change values before the message is applied or sent to the clients.
+    /// Removing, adding, or changing the types of values is not intended and will likely cause the message to fail to decode.
+    /// A message failing to decode instantly stops the instance, as it could desync the client and server.
     #[func]
     fn clean_message(&mut self, values: VarArray) -> VarArray {
         values
     }
-    /// this should be called by a user defined function to send a message to the network.
-    /// it takes a set of values and types and then generates and sends a packet to the network.
+    /// This should be called by a user-defined function to send a message to the network.
+    /// It takes a set of values and types and then generates and sends a packet to the network.
     #[func]
     fn send_message_final(&mut self, values: VarArray, types: Array<i64>) {
         let packet = Self::generate_packet(values, types, self.message_id);
@@ -131,6 +131,7 @@ pub impl MessageHandler {
         self.message_id
     }
 }
+
 #[godot_api]
 impl INode for MessageHandler {
     fn enter_tree(&mut self) {

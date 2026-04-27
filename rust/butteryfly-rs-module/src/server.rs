@@ -1,5 +1,4 @@
 use crate::common::{DGRAM_HEADER_SIZE, NetNodesConnectionId, OBJECT_HEADER_SIZE};
-// functionallity for the NetNodeManager server
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionError, ConnectionHandler};
 use crate::serializer::NetworkedValueTypes;
@@ -95,7 +94,7 @@ impl NetNodeServer {
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
         for (conn, client) in clients.iter_mut() {
             if let ClientState::Connected(ref mut client) = client.state {
-                // this dosent catch some changes to networked_nodes but that should be fine
+                // this doesn't catch some changes to networked_nodes, but that should be fine
                 if client.priorities.len() != networked_nodes.len() {
                     client.priorities.clear();
                     for node_ref in networked_nodes {
@@ -381,6 +380,7 @@ impl NetNodeServer {
             .inspect_err(|x| godot_error!("error while sending packets: {:?}", x));
     }
 }
+
 #[derive(Debug, Clone)]
 struct Client {
     state: ClientState,

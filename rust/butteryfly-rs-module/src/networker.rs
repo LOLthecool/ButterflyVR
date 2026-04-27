@@ -89,6 +89,7 @@ impl UDPListener {
             pacing_notifier: excessive_pacing_notifier_rx,
         }
     }
+
     fn new_server(bind_addr: SocketAddr) -> Self {
         let socket = Arc::new(UdpSocket::bind(bind_addr).unwrap());
 
@@ -130,7 +131,7 @@ impl UDPListener {
         excessive_pacing_notifier: &SyncSender<()>,
         socket: &Arc<UdpSocket>,
     ) {
-        // generally we dont want to be queuing packets to send across multiple ticks
+        // generally we don't want to be queuing packets to send across multiple ticks
         // better to just send less data per frame in the priority accumulator
         const MAX_PACING_DELAY: Duration = Duration::from_millis(17);
 
@@ -359,6 +360,7 @@ impl ConnectionHandler {
                 block_expiry: Instant::now(),
             });
     }
+
     fn create_client(
         source_addr: SocketAddr,
         listener: &UDPListener,
@@ -387,6 +389,7 @@ impl ConnectionHandler {
             peer_addr: source_addr,
         })
     }
+
     fn send_packets(
         connection: &mut PeerConnection,
         sender: &SyncSender<(Bytes, SendInfo)>,
@@ -408,6 +411,7 @@ impl ConnectionHandler {
             }
         }
     }
+
     fn recv_packet(
         from: SocketAddr,
         mut packet: BytesMut,
@@ -793,6 +797,7 @@ impl ConnectionHandler {
             )),
         }
     }
+
     fn get_config(ssl_ctx: SslContextBuilder) -> Config {
         let mut config =
             Config::with_boring_ssl_ctx_builder(quiche::PROTOCOL_VERSION, ssl_ctx).unwrap();

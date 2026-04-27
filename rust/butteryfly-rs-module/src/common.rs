@@ -54,7 +54,7 @@ pub fn handle_stream_chunk(
 
         let length = length.unwrap_or_else(|| {
             let missing = incomplete.len() - BYTES8;
-            // todo: this assumes we will always have enough data to fill the length field
+            // TODO: this assumes we will always have enough data to fill the length field
             // not sure if that is true
             incomplete.extend_from_bitslice(&stream_chunk[..missing]);
 
