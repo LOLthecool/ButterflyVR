@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::mem;
 use std::{cmp, collections::HashMap};
 
-#[derive(Default)]
+#[derive(Debug)]
 pub struct NetNodeServer {
     clients: HashMap<NetNodesConnectionId, Client>,
     networked_nodes: Vec<Gd<NetworkedNode>>,
@@ -23,7 +23,7 @@ pub struct NetNodeServer {
     last_netnode_id: u16,
 }
 
-pub impl NetNodeServer {
+impl NetNodeServer {
     pub fn get_player_count(&self) -> usize {
         self.networker.get_peers(false).len()
     }
@@ -68,8 +68,16 @@ pub impl NetNodeServer {
         self.message_buffer.push_back((message, stream));
     }
 
-    pub fn start_server(&mut self, bind_port: u16) {
-        self.networker = ConnectionHandler::new_server(bind_port);
+    pub fn new(bind_port: u16) -> Self {
+        Self {
+            clients: Default::default(),
+            networked_nodes: Default::default(),
+            networker: ConnectionHandler::new_server(bind_port),
+            message_buffer: Default::default(),
+            message_handlers: Default::default(),
+            current_tick: Default::default(),
+            last_netnode_id: Default::default(),
+        }
     }
 
     pub fn get_next_client(&mut self) -> Result<[u8; 40], ConnectionError> {
@@ -148,6 +156,7 @@ pub impl NetNodeServer {
                                 &mut client.incomplete_messages,
                                 &mut self.message_buffer,
                                 &mut self.message_handlers,
+                                true,
                             );
                         }
                     }
@@ -360,7 +369,7 @@ pub impl NetNodeServer {
         }
     }
 
-    fn physics_process_inner(&mut self, _delta: f64) {
+    pub fn physics_process_inner(&mut self) {
         let _ = self
             .tick()
             .inspect_err(|x| godot_error!("error while ticking server: {:?}", x));

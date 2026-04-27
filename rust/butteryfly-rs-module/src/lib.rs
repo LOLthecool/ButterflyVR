@@ -76,10 +76,10 @@ impl NetNodeManager {
     fn register_node(&mut self, node_ref: Gd<NetworkedNode>, node: &mut NetworkedNode) {
         match self.inner {
             Inner::Server(ref mut server) => {
-                server.bind_mut().register_node(node_ref);
+                server.register_node(node_ref);
             }
             Inner::Client(ref mut client) => {
-                client.bind_mut().register_node(node_ref, node);
+                client.register_node(node_ref, node);
             }
             Inner::None => {
                 godot_warn!("called register_node but no client or server is running");
@@ -92,10 +92,10 @@ impl NetNodeManager {
     fn unregister_node(&mut self, node_ref: &Gd<NetworkedNode>) {
         match self.inner {
             Inner::Server(ref mut server) => {
-                server.bind_mut().unregister_node(node_ref);
+                server.unregister_node(node_ref);
             }
             Inner::Client(ref mut client) => {
-                client.bind_mut().unregister_node(node_ref);
+                client.unregister_node(node_ref);
             }
             Inner::None => {
                 godot_warn!("called unregister_node but no client or server is running");
@@ -108,7 +108,7 @@ impl NetNodeManager {
     /// this is a server only method.
     fn get_next_object_id(&mut self) -> u16 {
         match self.inner {
-            Inner::Server(ref mut server) => server.bind_mut().get_next_object_id(),
+            Inner::Server(ref mut server) => server.get_next_object_id(),
             _ => {
                 godot_error!("called get_next_object_id but we are not a server");
                 0
@@ -128,7 +128,6 @@ impl NetNodeManager {
     fn get_unverified_client(&mut self) -> PackedByteArray {
         match self.inner {
             Inner::Server(ref mut server) => server
-                .bind_mut()
                 .get_unverified_client()
                 .map_or_else(PackedByteArray::new, |x| x.to_godot().to_packed_array()),
             _ => {
@@ -168,7 +167,7 @@ impl NetNodeManager {
 
         match self.inner {
             Inner::Server(ref mut server) => {
-                server.bind_mut().verify_client(identifier, uuid);
+                server.verify_client(identifier, uuid);
             }
             _ => {
                 godot_error!("called verify_client but we are not a server");
@@ -187,24 +186,18 @@ impl NetNodeManager {
         psk_identifier: String,
         psk_key: PackedByteArray,
     ) {
-        let mut c = NetNodeClient::new_alloc();
-        self.base_mut().add_child(&c);
-        c.bind_mut().start_client(
+        self.inner = Inner::Client(NetNodeClient::new(
             SocketAddr::new(IpAddr::from_str(&server_ip).unwrap(), server_port),
             psk_identifier,
             psk_key.to_vec(),
-        );
-        self.inner = Inner::Client(c);
+        ));
     }
 
     /// starts a server on the given port. the server will always bind to 0.0.0.0.
     /// once this function is called, server only and generic networking api methods become available.
     #[func]
     fn start_server(&mut self, bind_port: u16) {
-        let mut s = NetNodeServer::new_alloc();
-        self.base_mut().add_child(&s);
-        s.bind_mut().start_server(bind_port);
-        self.inner = Inner::Server(s);
+        self.inner = Inner::Server(NetNodeServer::new(bind_port));
     }
 
     /// stops the server or client, disconnecting any connected clients and freeing resources.
@@ -215,8 +208,7 @@ impl NetNodeManager {
     fn stop(&mut self) {
         match self.inner {
             Inner::Client(ref mut client) => {
-                client.bind_mut().disconnect();
-                client.queue_free();
+                client.disconnect();
             }
             Inner::Server(_) => {
                 todo!(
@@ -240,7 +232,7 @@ impl NetNodeManager {
     #[func]
     fn get_next_client(&mut self) -> PackedByteArray {
         match self.inner {
-            Inner::Server(ref mut server) => match server.bind_mut().get_next_client() {
+            Inner::Server(ref mut server) => match server.get_next_client() {
                 Ok(client) => PackedByteArray::from(client),
                 Err(e) => {
                     godot_error!("failed to get next client: {:?}", e);
@@ -265,7 +257,7 @@ impl NetNodeManager {
     #[func]
     fn get_player_count(&self) -> i32 {
         match &self.inner {
-            Inner::Server(server) => server.bind().get_player_count() as i32,
+            Inner::Server(server) => server.get_player_count() as i32,
             _ => {
                 godot_error!("tried to get_player_count but we are not a server");
                 0
@@ -275,8 +267,8 @@ impl NetNodeManager {
 
     fn register_message_handler(&mut self, handler: Gd<MessageHandler>, message_type: u64) {
         match &mut self.inner {
-            Inner::Client(client) => client.bind_mut().register_message(handler, message_type),
-            Inner::Server(server) => server.bind_mut().register_message(handler, message_type),
+            Inner::Client(client) => client.register_message(handler, message_type),
+            Inner::Server(server) => server.register_message(handler, message_type),
             _ => {
                 godot_error!(
                     "tried to register_message_handler but no client or server is running"
@@ -287,8 +279,8 @@ impl NetNodeManager {
 
     fn unregister_message_handler(&mut self, message_type: u64) {
         match &mut self.inner {
-            Inner::Client(client) => client.bind_mut().unregister_message(message_type),
-            Inner::Server(server) => server.bind_mut().unregister_message(message_type),
+            Inner::Client(client) => client.unregister_message(message_type),
+            Inner::Server(server) => server.unregister_message(message_type),
             _ => {
                 godot_error!(
                     "tried to unregister_message_handler but no client or server is running"
@@ -299,11 +291,22 @@ impl NetNodeManager {
 
     fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {
         match &mut self.inner {
-            Inner::Client(client) => client.bind_mut().queue_message(message, stream),
-            Inner::Server(server) => server.bind_mut().queue_message(message, stream),
+            Inner::Client(client) => client.queue_message(message, stream),
+            Inner::Server(server) => server.queue_message(message, stream),
             _ => {
                 godot_warn!("tried to queue_message but no client or server is running");
             }
+        }
+    }
+}
+
+#[godot_api]
+impl INode for NetNodeManager {
+    fn physics_process(&mut self, _delta: f64) {
+        match &mut self.inner {
+            Inner::Client(client) => client.physics_process_inner(),
+            Inner::Server(server) => server.physics_process_inner(),
+            _ => {}
         }
     }
 }

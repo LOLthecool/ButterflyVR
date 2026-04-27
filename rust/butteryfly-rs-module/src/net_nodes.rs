@@ -1,4 +1,3 @@
-// methods and functionality for NetworkedNode
 use crate::{
     NetNodeManager,
     serializer::{self, NetworkedValueTypes},
@@ -16,7 +15,7 @@ use godot::prelude::*;
 #[class(init, base=Node)]
 pub struct NetworkedNode {
     /// The unique object ID of this node. it is assigned by the server when the node is added to the scene tree.
-    /// and synced to clients using an internal MessageHandler.
+    /// and synced to clients using the internal MessageHandler.
     #[var]
     pub objectid: u16,
     /// the UUID of the owner of this node.
@@ -28,6 +27,7 @@ pub struct NetworkedNode {
     base: Base<Node>,
 }
 
+#[allow(unused)]
 #[godot_api]
 pub impl NetworkedNode {
     /// Used by the server when updating this node's priority value. priority is accumulated on a tick by tick basis.
@@ -65,12 +65,6 @@ pub impl NetworkedNode {
         panic!("node has no impl for set_networked_values. this should never happen")
     }
 
-    /// Called when the owner disconnects from the server.
-    /// Default implementation does nothing, but can be overridden to handle cleanup.
-    /// An example is the player's character, which deletes itself when the owner disconnects.
-    #[func]
-    pub fn on_owner_dc(&mut self) {}
-
     /// Determines how values from get_networked_values are encoded in the packet,
     /// types are provided using the enum values. encoding must be valid for the variant type
     /// called in loop with incrementing idx until -1 is returned
@@ -78,6 +72,12 @@ pub impl NetworkedNode {
     fn get_networked_value_type(&self, idx: i64) -> i64 {
         panic!("node has no impl for get_networked_values_type. this should never happen")
     }
+
+    /// Called when the owner disconnects from the server.
+    /// Default implementation does nothing, but can be overridden to handle cleanup.
+    /// An example is the player's character, which deletes itself when the owner disconnects.
+    #[func]
+    pub fn on_owner_dc(&mut self) {}
 
     // generates a packet chunk containing the values from get_networked_values, encodes each value using the network value types
     pub fn get_byte_data(&self, types: &[NetworkedValueTypes]) -> BitVec {

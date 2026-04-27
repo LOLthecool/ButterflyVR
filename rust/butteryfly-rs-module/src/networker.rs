@@ -54,6 +54,7 @@ impl From<quiche::Error> for ConnectionError {
     }
 }
 
+#[derive(Debug)]
 struct UDPListener {
     send: SyncSender<(Bytes, SendInfo)>,
     recv: Receiver<(Bytes, SocketAddr)>,
@@ -203,6 +204,7 @@ struct BlockedConnection {
     block_expiry: Instant,
 }
 
+#[derive(Debug)]
 pub struct ConnectionHandler {
     handler: HandlerType,
     listener: UDPListener,

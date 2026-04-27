@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
 use std::{cmp, collections::HashMap};
 
-#[derive(Default)]
+#[derive(Debug)]
 pub struct NetNodeClient {
     connected: ConnectionStatus,
     uuid: [u8; 16],
@@ -35,7 +35,7 @@ enum ConnectionStatus {
     Invalid,
 }
 
-pub impl NetNodeClient {
+impl NetNodeClient {
     pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &NetworkedNode) {
         if new_node.owner_id == self.uuid.to_vec().to_godot().to_packed_array() {
             self.owned_nodes.push((new_node_ref.clone(), 0));
@@ -75,16 +75,23 @@ pub impl NetNodeClient {
     pub fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {
         self.message_buffer.push_back((message, stream));
     }
-    pub fn start_client(
-        &mut self,
-        server_addr: SocketAddr,
-        psk_identifier: String,
-        psk_key: Vec<u8>,
-    ) {
-        self.networker = ConnectionHandler::new_client(server_addr, psk_identifier, psk_key);
+    pub fn new(server_addr: SocketAddr, psk_identifier: String, psk_key: Vec<u8>) -> Self {
         let mut identifier = psk_identifier.as_bytes().to_vec();
-        identifier.extend(psk_key);
-        self.connected = ConnectionStatus::AwaitingConnection(identifier);
+        identifier.extend(&psk_key);
+        NetNodeClient {
+            connected: ConnectionStatus::AwaitingConnection(identifier),
+            uuid: Default::default(),
+            networker: ConnectionHandler::new_client(server_addr, psk_identifier, psk_key),
+            networked_nodes: Default::default(),
+            owned_nodes: Default::default(),
+            bandwidth_budget_per_tick: Default::default(),
+            unapplied_packets: Default::default(),
+            incomplete_messages: Default::default(),
+            message_buffer: Default::default(),
+            message_handlers: Default::default(),
+            server_tick_number: Default::default(),
+            current_tick: Default::default(),
+        }
     }
     pub fn disconnect(&mut self) {
         todo!()
@@ -105,6 +112,7 @@ pub impl NetNodeClient {
                     &mut self.incomplete_messages,
                     &mut self.message_buffer,
                     &mut self.message_handlers,
+                    false,
                 );
             }
         }
@@ -219,16 +227,16 @@ pub impl NetNodeClient {
 
         owned_nodes.sort_by(|a, b| a.1.cmp(&b.1));
     }
-    fn physics_process(&mut self, _delta: f64) {
-        if let ConnectionStatus::AwaitingConnection(identifier) = self.connected {
+    pub fn physics_process_inner(&mut self) {
+        if let ConnectionStatus::AwaitingConnection(ref identifier) = self.connected {
             if self
                 .networker
                 .is_connected(self.networker.get_peers(true).first().unwrap())
             {
-                self.connected = ConnectionStatus::Connected;
                 if let Err(e) = self.networker.send_identifier(&identifier) {
                     godot_error!("Failed to send identifier: {:?}", e);
                 }
+                self.connected = ConnectionStatus::Connected;
             } else {
                 return;
             }

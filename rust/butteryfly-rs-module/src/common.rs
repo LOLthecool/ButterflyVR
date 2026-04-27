@@ -41,6 +41,7 @@ pub fn handle_stream_chunk(
     incomplete_message_buffer: &mut HashMap<u64, (Option<usize>, BitVec<u64, Lsb0>)>,
     message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
     message_handlers: &mut HashMap<u64, Gd<MessageHandler>>,
+    is_server: bool,
 ) {
     if stream_chunk.is_empty() {
         return;
@@ -76,10 +77,16 @@ pub fn handle_stream_chunk(
         let handler: u64 = incomplete[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
         pointer += MESSAGE_HEADER_SIZE;
 
+        // clients treat messages from the server as authoritative, the server does not
         if let Some(handler) = message_handlers.get_mut(&handler) {
-            handler
-                .bind_mut()
-                .handle_message(incomplete.as_bitslice(), &mut pointer);
+            let (values, types) =
+                handler
+                    .bind_mut()
+                    .handle_message(incomplete, &mut pointer, !is_server);
+            message_buffer.push_back((
+                MessageHandler::generate_packet(values, types, handler.bind().get_message_id()),
+                stream,
+            ));
         }
 
         let (_, (_, value)) = entry.remove_entry();
@@ -112,12 +119,17 @@ pub fn handle_stream_chunk(
         let handler: u64 = incomplete_stream[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
         pointer += MESSAGE_HEADER_SIZE;
 
+        // clients treat messages from the server as authoritative, the server does not
         if let Some(handler) = message_handlers.get_mut(&handler) {
-            handler
-                .bind_mut()
-                .handle_message(incomplete_stream, &mut pointer);
+            let (values, types) =
+                handler
+                    .bind_mut()
+                    .handle_message(incomplete_stream, &mut pointer, !is_server);
+            message_buffer.push_back((
+                MessageHandler::generate_packet(values, types, handler.bind().get_message_id()),
+                stream,
+            ));
         }
-        message_buffer.push_back((incomplete_stream.to_bitvec(), stream));
     }
 }
 
