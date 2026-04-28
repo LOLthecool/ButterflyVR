@@ -52,13 +52,16 @@ pub fn handle_stream_chunk(
     if let hash_map::Entry::Occupied(mut entry) = incomplete_message_buffer.entry(stream) {
         let &mut (ref mut length, ref mut incomplete) = entry.get_mut();
 
-        let length = length.unwrap_or_else(|| {
-            let missing = BYTES8 - incomplete.len();
-            // TODO: this assumes we will always have enough data to fill the length field
-            // not sure if that is true
-            incomplete.extend_from_bitslice(&stream_chunk[..missing]);
+        let length_bytes_missing = BYTES8.saturating_sub(incomplete.len());
+        if stream_chunk.len() < length_bytes_missing {
+            incomplete.extend_from_bitslice(stream_chunk);
+            return;
+        }
 
-            (_, stream_chunk) = stream_chunk.split_at(missing);
+        let length = length.unwrap_or_else(|| {
+            incomplete.extend_from_bitslice(&stream_chunk[..length_bytes_missing]);
+
+            (_, stream_chunk) = stream_chunk.split_at(length_bytes_missing);
 
             *length = Some(incomplete[..BYTES8].load_le());
             // length is in bytes but we need it in bits
@@ -80,7 +83,6 @@ pub fn handle_stream_chunk(
         let handler: u64 = incomplete[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
         pointer += MESSAGE_HEADER_SIZE;
 
-        // clients treat messages from the server as authoritative, the server does not
         if let Some(handler) = message_handlers.get_mut(&handler) {
             let (values, types) =
                 handler
@@ -96,9 +98,12 @@ pub fn handle_stream_chunk(
                     stream,
                 ));
             }
+        } else {
+            godot_error!("received a message but had no handler for it: {handler:?}")
         }
 
         (_, stream_chunk) = stream_chunk.split_at(remaining);
+        entry.remove_entry();
     }
 
     loop {
@@ -157,7 +162,7 @@ pub fn handle_datagrams(
 
     let mut late_packets: usize = 0;
     let mut total_packets: usize = 0;
-    let mut got_next_tick_packet: bool = false;
+    let mut got_soon_packet: bool = false;
 
     while let Ok(packet) = networker.recv_datagram(client_id) {
         let packet: BitVec<u64> = packet;
@@ -177,8 +182,8 @@ pub fn handle_datagrams(
             continue;
         }
 
-        if relative_apply_tick == 1 {
-            got_next_tick_packet = true;
+        if relative_apply_tick <= 2 {
+            got_soon_packet = true;
         }
 
         let mut r = [0; 16];
@@ -187,11 +192,14 @@ pub fn handle_datagrams(
         unapplied_packets.insert((packet_apply_tick, r), packet);
     }
 
-    if !got_next_tick_packet {
+    // if no packets will be processed soon we can skip ahead without the user noticing too much
+    // can happen if network latency decreases since we get future packets sooner
+    if !got_soon_packet {
         *tick_number += 1;
     }
 
-    if late_packets > (total_packets / 100) {
+    // 25 is not the percentage, this triggers when packets loss > 4%
+    if late_packets * 25 > total_packets {
         *tick_number -= 1;
     }
 }

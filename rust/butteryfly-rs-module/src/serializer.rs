@@ -226,11 +226,11 @@ pub fn encode_with_known_type(
             bitvec
         }
         NetworkedValueTypes::ByteArray => {
-            let bytes: Array<i64> = Array::from_variant(object);
+            let bytes = PackedByteArray::from_variant(object).to_vec();
             let length = bytes.len() as u32;
             let mut bitvec = BitVec::with_capacity(BYTES4 + (BYTE * length as usize));
             bitvec.extend(length.view_bits::<Lsb0>());
-            for byte in bytes.iter_shared().map(|x| x.try_into().unwrap_or(0u8)) {
+            for byte in bytes.into_iter().map(|x| x.try_into().unwrap_or(0u8)) {
                 bitvec.extend(byte.view_bits::<Lsb0>());
             }
             bitvec

@@ -16,6 +16,9 @@ pub struct NetNodeClient {
     uuid: [u8; 16],
     networker: ConnectionHandler,
     networked_nodes: Vec<Gd<NetworkedNode>>,
+    // the Vec is sorted in *ascending* order, generally we should go through it in reverse
+    // so that higher priority packets are sent first
+    // this is done for consistency with the server's BTreeMap
     owned_nodes: Vec<(Gd<NetworkedNode>, i64)>,
     bandwidth_budget_per_tick: usize,
     // the array here is to make each key unique
@@ -27,12 +30,10 @@ pub struct NetNodeClient {
     current_tick: i8,
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 enum ConnectionStatus {
     AwaitingConnection(Vec<u8>),
     Connected,
-    #[default]
-    Invalid,
 }
 
 impl NetNodeClient {
@@ -169,6 +170,8 @@ impl NetNodeClient {
 
         let max_dgram_size: usize = self.networker.get_max_dgram_size(server);
 
+        // this might be too aggressive,
+        // but we really want to avoid congestion so we dont spike latency
         if self.networker.is_connection_pacing() {
             self.bandwidth_budget_per_tick /= 2;
         }
@@ -178,6 +181,7 @@ impl NetNodeClient {
         // channel 3 (messages)
         while let Some((message, stream)) = self.message_buffer.pop_front() {
             if remaining_bandwidth.checked_sub(message.len()).is_none() {
+                self.message_buffer.push_front((message, stream));
                 break;
             }
             remaining_bandwidth -= message.len();
@@ -195,6 +199,8 @@ impl NetNodeClient {
             packet.extend_from_bitslice((self.current_tick.cast_unsigned()).view_bits::<Lsb0>());
             debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
 
+            // iterate in reverse because the Vec is sorted ascendingly
+            // this is done for consistency with the server's BTreeMap
             for (node_ref, priority) in self.owned_nodes.iter_mut().rev() {
                 if *priority != 0 {
                     let node = Gd::bind(node_ref);
@@ -230,6 +236,7 @@ impl NetNodeClient {
             node.1 += node.0.bind().get_client_priority();
         }
 
+        // sort ascendingly for consistency with the server's BTreeMap
         owned_nodes.sort_by(|a, b| a.1.cmp(&b.1));
     }
     pub fn physics_process_inner(&mut self) {
@@ -240,6 +247,7 @@ impl NetNodeClient {
             {
                 if let Err(e) = self.networker.send_identifier(identifier) {
                     godot_error!("Failed to send identifier: {:?}", e);
+                    return;
                 }
                 self.connected = ConnectionStatus::Connected;
             } else {

@@ -703,7 +703,7 @@ impl ConnectionHandler {
         &mut self,
         peer: &NetNodesConnectionId,
     ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
-        let dgram = match self.handler {
+        let mut dgram = match self.handler {
             HandlerType::Client(ref mut c) => {
                 let peer: ConnectionId = peer.into();
                 debug_assert_eq!(peer, c.id);
@@ -717,7 +717,11 @@ impl ConnectionHandler {
                 }
             }
         };
-        Self::packet_to_bits(&Bytes::from(dgram))
+        let old_len = dgram.len();
+        dgram.resize(old_len.next_multiple_of(8), 0);
+        let mut dgram = Self::packet_to_bits(&Bytes::from(dgram))?;
+        dgram.truncate(old_len * 8);
+        Ok(dgram)
     }
 
     pub fn add_client_token(

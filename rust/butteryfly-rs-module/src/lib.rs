@@ -1,5 +1,9 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::doc_markdown)]
+// todo:
+// internal MessageHandler
+// sync message handler ids
+// sync networked node ids
 
 //! Low level networking library for the Godot engine.
 //!
@@ -186,9 +190,17 @@ impl NetNodeManager {
         psk_identifier: String,
         psk_key: PackedByteArray,
     ) {
+        let Ok(server_ip) = IpAddr::from_str(&server_ip) else {
+            godot_error!("failed to connect to server: invalid IP: {server_ip:?}");
+            return;
+        };
+        let Ok(uuid) = uuid.to_vec().try_into() else {
+            godot_error!("failed to connect to server: uuid was wrong length: {uuid:?}");
+            return;
+        };
         self.inner = Inner::Client(NetNodeClient::new(
-            SocketAddr::new(IpAddr::from_str(&server_ip).unwrap(), server_port),
-            uuid.to_vec().try_into().unwrap(),
+            SocketAddr::new(server_ip, server_port),
+            uuid,
             psk_identifier,
             psk_key.to_vec(),
         ));

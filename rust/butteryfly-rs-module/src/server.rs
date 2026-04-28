@@ -16,6 +16,9 @@ pub struct NetNodeServer {
     clients: HashMap<NetNodesConnectionId, Client>,
     networked_nodes: Vec<Gd<NetworkedNode>>,
     networker: ConnectionHandler,
+    // todo: add a way for MessageHandlers to mark old messages as irrelevant so we can discard them
+    // right now this just grows forever
+    // as a tf2 dev would say "this leaks memory. too bad!"
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
     message_handlers: HashMap<u64, Gd<MessageHandler>>,
     current_tick: i8,
@@ -51,7 +54,9 @@ impl NetNodeServer {
     }
 
     pub fn get_next_object_id(&mut self) -> u16 {
-        self.last_netnode_id += 1;
+        // todo: should probably try to reuse object ids from removed nodes
+        // if we manage to actually have no free ids, panicing is fine
+        self.last_netnode_id = self.last_netnode_id.checked_add(1).unwrap();
         self.last_netnode_id
     }
 
@@ -231,6 +236,8 @@ impl NetNodeServer {
 
                 let max_dgram_size: usize = self.networker.get_max_dgram_size(conn);
 
+                // this might be too aggressive,
+                // but we really want to avoid congestion so we dont spike latency
                 if self.networker.is_connection_pacing() {
                     client.bandwidth_budget_per_tick /= 2;
                 }
@@ -264,7 +271,13 @@ impl NetNodeServer {
                     let mut packet: BitVec<u64> = BitVec::with_capacity(max_dgram_size);
 
                     if let ClientSubState::ObjectSync(ref mut objects) = client.state {
-                        if let Some(object) = objects.last_mut() {
+                        self.current_tick = self.current_tick.wrapping_add(1);
+
+                        packet.extend_from_bitslice(
+                            (self.current_tick.cast_unsigned()).view_bits::<Lsb0>(),
+                        );
+
+                        while let Some(object) = objects.last_mut() {
                             let node_ref = object;
                             let node = Gd::bind(node_ref);
 
@@ -279,10 +292,17 @@ impl NetNodeServer {
                             }
 
                             packet.extend_from_bitslice(tmp.as_bitslice());
+
                             objects.pop();
-                        } else {
+                        }
+
+                        if objects.last_mut().is_none() {
                             client.state = ClientSubState::Connected;
                         }
+
+                        remaining_bandwidth -= packet.len();
+                        self.networker.send_datagram(conn, packet)?;
+                        continue;
                     } else {
                         self.current_tick = self.current_tick.wrapping_add(1);
 
@@ -291,6 +311,7 @@ impl NetNodeServer {
                         );
                         debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
 
+                        // iterate in reverse because the btree is sorted ascendingly
                         let old_map = mem::take(&mut client.priorities);
                         client.priorities = old_map
                             .into_iter()
@@ -310,7 +331,6 @@ impl NetNodeServer {
                                         return value;
                                     }
 
-                                    packet.extend(node.objectid.view_bits::<Lsb0>());
                                     packet.extend_from_bitslice(tmp.as_bitslice());
                                     value.0.0 = 0;
                                 }
@@ -415,6 +435,8 @@ struct ConnectedClient {
     incomplete_messages: HashMap<u64, (Option<usize>, BitVec<u64, Lsb0>)>,
     message_buffer_position: usize,
     // the array here is to make each key unique
+    // the BTree is sorted in *ascending* order, generally we should go through it in reverse
+    // so that higher priority packets are sent first
     priorities: BTreeMap<(i64, [u8; 16]), Gd<NetworkedNode>>,
     unapplied_packets: BTreeMap<(i8, [u8; 16]), BitVec<u64, Lsb0>>,
     tick_number: i8,
