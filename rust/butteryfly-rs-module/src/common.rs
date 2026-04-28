@@ -88,7 +88,11 @@ pub fn handle_stream_chunk(
                     .handle_message(incomplete, &mut pointer, !is_server);
             if is_server {
                 message_buffer.push_back((
-                    MessageHandler::generate_packet(values, types, handler.bind().get_message_id()),
+                    MessageHandler::generate_packet(
+                        &values,
+                        &types,
+                        handler.bind().get_message_id(),
+                    ),
                     stream,
                 ));
             }
@@ -130,7 +134,11 @@ pub fn handle_stream_chunk(
                     .handle_message(incomplete_stream, &mut pointer, !is_server);
             if is_server {
                 message_buffer.push_back((
-                    MessageHandler::generate_packet(values, types, handler.bind().get_message_id()),
+                    MessageHandler::generate_packet(
+                        &values,
+                        &types,
+                        handler.bind().get_message_id(),
+                    ),
                     stream,
                 ));
             }

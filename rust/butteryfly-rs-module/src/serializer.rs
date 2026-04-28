@@ -193,7 +193,7 @@ pub fn encode_with_known_type(
             bitvec
         }
         NetworkedValueTypes::Signed64 => {
-            let value = i64::from_variant(object) as u64;
+            let value = i64::from_variant(object).cast_unsigned();
             let mut bitvec = BitVec::with_capacity(BYTES8);
             bitvec.extend(value.view_bits::<Lsb0>());
             bitvec

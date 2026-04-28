@@ -69,13 +69,13 @@ impl NetNodeServer {
 
     pub fn new(bind_port: u16) -> Self {
         Self {
-            clients: Default::default(),
-            networked_nodes: Default::default(),
+            clients: HashMap::new(),
+            networked_nodes: Vec::new(),
             networker: ConnectionHandler::new_server(bind_port),
-            message_buffer: Default::default(),
-            message_handlers: Default::default(),
-            current_tick: Default::default(),
-            last_netnode_id: Default::default(),
+            message_buffer: VecDeque::new(),
+            message_handlers: HashMap::new(),
+            current_tick: 0,
+            last_netnode_id: 0,
         }
     }
 
@@ -286,7 +286,9 @@ impl NetNodeServer {
                     } else {
                         self.current_tick = self.current_tick.wrapping_add(1);
 
-                        packet.extend_from_bitslice((self.current_tick as u8).view_bits::<Lsb0>());
+                        packet.extend_from_bitslice(
+                            (self.current_tick.cast_unsigned()).view_bits::<Lsb0>(),
+                        );
                         debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
 
                         let old_map = mem::take(&mut client.priorities);
@@ -425,11 +427,11 @@ impl ConnectedClient {
             uuid,
             state: ClientSubState::default(),
             bandwidth_budget_per_tick: INITIAL_CLIENT_BANDWIDTH,
-            incomplete_messages: HashMap::default(),
-            message_buffer_position: Default::default(),
-            priorities: BTreeMap::default(),
-            unapplied_packets: BTreeMap::default(),
-            tick_number: Default::default(),
+            incomplete_messages: HashMap::new(),
+            message_buffer_position: 0,
+            priorities: BTreeMap::new(),
+            unapplied_packets: BTreeMap::new(),
+            tick_number: 0,
         }
     }
 }

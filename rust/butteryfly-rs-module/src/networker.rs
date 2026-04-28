@@ -215,11 +215,11 @@ impl ConnectionHandler {
     pub fn update(&mut self) -> Result<(), ConnectionError> {
         match self.handler {
             HandlerType::Server(ref mut data) => {
-                Self::update_server(data, &mut self.listener)?;
+                Self::update_server(data, &self.listener)?;
             }
 
             HandlerType::Client(ref mut data) => {
-                Self::update_client(data, &mut self.listener)?;
+                Self::update_client(data, &self.listener)?;
             }
         }
         Ok(())
@@ -826,7 +826,7 @@ impl ConnectionHandler {
         ctx.set_verify(SslVerifyMode::NONE);
 
         ctx.set_psk_server_callback(move |_ssl, identity, out| {
-            if let Some(Ok(id)) = identity.map(|x| x.try_into())
+            if let Some(Ok(id)) = identity.map(TryInto::try_into)
                 && let Entry::Occupied(entry) = psks.lock().unwrap().entry(id)
             {
                 let psk = entry.into_mut();

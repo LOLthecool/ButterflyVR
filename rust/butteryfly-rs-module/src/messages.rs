@@ -25,9 +25,9 @@ pub struct MessageHandler {
     base: Base<Node>,
 }
 
-#[allow(unused)]
+#[allow(unused, clippy::unused_self)]
 #[godot_api]
-pub impl MessageHandler {
+impl MessageHandler {
     /// Determines how values in a message are encoded in the packet.
     /// Types are provided using the enum values. Encoding must be valid for the variant type.
     /// Called in a loop with incrementing `idx` until `-1` is returned.
@@ -48,6 +48,7 @@ pub impl MessageHandler {
     /// This cleaning can change values before the message is applied or sent to the clients.
     /// Removing, adding, or changing the types of values is not intended and will likely cause the message to fail to decode.
     /// A message failing to decode instantly stops the instance, as it could desync the client and server.
+    /// by default, this function returns the values unchanged.
     #[func]
     fn clean_message(&mut self, values: VarArray) -> VarArray {
         values
@@ -56,7 +57,7 @@ pub impl MessageHandler {
     /// It takes a set of values and types and then generates and sends a packet to the network.
     #[func]
     fn send_message_final(&mut self, values: VarArray, types: Array<i64>) {
-        let packet = Self::generate_packet(values, types, self.message_id);
+        let packet = Self::generate_packet(&values, &types, self.message_id);
 
         if self
             .network_manager
@@ -66,13 +67,13 @@ pub impl MessageHandler {
             .is_server()
         {
             let mut pointer = MESSAGE_HEADER_SIZE;
-            self.handle_message(packet.clone().as_bitslice(), &mut pointer, true);
+            self.handle_message(packet.as_bitslice(), &mut pointer, true);
         }
         self.network_manager
             .as_mut()
             .unwrap()
             .bind_mut()
-            .queue_message(packet, self.stream as u64);
+            .queue_message(packet, self.stream.cast_unsigned().into());
     }
     pub fn handle_message(
         &mut self,
@@ -103,8 +104,8 @@ pub impl MessageHandler {
         (tmp, types)
     }
     pub fn generate_packet(
-        values: VarArray,
-        types: Array<i64>,
+        values: &VarArray,
+        types: &Array<i64>,
         message_id: u64,
     ) -> BitVec<u64, Lsb0> {
         if values.len() != types.len() {

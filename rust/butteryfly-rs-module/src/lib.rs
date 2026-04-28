@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![allow(clippy::doc_markdown)]
 
 //! Low level networking library for the Godot engine.
 //!
@@ -6,7 +7,7 @@
 //! but the API is subject to change and is not guaranteed to be stable, and many use cases will be poorly supported.
 //!
 //! Currently, Godot provides two networking APIs:
-//! the low-level [`MultiplayerPeer`] API and the high-level [`MultiplayerAPI`] API.
+//! the low-level MultiplayerPeer API and the high-level MultiplayerAPI API.
 //! While these both offer low-level access to send raw packets directly,
 //! their high-level implementations lack the control necessary to optimise networking.
 //! Sending raw packets, however, requires that the user implements the entire networking protocol themselves.
@@ -73,7 +74,7 @@ enum Inner {
 impl NetNodeManager {
     /// Not to be called directly; used by `NetworkedNode` internally.
     /// Registers a `NetworkedNode` with the inner client or server, allowing it to be synced across the network.
-    fn register_node(&mut self, node_ref: Gd<NetworkedNode>, node: &mut NetworkedNode) {
+    fn register_node(&mut self, node_ref: Gd<NetworkedNode>, node: &NetworkedNode) {
         match self.inner {
             Inner::Server(ref mut server) => {
                 server.register_node(node_ref);
@@ -107,12 +108,11 @@ impl NetNodeManager {
     /// Returns the next available object ID for use by a `NetworkedNode`.
     /// This is a server-only method.
     fn get_next_object_id(&mut self) -> u16 {
-        match self.inner {
-            Inner::Server(ref mut server) => server.get_next_object_id(),
-            _ => {
-                godot_error!("called get_next_object_id but we are not a server");
-                0
-            }
+        if let Inner::Server(ref mut server) = self.inner {
+            server.get_next_object_id()
+        } else {
+            godot_error!("called get_next_object_id but we are not a server");
+            0
         }
     }
 
@@ -126,14 +126,13 @@ impl NetNodeManager {
     /// This is a server-only method.
     #[func]
     fn get_unverified_client(&mut self) -> PackedByteArray {
-        match self.inner {
-            Inner::Server(ref mut server) => server
+        if let Inner::Server(ref mut server) = self.inner {
+            server
                 .get_unverified_client()
-                .map_or_else(PackedByteArray::new, |x| x.to_godot().to_packed_array()),
-            _ => {
-                godot_error!("called get_unverified_client but we are not a server");
-                PackedByteArray::new()
-            }
+                .map_or_else(PackedByteArray::new, |x| x.to_godot().to_packed_array())
+        } else {
+            godot_error!("called get_unverified_client but we are not a server");
+            PackedByteArray::new()
         }
     }
 
@@ -233,18 +232,17 @@ impl NetNodeManager {
     /// This is a server-only method.
     #[func]
     fn get_next_client(&mut self) -> PackedByteArray {
-        match self.inner {
-            Inner::Server(ref mut server) => match server.get_next_client() {
+        if let Inner::Server(ref mut server) = self.inner {
+            match server.get_next_client() {
                 Ok(client) => PackedByteArray::from(client),
                 Err(e) => {
                     godot_error!("failed to get next client: {:?}", e);
                     PackedByteArray::new()
                 }
-            },
-            _ => {
-                godot_error!("called get_next_client() but we are not a server");
-                PackedByteArray::new()
             }
+        } else {
+            godot_error!("called get_next_client() but we are not a server");
+            PackedByteArray::new()
         }
     }
 
@@ -258,12 +256,11 @@ impl NetNodeManager {
     /// This is a server-only method.
     #[func]
     fn get_player_count(&self) -> i32 {
-        match &self.inner {
-            Inner::Server(server) => server.get_player_count() as i32,
-            _ => {
-                godot_error!("tried to get_player_count but we are not a server");
-                0
-            }
+        if let Inner::Server(server) = &self.inner {
+            server.get_player_count() as i32
+        } else {
+            godot_error!("tried to get_player_count but we are not a server");
+            0
         }
     }
 

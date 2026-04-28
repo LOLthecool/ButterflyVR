@@ -83,19 +83,19 @@ impl NetNodeClient {
     ) -> Self {
         let mut identifier = psk_identifier.as_bytes().to_vec();
         identifier.extend(&psk_key);
-        NetNodeClient {
+        Self {
             connected: ConnectionStatus::AwaitingConnection(identifier),
             uuid,
             networker: ConnectionHandler::new_client(server_addr, psk_identifier, psk_key),
-            networked_nodes: Default::default(),
-            owned_nodes: Default::default(),
-            bandwidth_budget_per_tick: Default::default(),
-            unapplied_packets: Default::default(),
-            incomplete_messages: Default::default(),
-            message_buffer: Default::default(),
-            message_handlers: Default::default(),
-            server_tick_number: Default::default(),
-            current_tick: Default::default(),
+            networked_nodes: Vec::new(),
+            owned_nodes: Vec::new(),
+            bandwidth_budget_per_tick: 0,
+            unapplied_packets: BTreeMap::new(),
+            incomplete_messages: HashMap::new(),
+            message_buffer: VecDeque::new(),
+            message_handlers: HashMap::new(),
+            server_tick_number: 0,
+            current_tick: 0,
         }
     }
     pub fn disconnect(&mut self) {
@@ -192,7 +192,7 @@ impl NetNodeClient {
 
             self.current_tick = self.current_tick.wrapping_add(1);
 
-            packet.extend_from_bitslice((self.current_tick as u8).view_bits::<Lsb0>());
+            packet.extend_from_bitslice((self.current_tick.cast_unsigned()).view_bits::<Lsb0>());
             debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
 
             for (node_ref, priority) in self.owned_nodes.iter_mut().rev() {
@@ -238,7 +238,7 @@ impl NetNodeClient {
                 .networker
                 .is_connected(self.networker.get_peers(true).first().unwrap())
             {
-                if let Err(e) = self.networker.send_identifier(&identifier) {
+                if let Err(e) = self.networker.send_identifier(identifier) {
                     godot_error!("Failed to send identifier: {:?}", e);
                 }
                 self.connected = ConnectionStatus::Connected;

@@ -27,9 +27,9 @@ pub struct NetworkedNode {
     base: Base<Node>,
 }
 
-#[allow(unused)]
+#[allow(unused, clippy::unused_self)]
 #[godot_api]
-pub impl NetworkedNode {
+impl NetworkedNode {
     /// Used by the server when updating this node's priority value. Priority is accumulated on a tick-by-tick basis.
     /// Every tick, the nodes with the highest priority are sent by the network and have their priority reset to 0.
     /// Priority is calculated separately for each client, and the `client_id` parameter should be used to differentiate between clients.
@@ -154,7 +154,7 @@ impl INode for NetworkedNode {
         self.base()
             .get_node_as::<NetNodeManager>("/root/NetworkManager")
             .bind_mut()
-            .register_node(self.to_gd(), self);
+            .register_node(self.to_gd(), &self);
     }
     fn exit_tree(&mut self) {
         self.base()
