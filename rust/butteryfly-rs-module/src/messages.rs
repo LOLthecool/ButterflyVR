@@ -14,11 +14,12 @@ use godot::prelude::*;
 /// or the state of NetworkedNodes.
 /// Each `MessageHandler` has a unique `message_id`; ID 0 is used for internal messages such as syncing IDs
 /// for `MessageHandler`s or `NetworkedNode`s.
+/// a MessageHandler with id 0 will be ignored when trying to send or receive messages.
 /// A client or server must be running before a `MessageHandler` can be added to the scene tree.
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct MessageHandler {
-    message_id: u64,
+    message_id: u16,
     #[export]
     stream: i32,
     network_manager: Option<Gd<NetNodeManager>>,
@@ -57,6 +58,11 @@ impl MessageHandler {
     /// It takes a set of values and types and then generates and sends a packet to the network.
     #[func]
     fn send_message_final(&mut self, values: VarArray, types: Array<i64>) {
+        if self.message_id == 0 {
+            godot_error!("tried to send message with id 0");
+            return;
+        }
+
         let packet = Self::generate_packet(&values, &types, self.message_id);
 
         if self
@@ -106,7 +112,7 @@ impl MessageHandler {
     pub fn generate_packet(
         values: &VarArray,
         types: &Array<i64>,
-        message_id: u64,
+        message_id: u16,
     ) -> BitVec<u64, Lsb0> {
         if values.len() != types.len() {
             godot_warn!("invalid call to generate_packet");
@@ -131,7 +137,7 @@ impl MessageHandler {
         }
         packet
     }
-    pub fn get_message_id(&self) -> u64 {
+    pub fn get_message_id(&self) -> u16 {
         self.message_id
     }
 }
@@ -139,8 +145,6 @@ impl MessageHandler {
 #[godot_api]
 impl INode for MessageHandler {
     fn enter_tree(&mut self) {
-        self.message_id = rand::random();
-
         self.network_manager = Some(
             self.base()
                 .get_node_as::<NetNodeManager>("/root/NetworkManager"),

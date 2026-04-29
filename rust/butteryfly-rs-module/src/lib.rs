@@ -276,7 +276,7 @@ impl NetNodeManager {
         }
     }
 
-    fn register_message_handler(&mut self, handler: Gd<MessageHandler>, message_type: u64) {
+    fn register_message_handler(&mut self, handler: Gd<MessageHandler>, message_type: u16) {
         match &mut self.inner {
             Inner::Client(client) => client.register_message(handler, message_type),
             Inner::Server(server) => server.register_message(handler, message_type),
@@ -288,7 +288,7 @@ impl NetNodeManager {
         }
     }
 
-    fn unregister_message_handler(&mut self, message_type: u64) {
+    fn unregister_message_handler(&mut self, message_type: u16) {
         match &mut self.inner {
             Inner::Client(client) => client.unregister_message(message_type),
             Inner::Server(server) => server.unregister_message(message_type),

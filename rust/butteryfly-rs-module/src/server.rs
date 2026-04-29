@@ -20,7 +20,7 @@ pub struct NetNodeServer {
     // right now this just grows forever
     // as a tf2 dev would say "this leaks memory. too bad!"
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
-    message_handlers: HashMap<u64, Gd<MessageHandler>>,
+    message_handlers: HashMap<u16, Gd<MessageHandler>>,
     current_tick: i8,
     last_netnode_id: u16,
 }
@@ -60,11 +60,11 @@ impl NetNodeServer {
         self.last_netnode_id
     }
 
-    pub fn register_message(&mut self, handler: Gd<MessageHandler>, message_type: u64) {
+    pub fn register_message(&mut self, handler: Gd<MessageHandler>, message_type: u16) {
         self.message_handlers.insert(message_type, handler);
     }
 
-    pub fn unregister_message(&mut self, message_type: u64) {
+    pub fn unregister_message(&mut self, message_type: u16) {
         self.message_handlers.remove(&message_type);
     }
 
@@ -143,12 +143,14 @@ impl NetNodeServer {
                         if let Ok(identifier) = data.into_vec()[8..].try_into() {
                             client.state = ClientState::AwaitingUuid(identifier);
                         } else {
+                            // todo: handle identifier being sent over multiple packets
                             self.networker.disconnect_peer(
                                 client_id,
                                 true,
                                 0,
                                 "invalid identifier length",
                             );
+                            godot_warn!("rejected client with invalid identifier length");
                         }
                     }
                 }

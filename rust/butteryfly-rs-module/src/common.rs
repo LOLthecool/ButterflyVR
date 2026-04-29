@@ -12,7 +12,7 @@ pub const BYTES2: usize = BYTE * 2;
 pub const BYTES4: usize = BYTE * 4;
 pub const BYTES8: usize = BYTE * 8;
 
-pub const MESSAGE_HEADER_SIZE: usize = BYTES8;
+pub const MESSAGE_HEADER_SIZE: usize = BYTES2;
 pub const DGRAM_HEADER_SIZE: usize = BYTE;
 pub const OBJECT_HEADER_SIZE: usize = BYTES2;
 
@@ -40,7 +40,7 @@ pub fn handle_stream_chunk(
     stream_chunk: &BitVec<u64, Lsb0>,
     incomplete_message_buffer: &mut HashMap<u64, (Option<usize>, BitVec<u64, Lsb0>)>,
     message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
-    message_handlers: &mut HashMap<u64, Gd<MessageHandler>>,
+    message_handlers: &mut HashMap<u16, Gd<MessageHandler>>,
     is_server: bool,
 ) {
     if stream_chunk.is_empty() {
@@ -80,7 +80,7 @@ pub fn handle_stream_chunk(
         incomplete.extend_from_bitslice(&stream_chunk[..remaining]);
 
         let mut pointer = BYTES8;
-        let handler: u64 = incomplete[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
+        let handler: u16 = incomplete[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
         pointer += MESSAGE_HEADER_SIZE;
 
         if let Some(handler) = message_handlers.get_mut(&handler) {
@@ -128,7 +128,7 @@ pub fn handle_stream_chunk(
         let incomplete_stream;
         (incomplete_stream, stream_chunk) = stream_chunk.split_at(length);
 
-        let handler: u64 = incomplete_stream[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
+        let handler: u16 = incomplete_stream[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
         pointer += MESSAGE_HEADER_SIZE;
 
         // clients treat messages from the server as authoritative, the server does not
@@ -202,4 +202,76 @@ pub fn handle_datagrams(
     if late_packets * 25 > total_packets {
         *tick_number -= 1;
     }
+}
+
+pub enum InternalMessage {
+    ClientId([u8; 40]),
+    NetNodeId((u16, VecDeque<u32>)),
+    MessageHandlerId((u16, VecDeque<u32>)),
+}
+
+pub fn send_internal_message(
+    peer: &NetNodesConnectionId,
+    networker: &mut ConnectionHandler,
+    message: InternalMessage,
+) {
+    match message {
+        InternalMessage::ClientId(id) => {
+            let id: Vec<u8> = id.into_iter().chain([0; 14]).collect();
+            let (id, _) = id.as_chunks::<8>();
+            let id: Vec<u64> = id.into_iter().map(|x| u64::from_le_bytes(*x)).collect();
+
+            let data: BitVec<u64, Lsb0> = BitVec::from_vec(id);
+
+            networker.send_stream(peer, 0, data);
+        }
+        InternalMessage::NetNodeId((node_id, path)) => {
+            let mut packet: BitVec<u64, Lsb0> = BitVec::new();
+
+            packet.push(true);
+
+            packet.extend(node_id.view_bits::<Lsb0>());
+
+            packet.extend(path.len().view_bits::<Lsb0>());
+            for idx in path {
+                packet.extend(idx.view_bits::<Lsb0>());
+            }
+
+            networker.send_stream(peer, 0, packet);
+        }
+        InternalMessage::MessageHandlerId((handler_id, path)) => {
+            let mut packet: BitVec<u64, Lsb0> = BitVec::new();
+            packet.push(false);
+
+            packet.extend(handler_id.view_bits::<Lsb0>());
+
+            packet.extend(path.len().view_bits::<Lsb0>());
+            for idx in path {
+                packet.extend(idx.view_bits::<Lsb0>());
+            }
+
+            networker.send_stream(peer, 0, packet);
+        }
+    }
+}
+
+pub fn decode_internal_message(
+    packet: &BitSlice<u64, Lsb0>,
+    pointer: &mut usize,
+) -> InternalMessage {
+}
+
+fn get_node_path(node: Gd<Node>) -> VecDeque<u32> {
+    let mut path = VecDeque::new();
+
+    let mut current = node;
+    let mut idx = current.get_index();
+
+    while idx != -1 {
+        path.push_front(idx as u32);
+        current = current.get_parent().unwrap();
+        idx = current.get_index();
+    }
+
+    path
 }

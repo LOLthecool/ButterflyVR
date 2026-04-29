@@ -25,7 +25,7 @@ pub struct NetNodeClient {
     unapplied_packets: BTreeMap<(i8, [u8; 16]), BitVec<u64, Lsb0>>,
     incomplete_messages: HashMap<u64, (Option<usize>, BitVec<u64, Lsb0>)>,
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
-    message_handlers: HashMap<u64, Gd<MessageHandler>>,
+    message_handlers: HashMap<u16, Gd<MessageHandler>>,
     server_tick_number: i8,
     current_tick: i8,
 }
@@ -61,7 +61,7 @@ impl NetNodeClient {
         };
         self.owned_nodes.remove(pos);
     }
-    pub fn register_message(&mut self, handler: Gd<MessageHandler>, message_type: u64) {
+    pub fn register_message(&mut self, handler: Gd<MessageHandler>, message_type: u16) {
         if self.message_handlers.contains_key(&message_type) {
             godot_warn!(
                 "tried to register duplicate handlers for message type {:#?}",
@@ -70,7 +70,7 @@ impl NetNodeClient {
         }
         self.message_handlers.insert(message_type, handler);
     }
-    pub fn unregister_message(&mut self, message_type: u64) {
+    pub fn unregister_message(&mut self, message_type: u16) {
         self.message_handlers.remove(&message_type);
     }
     pub fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {

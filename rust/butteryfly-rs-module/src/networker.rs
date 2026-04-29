@@ -521,16 +521,6 @@ impl ConnectionHandler {
         }
     }
 
-    pub fn send_identifier(
-        &mut self,
-        identifier: &[u8],
-    ) -> std::result::Result<(), ConnectionError> {
-        match self.handler {
-            HandlerType::Client(ref mut server) => Self::send_inner(server, 0, identifier),
-            HandlerType::Server(_) => Err(ConnectionError::InvalidHandlerType),
-        }
-    }
-
     fn send_inner(
         conn: &mut PeerConnection,
         stream_id: u64,
