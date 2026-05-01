@@ -13,7 +13,7 @@ jobs:
   rust-netnodes:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
@@ -49,7 +49,7 @@ jobs:
   rust-godotpass:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
@@ -85,7 +85,7 @@ jobs:
   rust-agones-rs:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
@@ -123,9 +123,45 @@ jobs:
           name: rust-agones-godot-rs-${{ matrix.os }}-debug
           path: rust/agones-godot-rs/target/debug/*.*
 
+  rust-lru-cache:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/godot-lru-rust/target
+          key: ${{ runner.os }}-cargo-godot-lru-rust-debug-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-godot-lru-rust-debug-
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Build Rust module (debug)
+        working-directory: rust/godot-lru-rust
+        run: cargo build
+
+      - name: Upload Rust artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-godot-lru-rust-${{ matrix.os }}-debug
+          path: rust/godot-lru-rust/target/debug/*.*
+
   godot-linux:
     runs-on: ubuntu-22.04
-    needs: [rust-netnodes, rust-godotpass, rust-agones-rs]
+    needs: [rust-netnodes, rust-godotpass, rust-agones-rs, rust-lru-cache]
     container:
       image: barichello/godot-ci:4.5.1
     steps:
@@ -151,6 +187,12 @@ jobs:
           name: rust-agones-godot-rs-ubuntu-latest-debug
           path: rust/agones-godot-rs/target/debug
 
+      - name: Download Linux Rust-lru-cache artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-lru-cache-ubuntu-latest-debug
+          path: rust/lru-cache/target/debug
+
       - name: Setup Godot templates
         run: |
           mkdir -p ~/.local/share/godot/export_templates/
@@ -171,7 +213,7 @@ jobs:
 
   godot-windows:
     runs-on: ubuntu-22.04
-    needs: [rust-netnodes, rust-godotpass, rust-agones-rs]
+    needs: [rust-netnodes, rust-godotpass, rust-agones-rs, rust-lru-cache]
     container:
       image: barichello/godot-ci:4.5.1
     steps:
@@ -197,6 +239,13 @@ jobs:
           name: rust-agones-godot-rs-ubuntu-latest-debug
           path: rust/agones-godot-rs/target/debug
 
+
+      - name: Download Linux Rust-lru-cache artifact to silence useless errors
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-lru-cache-ubuntu-latest-debug
+          path: rust/lru-cache/target/debug
+
       - name: Download Windows Rust artifact
         uses: actions/download-artifact@v4
         with:
@@ -214,6 +263,12 @@ jobs:
         with:
           name: rust-agones-godot-rs-windows-latest-debug
           path: rust/agones-godot-rs/target/debug
+
+      - name: Download Windows Rust-lru-cache artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-lru-cache-windows-latest-debug
+          path: rust/lru-cache/target/debug
 
       - name: Setup Godot templates
         run: |
