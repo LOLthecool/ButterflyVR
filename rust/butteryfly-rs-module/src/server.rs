@@ -18,6 +18,7 @@ use std::{cmp, collections::HashMap};
 pub struct NetNodeServer {
     clients: HashMap<NetNodesConnectionId, Client>,
     networked_nodes: Vec<Gd<NetworkedNode>>,
+    priorities_invalidated: bool,
     networker: ConnectionHandler,
     // todo: add a way for MessageHandlers to mark old messages as irrelevant so we can discard them
     // right now this just grows forever
@@ -44,6 +45,8 @@ impl NetNodeServer {
         .unwrap();
         self.queue_message(message, 0);
 
+        self.priorities_invalidated = true;
+
         self.networked_nodes.push(new_node_ref);
     }
 
@@ -62,6 +65,7 @@ impl NetNodeServer {
             .iter()
             .position(|x| x == removed_node_ref)
         {
+            self.priorities_invalidated = true;
             self.networked_nodes.remove(idx);
         }
     }
@@ -78,17 +82,18 @@ impl NetNodeServer {
         self.last_message_id
     }
 
-    pub fn register_message(&mut self, mut handler: Gd<MessageHandler>, message_type: u16) {
+    pub fn register_message(&mut self, mut handler: Gd<MessageHandler>) {
         handler.bind_mut().message_id = self.get_next_message_id();
+        let message_id = handler.bind().message_id;
 
         let message = generate_internal_message(InternalMessage::MessageHandlerId((
-            handler.bind().message_id,
+            message_id,
             handler.clone().upcast(),
         )))
         .unwrap();
         self.queue_message(message, 0);
 
-        self.message_handlers.insert(message_type, handler);
+        self.message_handlers.insert(message_id, handler);
     }
 
     pub fn unregister_message(&mut self, message_type: u16) {
@@ -103,6 +108,7 @@ impl NetNodeServer {
         Self {
             clients: HashMap::new(),
             networked_nodes: Vec::new(),
+            priorities_invalidated: false,
             networker: ConnectionHandler::new_server(bind_port),
             message_buffer: VecDeque::new(),
             message_handlers: HashMap::new(),
@@ -124,12 +130,14 @@ impl NetNodeServer {
     fn tick_client_priorities(
         clients: &mut HashMap<NetNodesConnectionId, Client>,
         networked_nodes: &[Gd<NetworkedNode>],
+        priorities_invalidated: &mut bool,
     ) {
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
         for (conn, client) in clients.iter_mut() {
             if let ClientState::Connected(ref mut client) = client.state {
-                // this doesn't catch some changes to networked_nodes, but that should be fine
-                if client.priorities.len() != networked_nodes.len() {
+                // this should be true if any nodes have been added or removed
+                if *priorities_invalidated {
+                    *priorities_invalidated = false;
                     client.priorities.clear();
                     for node_ref in networked_nodes {
                         let mut r = [0; 16];
@@ -155,7 +163,11 @@ impl NetNodeServer {
     }
 
     fn tick(&mut self) -> std::result::Result<(), NetNodesError> {
-        Self::tick_client_priorities(&mut self.clients, &self.networked_nodes);
+        Self::tick_client_priorities(
+            &mut self.clients,
+            &self.networked_nodes,
+            &mut self.priorities_invalidated,
+        );
 
         self.networker.update()?;
 
@@ -211,7 +223,7 @@ impl NetNodeServer {
         for client in self.clients.values_mut() {
             if let ClientState::Connected(ref mut client) = client.state {
                 while let Some(((apply_tick, _), _)) = client.unapplied_packets.first_key_value() {
-                    if apply_tick - client.tick_number > 0 {
+                    if apply_tick.wrapping_sub(client.tick_number) > 0 {
                         break;
                     }
 
@@ -225,10 +237,10 @@ impl NetNodeServer {
 
                         if let Some(tmp) = self
                             .networked_nodes
-                            .iter()
+                            .iter_mut()
                             .find(|x| Gd::bind(x).objectid == next_obj)
                         {
-                            let node = Gd::bind(tmp);
+                            let mut node = Gd::bind_mut(tmp);
                             let types_buff: Vec<NetworkedValueTypes> =
                                 node.get_networked_values_types();
                             node.update_networked_values(
@@ -252,6 +264,8 @@ impl NetNodeServer {
 
     fn send_packets(&mut self) -> std::result::Result<(), NetNodesError> {
         const PACKET_MAX_SIZE_THRESHOLD: usize = 80;
+
+        self.current_tick = self.current_tick.wrapping_add(1);
 
         for (conn, client) in &mut self.clients {
             if let ClientState::Connected(ref mut client) = client.state {
@@ -281,7 +295,11 @@ impl NetNodeServer {
                     remaining_bandwidth -= message.len();
 
                     client.message_buffer_position += 1;
-                    self.networker.send_stream(conn, *stream, message.clone())?;
+                    if let Err(e) = self.networker.send_stream(conn, *stream, message.clone()) {
+                        if e == NetNodesError::BufferFull {
+                            client.message_buffer_position -= 1;
+                        }
+                    }
                 }
 
                 if client.state == ClientSubState::EventSync {
@@ -298,8 +316,6 @@ impl NetNodeServer {
                     let mut packet: BitVec<u64> = BitVec::with_capacity(max_dgram_size);
 
                     if let ClientSubState::ObjectSync(ref mut objects) = client.state {
-                        self.current_tick = self.current_tick.wrapping_add(1);
-
                         packet.extend_from_bitslice(
                             (self.current_tick.cast_unsigned()).view_bits::<Lsb0>(),
                         );
@@ -311,6 +327,13 @@ impl NetNodeServer {
                             let tmp = node.get_byte_data(&node.get_networked_values_types());
 
                             drop(node);
+
+                            if tmp.len() > max_dgram_size {
+                                godot_error!(
+                                    "tried to sync a node with more data than can fit in a single packet"
+                                );
+                                break;
+                            }
 
                             if tmp.len() + packet.len()
                                 > cmp::min(remaining_bandwidth, max_dgram_size)
@@ -327,12 +350,16 @@ impl NetNodeServer {
                             client.state = ClientSubState::Connected;
                         }
 
-                        remaining_bandwidth -= packet.len();
-                        self.networker.send_datagram(conn, packet)?;
-                        continue;
+                        if packet.len() > DGRAM_HEADER_SIZE {
+                            remaining_bandwidth -= packet.len();
+                            self.networker.send_datagram(conn, packet)?;
+                            continue;
+                        } else {
+                            godot_error!(
+                                "tried to send empty dgram in ObjectSync. this is probably because a synced node tries to sync more data than can fit in a single packet"
+                            )
+                        }
                     } else {
-                        self.current_tick = self.current_tick.wrapping_add(1);
-
                         packet.extend_from_bitslice(
                             (self.current_tick.cast_unsigned()).view_bits::<Lsb0>(),
                         );

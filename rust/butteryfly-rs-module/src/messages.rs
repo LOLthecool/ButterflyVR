@@ -85,24 +85,43 @@ impl MessageHandler {
         &mut self,
         packet: &BitSlice<u64, Lsb0>,
         pointer: &mut usize,
-        is_authoritative: bool,
+        is_server: bool,
     ) -> (VarArray, Array<i64>) {
         let mut idx = 0;
         let mut last_value = Variant::nil();
         let mut values: VarArray = VarArray::new();
         let mut types: Array<i64> = Array::new();
         while *pointer < packet.len() {
-            let value_type = self.get_value_type(last_value, idx);
+            let value_type = self.get_value_type(last_value.clone(), idx);
             if value_type == -1 {
                 break;
             }
-            let value_type = NetworkedValueTypes::try_from(value_type).unwrap();
-            last_value = serializer::decode_with_known_type(packet, pointer, value_type).unwrap();
+            let Ok(value_type) = NetworkedValueTypes::try_from(value_type) else {
+                if is_server {
+                    // ignore bad packets from clients
+                    return (VarArray::new(), Array::new());
+                } else {
+                    godot_error!("failed to decode message from the server.");
+                    // todo: disconnect instead of panicing
+                    panic!("failed to decode message from the server.");
+                }
+            };
+            let Some(last_value) = serializer::decode_with_known_type(packet, pointer, value_type)
+            else {
+                if is_server {
+                    // ignore bad packets from clients
+                    return (VarArray::new(), Array::new());
+                } else {
+                    godot_error!("failed to decode message from the server.");
+                    // todo: disconnect instead of panicing
+                    panic!("failed to decode message from the server.");
+                }
+            };
             values.push(&last_value);
             types.push(value_type as i64);
             idx += 1;
         }
-        if !is_authoritative {
+        if is_server {
             values = self.clean_message(values);
         }
         let tmp = values.clone();
@@ -153,7 +172,7 @@ impl INode for MessageHandler {
         self.base()
             .get_node_as::<NetNodeManager>("/root/NetworkManager")
             .bind_mut()
-            .register_message_handler(self.to_gd(), self.message_id);
+            .register_message_handler(self.to_gd());
     }
     fn exit_tree(&mut self) {
         self.network_manager

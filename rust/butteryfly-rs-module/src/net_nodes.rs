@@ -61,7 +61,7 @@ impl NetworkedNode {
     /// Sets the networked values of this node from a VarArray.
     // TODO: Add more documentation.
     #[func(virtual)]
-    pub fn set_networked_values(&self, values: VarArray) {
+    pub fn set_networked_values(&mut self, values: VarArray) {
         panic!("node has no impl for set_networked_values. this should never happen")
     }
 
@@ -98,7 +98,7 @@ impl NetworkedNode {
 
     /// Decodes a packet chunk into the variant values used in `set_networked_values`.
     pub fn update_networked_values(
-        &self,
+        &mut self,
         pointer: &mut usize,
         data: &BitSlice<u64>,
         types: &[NetworkedValueTypes],

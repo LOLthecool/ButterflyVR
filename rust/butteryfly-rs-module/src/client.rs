@@ -64,15 +64,6 @@ impl NetNodeClient {
         };
         self.owned_nodes.remove(pos);
     }
-    pub fn register_message(&mut self, handler: Gd<MessageHandler>, message_type: u16) {
-        if self.message_handlers.contains_key(&message_type) {
-            godot_warn!(
-                "tried to register duplicate handlers for message type {:#?}",
-                message_type
-            );
-        }
-        self.message_handlers.insert(message_type, handler);
-    }
     pub fn unregister_message(&mut self, message_type: u16) {
         self.message_handlers.remove(&message_type);
     }
@@ -82,11 +73,11 @@ impl NetNodeClient {
     pub fn new(
         server_addr: SocketAddr,
         uuid: [u8; 16],
-        psk_identifier: String,
+        psk_identifier: Vec<u8>,
         psk_key: Vec<u8>,
         scene_access: Gd<Node>,
     ) -> Self {
-        let mut identifier = psk_identifier.as_bytes().to_vec();
+        let mut identifier = psk_identifier.clone();
         identifier.extend(&psk_key);
         Self {
             connected: ConnectionStatus::AwaitingConnection(identifier.try_into().unwrap()),
@@ -152,10 +143,10 @@ impl NetNodeClient {
                 pointer += OBJECT_HEADER_SIZE;
                 if let Some(tmp) = self
                     .networked_nodes
-                    .iter()
+                    .iter_mut()
                     .find(|x| Gd::bind(x).objectid == next_obj)
                 {
-                    let node = Gd::bind(tmp);
+                    let mut node = Gd::bind_mut(tmp);
                     let types_buff: Vec<NetworkedValueTypes> = node.get_networked_values_types();
                     node.update_networked_values(&mut pointer, packet.as_bitslice(), &types_buff);
                 } else {
@@ -172,6 +163,8 @@ impl NetNodeClient {
     fn send_packets(&mut self) -> Result<(), NetNodesError> {
         const PACKET_MAX_SIZE_THRESHOLD: usize = 80;
         const MINIMUM_CONNECTION_BANDWIDTH: usize = 512;
+
+        self.current_tick = self.current_tick.wrapping_add(1);
 
         let server = self.networker.get_peers(false).pop().unwrap();
         let server = &server;
@@ -198,15 +191,16 @@ impl NetNodeClient {
             }
             remaining_bandwidth -= message.len();
 
-            self.networker
-                .send_stream(server, stream, message.clone())?;
+            if let Err(e) = self.networker.send_stream(server, stream, message.clone()) {
+                if e == NetNodesError::BufferFull {
+                    self.message_buffer.push_front((message, stream));
+                }
+            }
         }
 
         // channel 1 (syncing)
         while remaining_bandwidth > PACKET_MAX_SIZE_THRESHOLD {
             let mut packet: BitVec<u64> = BitVec::with_capacity(max_dgram_size);
-
-            self.current_tick = self.current_tick.wrapping_add(1);
 
             packet.extend_from_bitslice((self.current_tick.cast_unsigned()).view_bits::<Lsb0>());
             debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
@@ -257,9 +251,20 @@ impl NetNodeClient {
                 .networker
                 .is_connected(self.networker.get_peers(true).first().unwrap())
             {
-                if let Err(e) = generate_internal_message(InternalMessage::ClientId(*identifier)) {
-                    godot_error!("Failed to send identifier: {:?}", e);
-                    return;
+                match generate_internal_message(InternalMessage::ClientId(*identifier)) {
+                    Ok(packet) => {
+                        if let Err(e) = self.networker.send_stream(
+                            self.networker.get_peers(true).first().unwrap(),
+                            0,
+                            packet,
+                        ) {
+                            godot_error!("failed to send identifier {e:?}")
+                        }
+                    }
+                    Err(e) => {
+                        godot_error!("Failed to create identifier: {e:?}");
+                        return;
+                    }
                 }
                 self.connected = ConnectionStatus::Connected;
             } else {

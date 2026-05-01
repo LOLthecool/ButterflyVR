@@ -29,7 +29,7 @@ pub const MAX_DATAGRAM_SIZE: usize = 1350;
 const PACKET_QUEUE_CAPACITY: usize = 1024;
 pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum NetNodesError {
     InvalidHandlerType,
     PeerNotFound,
@@ -38,14 +38,6 @@ pub enum NetNodesError {
     InvalidDatagram,
     #[allow(dead_code)]
     QuicheError(quiche::Error),
-    #[allow(dead_code)]
-    GenericError(Box<dyn Debug + Send>),
-}
-
-impl<T: std::error::Error + Send + 'static> From<Box<T>> for NetNodesError {
-    fn from(err: Box<T>) -> Self {
-        Self::GenericError(err)
-    }
 }
 
 impl From<quiche::Error> for NetNodesError {
@@ -511,10 +503,12 @@ impl ConnectionHandler {
                 debug_assert_eq!(peer, c.id);
                 Self::send_inner(c, stream_id, &data)
             }
-            HandlerType::Server(ref mut s) => s.0.get_mut(peer).map_or_else(
-                || Err(NetNodesError::PeerNotFound),
-                |peer| Self::send_inner(peer, stream_id, &data),
-            ),
+            HandlerType::Server(ref mut s) => {
+                s.0.get_mut(peer)
+                    .map_or(Err(NetNodesError::PeerNotFound), |peer| {
+                        Self::send_inner(peer, stream_id, &data)
+                    })
+            }
         }
     }
 
@@ -524,6 +518,11 @@ impl ConnectionHandler {
         data: &[u8],
     ) -> std::result::Result<(), NetNodesError> {
         let size: u64 = 8 + data.len() as u64;
+
+        if !conn.conn.stream_writable(0, size as usize).unwrap_or(false) {
+            return Err(NetNodesError::BufferFull);
+        }
+
         conn.conn
             .stream_send(stream_id, &size.to_le_bytes(), false)?;
 
@@ -750,7 +749,7 @@ impl ConnectionHandler {
 
     pub fn new_client(
         server_addr: SocketAddr,
-        supplied_identity: String,
+        supplied_identity: Vec<u8>,
         supplied_psk: Vec<u8>,
     ) -> Self {
         let ssl_ctx = Self::build_client_ctx(supplied_identity, supplied_psk);
@@ -834,7 +833,7 @@ impl ConnectionHandler {
         Ok(ctx)
     }
 
-    fn build_client_ctx(supplied_identity: String, supplied_psk: Vec<u8>) -> SslContextBuilder {
+    fn build_client_ctx(supplied_identity: Vec<u8>, supplied_psk: Vec<u8>) -> SslContextBuilder {
         let mut ctx = SslContextBuilder::new(SslMethod::tls_client()).unwrap();
 
         ctx.set_min_proto_version(Some(SslVersion::TLS1_3)).unwrap();
@@ -843,7 +842,7 @@ impl ConnectionHandler {
         ctx.set_verify(SslVerifyMode::NONE);
 
         ctx.set_psk_client_callback(move |_ssl, _hint, identity, psk| {
-            let id_bytes = supplied_identity.as_bytes();
+            let id_bytes = &supplied_identity;
             if identity.len() < id_bytes.len() + 1 {
                 return Err(boring::error::ErrorStack::get());
             }

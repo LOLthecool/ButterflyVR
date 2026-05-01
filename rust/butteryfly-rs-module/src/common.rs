@@ -68,9 +68,9 @@ pub fn handle_stream_chunk(
 
             (_, stream_chunk) = stream_chunk.split_at(length_bytes_missing);
 
-            *length = Some(incomplete[..BYTES8].load_le());
+            *length = Some(incomplete[..BYTES8].load_le::<usize>() * 8);
             // length is in bytes but we need it in bits
-            length.unwrap() * 8
+            length.unwrap()
         });
 
         let remaining = length - incomplete.len();
@@ -104,7 +104,14 @@ pub fn handle_stream_chunk(
                         }
                         InternalMessage::NetNodeId((id, mut node)) => node.bind_mut().objectid = id,
                         InternalMessage::MessageHandlerId((id, mut handler)) => {
-                            handler.bind_mut().message_id = id
+                            if message_handlers.contains_key(&id) {
+                                godot_warn!(
+                                    "tried to register duplicate handlers for message type {:#?}",
+                                    id
+                                );
+                            }
+                            handler.bind_mut().message_id = id;
+                            message_handlers.insert(id, handler);
                         }
                     }
                 } else {
@@ -116,7 +123,7 @@ pub fn handle_stream_chunk(
                 let (values, types) =
                     handler
                         .bind_mut()
-                        .handle_message(incomplete, &mut pointer, !is_server);
+                        .handle_message(incomplete, &mut pointer, is_server);
                 if is_server {
                     message_buffer.push_back((
                         MessageHandler::generate_packet(
@@ -166,7 +173,7 @@ pub fn handle_stream_chunk(
             let (values, types) =
                 handler
                     .bind_mut()
-                    .handle_message(incomplete_stream, &mut pointer, !is_server);
+                    .handle_message(incomplete_stream, &mut pointer, is_server);
             if is_server {
                 message_buffer.push_back((
                     MessageHandler::generate_packet(
@@ -177,6 +184,8 @@ pub fn handle_stream_chunk(
                     stream,
                 ));
             }
+        } else {
+            godot_error!("received a message but had no handler for it: {handler:?}")
         }
     }
 }
@@ -224,7 +233,7 @@ pub fn handle_datagrams(
 
     // if no packets will be processed soon we can skip ahead without the user noticing too much
     // can happen if network latency decreases since we get future packets sooner
-    if !got_soon_packet {
+    if (!got_soon_packet) && total_packets > 0 {
         *tick_number += 1;
     }
 
@@ -245,7 +254,7 @@ pub fn generate_internal_message(
 ) -> Result<BitVec<u64, Lsb0>, NetNodesError> {
     match message {
         InternalMessage::ClientId(id) => {
-            let id: Vec<u8> = id.into_iter().chain([0; 14]).collect();
+            let id: Vec<u8> = id.into_iter().chain([0; 24]).collect();
             let (id, _) = id.as_chunks::<8>();
             let id: Vec<u64> = id.into_iter().map(|x| u64::from_le_bytes(*x)).collect();
 
