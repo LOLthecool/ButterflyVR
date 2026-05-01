@@ -157,7 +157,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rust-godot-lru-${{ matrix.os }}-debug
-          path: rust/godot-lru/target/debug/*.*
+          path: rust/godot-lru-rust/target/debug/*.*
 
   godot-linux:
     runs-on: ubuntu-22.04
@@ -191,7 +191,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: rust-godot-lru-ubuntu-latest-debug
-          path: rust/godot-lru/target/debug
+          path: rust/godot-lru-rust/target/debug
 
       - name: Setup Godot templates
         run: |
@@ -243,7 +243,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: rust-godot-lru-ubuntu-latest-debug
-          path: rust/godot-lru/target/debug
+          path: rust/godot-lru-rust/target/debug
 
 
       - name: Download Windows Rust artifact
@@ -268,7 +268,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: rust-godot-lru-windows-latest-debug
-          path: rust/godot-lru/target/debug
+          path: rust/godot-lru-rust/target/debug
 
       - name: Setup Godot templates
         run: |
