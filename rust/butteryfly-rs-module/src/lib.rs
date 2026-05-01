@@ -1,9 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::doc_markdown)]
-// todo:
-// internal MessageHandler
-// sync message handler ids
-// sync networked node ids
 
 //! Low level networking library for the Godot engine.
 //!
@@ -21,13 +17,13 @@
 //! Features:
 //! - zero type overhead by default, encoding and decoding is done symmetrically by a single user defined GDScript function
 //! - multiple serialization options for each data type, both lossless and lossy, with various quantization levels
-//! - branching type decoding using previously decoded data, allowing unneeded data to skip encoding
 //! - reliable, ordered messages for sending and receiving data
 //! - independent ordered networking streams
 //! - flexible node based networking
 //! - secure quic based networking using tls 1.3 PSK
 //!
 //! Upcoming features:
+//! - branching type decoding using previously decoded data, allowing unneeded data to skip encoding
 //! - delta encoding, usable by both the type serializer and the user defined GDScript function
 
 mod client;
@@ -105,18 +101,6 @@ impl NetNodeManager {
             Inner::None => {
                 godot_warn!("called unregister_node but no client or server is running");
             }
-        }
-    }
-
-    /// Not to be called directly; used by `NetworkedNode` internally.
-    /// Returns the next available object ID for use by a `NetworkedNode`.
-    /// This is a server-only method.
-    fn get_next_object_id(&mut self) -> u16 {
-        if let Inner::Server(ref mut server) = self.inner {
-            server.get_next_object_id()
-        } else {
-            godot_error!("called get_next_object_id but we are not a server");
-            0
         }
     }
 
@@ -203,6 +187,7 @@ impl NetNodeManager {
             uuid,
             psk_identifier,
             psk_key.to_vec(),
+            self.to_gd().upcast(),
         ));
     }
 
@@ -223,18 +208,15 @@ impl NetNodeManager {
             Inner::Client(ref mut client) => {
                 client.disconnect();
             }
-            Inner::Server(_) => {
-                todo!(
-                    "server does not have graceful stop functionality yet, ensure clients have disconnected then kill the server process"
-                )
+            Inner::Server(ref mut server) => {
+                server.stop();
             }
             Inner::None => {}
         }
+        self.inner = Inner::None;
     }
 
     /// Immediately stops the server or client, deleting associated resources.
-    /// Any `NetworkedNode`s or `MessageHandler`s will be in a limbo state where they still believe they are registered.
-    /// This shouldn't cause any issues.
     #[func]
     fn kill(&mut self) {
         self.inner = Inner::None;

@@ -1,6 +1,8 @@
-use crate::common::{DGRAM_HEADER_SIZE, OBJECT_HEADER_SIZE};
+use crate::common::{
+    DGRAM_HEADER_SIZE, InternalMessage, OBJECT_HEADER_SIZE, generate_internal_message,
+};
 use crate::net_nodes::NetworkedNode;
-use crate::networker::{ConnectionError, ConnectionHandler};
+use crate::networker::{ConnectionHandler, NetNodesError};
 use crate::serializer::NetworkedValueTypes;
 use crate::{common, messages::MessageHandler};
 use bitvec::prelude::*;
@@ -28,11 +30,12 @@ pub struct NetNodeClient {
     message_handlers: HashMap<u16, Gd<MessageHandler>>,
     server_tick_number: i8,
     current_tick: i8,
+    scene_access: Gd<Node>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 enum ConnectionStatus {
-    AwaitingConnection(Vec<u8>),
+    AwaitingConnection([u8; 40]),
     Connected,
 }
 
@@ -81,11 +84,12 @@ impl NetNodeClient {
         uuid: [u8; 16],
         psk_identifier: String,
         psk_key: Vec<u8>,
+        scene_access: Gd<Node>,
     ) -> Self {
         let mut identifier = psk_identifier.as_bytes().to_vec();
         identifier.extend(&psk_key);
         Self {
-            connected: ConnectionStatus::AwaitingConnection(identifier),
+            connected: ConnectionStatus::AwaitingConnection(identifier.try_into().unwrap()),
             uuid,
             networker: ConnectionHandler::new_client(server_addr, psk_identifier, psk_key),
             networked_nodes: Vec::new(),
@@ -97,12 +101,19 @@ impl NetNodeClient {
             message_handlers: HashMap::new(),
             server_tick_number: 0,
             current_tick: 0,
+            scene_access,
         }
     }
     pub fn disconnect(&mut self) {
-        todo!()
+        self.networker.disconnect_peer(
+            self.networker.get_peers(true).first().unwrap(),
+            false,
+            0,
+            "player disconnected",
+        );
+        let _ = self.networker.update();
     }
-    fn tick(&mut self) -> Result<(), ConnectionError> {
+    fn tick(&mut self) -> Result<(), NetNodesError> {
         self.networker.update()?;
 
         let server = self.networker.get_peers(false).pop().unwrap();
@@ -119,6 +130,7 @@ impl NetNodeClient {
                     &mut self.message_buffer,
                     &mut self.message_handlers,
                     false,
+                    Some(self.scene_access.clone()),
                 );
             }
         }
@@ -157,7 +169,7 @@ impl NetNodeClient {
             }
         }
     }
-    fn send_packets(&mut self) -> Result<(), ConnectionError> {
+    fn send_packets(&mut self) -> Result<(), NetNodesError> {
         const PACKET_MAX_SIZE_THRESHOLD: usize = 80;
         const MINIMUM_CONNECTION_BANDWIDTH: usize = 512;
 
@@ -245,7 +257,7 @@ impl NetNodeClient {
                 .networker
                 .is_connected(self.networker.get_peers(true).first().unwrap())
             {
-                if let Err(e) = self.networker.send_identifier(identifier) {
+                if let Err(e) = generate_internal_message(InternalMessage::ClientId(*identifier)) {
                     godot_error!("Failed to send identifier: {:?}", e);
                     return;
                 }

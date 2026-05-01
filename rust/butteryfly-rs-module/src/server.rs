@@ -1,6 +1,9 @@
-use crate::common::{BYTES2, DGRAM_HEADER_SIZE, NetNodesConnectionId, OBJECT_HEADER_SIZE};
+use crate::common::{
+    BYTES2, DGRAM_HEADER_SIZE, InternalMessage, NetNodesConnectionId, OBJECT_HEADER_SIZE,
+    generate_internal_message,
+};
 use crate::net_nodes::NetworkedNode;
-use crate::networker::{ConnectionError, ConnectionHandler};
+use crate::networker::{ConnectionHandler, NetNodesError};
 use crate::serializer::NetworkedValueTypes;
 use crate::{common, messages::MessageHandler};
 use bitvec::prelude::*;
@@ -23,6 +26,7 @@ pub struct NetNodeServer {
     message_handlers: HashMap<u16, Gd<MessageHandler>>,
     current_tick: i8,
     last_netnode_id: u16,
+    last_message_id: u16,
 }
 
 impl NetNodeServer {
@@ -30,7 +34,16 @@ impl NetNodeServer {
         self.networker.get_peers(false).len()
     }
 
-    pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>) {
+    pub fn register_node(&mut self, mut new_node_ref: Gd<NetworkedNode>) {
+        new_node_ref.bind_mut().objectid = self.get_next_object_id();
+
+        let message = generate_internal_message(InternalMessage::NetNodeId((
+            new_node_ref.bind().objectid,
+            new_node_ref.clone().upcast(),
+        )))
+        .unwrap();
+        self.queue_message(message, 0);
+
         self.networked_nodes.push(new_node_ref);
     }
 
@@ -60,7 +73,21 @@ impl NetNodeServer {
         self.last_netnode_id
     }
 
-    pub fn register_message(&mut self, handler: Gd<MessageHandler>, message_type: u16) {
+    pub fn get_next_message_id(&mut self) -> u16 {
+        self.last_message_id = self.last_message_id.checked_add(1).unwrap();
+        self.last_message_id
+    }
+
+    pub fn register_message(&mut self, mut handler: Gd<MessageHandler>, message_type: u16) {
+        handler.bind_mut().message_id = self.get_next_message_id();
+
+        let message = generate_internal_message(InternalMessage::MessageHandlerId((
+            handler.bind().message_id,
+            handler.clone().upcast(),
+        )))
+        .unwrap();
+        self.queue_message(message, 0);
+
         self.message_handlers.insert(message_type, handler);
     }
 
@@ -81,10 +108,11 @@ impl NetNodeServer {
             message_handlers: HashMap::new(),
             current_tick: 0,
             last_netnode_id: 0,
+            last_message_id: 0,
         }
     }
 
-    pub fn get_next_client(&mut self) -> Result<[u8; 40], ConnectionError> {
+    pub fn get_next_client(&mut self) -> Result<[u8; 40], NetNodesError> {
         let psk_identifier = rand::rng().random::<[u8; 8]>();
         let psk_key = rand::rng().random::<[u8; 32]>();
         self.networker.add_client_token(psk_identifier, psk_key)?;
@@ -126,7 +154,7 @@ impl NetNodeServer {
         }
     }
 
-    fn tick(&mut self) -> std::result::Result<(), ConnectionError> {
+    fn tick(&mut self) -> std::result::Result<(), NetNodesError> {
         Self::tick_client_priorities(&mut self.clients, &self.networked_nodes);
 
         self.networker.update()?;
@@ -137,20 +165,16 @@ impl NetNodeServer {
 
         for (client_id, client) in &mut self.clients {
             match client.state {
-                ClientState::AwaitingIdentifier => {
-                    if let Ok(data) = self.networker.recv_stream_bytes(client_id, 0, 48) {
-                        // need to skip the length prefix
-                        if let Ok(identifier) = data.into_vec()[8..].try_into() {
-                            client.state = ClientState::AwaitingUuid(identifier);
-                        } else {
-                            // todo: handle identifier being sent over multiple packets
-                            self.networker.disconnect_peer(
-                                client_id,
-                                true,
-                                0,
-                                "invalid identifier length",
-                            );
-                            godot_warn!("rejected client with invalid identifier length");
+                ClientState::AwaitingIdentifier(ref mut data) => {
+                    if let Ok(new_data) =
+                        self.networker
+                            .recv_stream_bytes(client_id, 0, 48 - data.len())
+                    {
+                        data.extend(new_data.into_vec());
+
+                        if data.len() >= 48 {
+                            // need to skip the length prefix
+                            client.state = ClientState::AwaitingUuid(data[8..].try_into().unwrap());
                         }
                     }
                 }
@@ -165,6 +189,7 @@ impl NetNodeServer {
                                 &mut self.message_buffer,
                                 &mut self.message_handlers,
                                 true,
+                                None,
                             );
                         }
                     }
@@ -225,7 +250,7 @@ impl NetNodeServer {
         }
     }
 
-    fn send_packets(&mut self) -> std::result::Result<(), ConnectionError> {
+    fn send_packets(&mut self) -> std::result::Result<(), NetNodesError> {
         const PACKET_MAX_SIZE_THRESHOLD: usize = 80;
 
         for (conn, client) in &mut self.clients {
@@ -395,6 +420,14 @@ impl NetNodeServer {
         }
     }
 
+    pub fn stop(&mut self) {
+        for client in self.networker.get_peers(true) {
+            self.networker
+                .disconnect_peer(&client, false, 0, "server shutting down");
+        }
+        let _ = self.networker.update();
+    }
+
     pub fn physics_process_inner(&mut self) {
         let _ = self
             .tick()
@@ -421,14 +454,18 @@ impl Client {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 enum ClientState {
-    #[default]
-    AwaitingIdentifier,
+    AwaitingIdentifier(Vec<u8>),
     AwaitingUuid([u8; 40]),
     Connected(ConnectedClient),
 }
 
+impl Default for ClientState {
+    fn default() -> Self {
+        Self::AwaitingIdentifier(Vec::new())
+    }
+}
 #[derive(Debug, Clone, PartialEq)]
 struct ConnectedClient {
     uuid: [u8; 16],

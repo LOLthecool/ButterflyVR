@@ -30,7 +30,7 @@ const PACKET_QUEUE_CAPACITY: usize = 1024;
 pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 
 #[derive(Debug)]
-pub enum ConnectionError {
+pub enum NetNodesError {
     InvalidHandlerType,
     PeerNotFound,
     BufferFull,
@@ -42,13 +42,13 @@ pub enum ConnectionError {
     GenericError(Box<dyn Debug + Send>),
 }
 
-impl<T: std::error::Error + Send + 'static> From<Box<T>> for ConnectionError {
+impl<T: std::error::Error + Send + 'static> From<Box<T>> for NetNodesError {
     fn from(err: Box<T>) -> Self {
         Self::GenericError(err)
     }
 }
 
-impl From<quiche::Error> for ConnectionError {
+impl From<quiche::Error> for NetNodesError {
     fn from(err: quiche::Error) -> Self {
         Self::QuicheError(err)
     }
@@ -212,7 +212,7 @@ pub struct ConnectionHandler {
 }
 
 impl ConnectionHandler {
-    pub fn update(&mut self) -> Result<(), ConnectionError> {
+    pub fn update(&mut self) -> Result<(), NetNodesError> {
         match self.handler {
             HandlerType::Server(ref mut data) => {
                 Self::update_server(data, &self.listener)?;
@@ -225,10 +225,7 @@ impl ConnectionHandler {
         Ok(())
     }
 
-    fn update_server(
-        data: &mut ServerState,
-        listener: &UDPListener,
-    ) -> Result<(), ConnectionError> {
+    fn update_server(data: &mut ServerState, listener: &UDPListener) -> Result<(), NetNodesError> {
         for client in data.0.values_mut() {
             client.conn.on_timeout();
         }
@@ -316,7 +313,7 @@ impl ConnectionHandler {
     fn update_client(
         data: &mut PeerConnection,
         listener: &UDPListener,
-    ) -> Result<(), ConnectionError> {
+    ) -> Result<(), NetNodesError> {
         data.conn.on_timeout();
 
         for (packet, source_addr) in listener.recv.try_iter() {
@@ -365,7 +362,7 @@ impl ConnectionHandler {
         source_addr: SocketAddr,
         listener: &UDPListener,
         psks: Arc<Mutex<HashMap<[u8; 8], [u8; 32]>>>,
-    ) -> Result<PeerConnection, ConnectionError> {
+    ) -> Result<PeerConnection, NetNodesError> {
         let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
             .fill(&mut scid_bytes)
@@ -393,7 +390,7 @@ impl ConnectionHandler {
     fn send_packets(
         connection: &mut PeerConnection,
         sender: &SyncSender<(Bytes, SendInfo)>,
-    ) -> Result<(), ConnectionError> {
+    ) -> Result<(), NetNodesError> {
         loop {
             let mut out = BytesMut::zeroed(MAX_DATAGRAM_SIZE);
             match connection.conn.send(&mut out) {
@@ -406,7 +403,7 @@ impl ConnectionHandler {
                     return Ok(());
                 }
                 Err(e) => {
-                    return Err(ConnectionError::QuicheError(e));
+                    return Err(NetNodesError::QuicheError(e));
                 }
             }
         }
@@ -417,7 +414,7 @@ impl ConnectionHandler {
         mut packet: BytesMut,
         connection: &mut PeerConnection,
         bind_addr: SocketAddr,
-    ) -> Result<(), ConnectionError> {
+    ) -> Result<(), NetNodesError> {
         let info = RecvInfo {
             from,
             to: bind_addr,
@@ -499,7 +496,7 @@ impl ConnectionHandler {
         peer: &NetNodesConnectionId,
         stream_id: u64,
         mut data: BitVec<u64, Lsb0>,
-    ) -> std::result::Result<(), ConnectionError> {
+    ) -> std::result::Result<(), NetNodesError> {
         data.set_uninitialized(false);
 
         let data: Vec<u8> = data
@@ -515,7 +512,7 @@ impl ConnectionHandler {
                 Self::send_inner(c, stream_id, &data)
             }
             HandlerType::Server(ref mut s) => s.0.get_mut(peer).map_or_else(
-                || Err(ConnectionError::PeerNotFound),
+                || Err(NetNodesError::PeerNotFound),
                 |peer| Self::send_inner(peer, stream_id, &data),
             ),
         }
@@ -525,7 +522,7 @@ impl ConnectionHandler {
         conn: &mut PeerConnection,
         stream_id: u64,
         data: &[u8],
-    ) -> std::result::Result<(), ConnectionError> {
+    ) -> std::result::Result<(), NetNodesError> {
         let size: u64 = 8 + data.len() as u64;
         conn.conn
             .stream_send(stream_id, &size.to_le_bytes(), false)?;
@@ -535,10 +532,10 @@ impl ConnectionHandler {
                 if length == data.len() {
                     Ok(())
                 } else {
-                    Err(ConnectionError::BufferFull)
+                    Err(NetNodesError::BufferFull)
                 }
             }
-            Err(e) => Err(ConnectionError::QuicheError(e)),
+            Err(e) => Err(NetNodesError::QuicheError(e)),
         }
     }
 
@@ -546,7 +543,7 @@ impl ConnectionHandler {
         &mut self,
         peer: &NetNodesConnectionId,
         stream_id: u64,
-    ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
+    ) -> std::result::Result<BitVec<u64, Lsb0>, NetNodesError> {
         const STREAM_CHUNK_SIZE: usize = 4096;
 
         let mut buf = BytesMut::zeroed(STREAM_CHUNK_SIZE);
@@ -572,7 +569,7 @@ impl ConnectionHandler {
                         Err(e) => return Err(e),
                     }
                 } else {
-                    return Err(ConnectionError::PeerNotFound);
+                    return Err(NetNodesError::PeerNotFound);
                 }
             }
         }
@@ -588,7 +585,7 @@ impl ConnectionHandler {
         peer: &NetNodesConnectionId,
         stream_id: u64,
         max_length: usize,
-    ) -> std::result::Result<BitVec<u8, Lsb0>, ConnectionError> {
+    ) -> std::result::Result<BitVec<u8, Lsb0>, NetNodesError> {
         let mut buf = BytesMut::zeroed(max_length);
 
         match self.handler {
@@ -611,7 +608,7 @@ impl ConnectionHandler {
                         Err(e) => return Err(e),
                     }
                 } else {
-                    return Err(ConnectionError::PeerNotFound);
+                    return Err(NetNodesError::PeerNotFound);
                 }
             }
         }
@@ -619,11 +616,11 @@ impl ConnectionHandler {
         Ok(Self::unaligned_packet_to_bits(buf))
     }
 
-    fn packet_to_bits(buf: &Bytes) -> Result<BitVec<u64, Lsb0>, ConnectionError> {
+    fn packet_to_bits(buf: &Bytes) -> Result<BitVec<u64, Lsb0>, NetNodesError> {
         const CHUNK_REQUIRED_ALIGNMENT: usize = 8;
 
         if !buf.len().is_multiple_of(CHUNK_REQUIRED_ALIGNMENT) {
-            return Err(ConnectionError::InvalidDatagram);
+            return Err(NetNodesError::InvalidDatagram);
         }
 
         let (buf, []) = buf.as_chunks::<8>() else {
@@ -643,11 +640,11 @@ impl ConnectionHandler {
         conn: &mut PeerConnection,
         stream_id: u64,
         buf: &mut BytesMut,
-    ) -> std::result::Result<usize, ConnectionError> {
+    ) -> std::result::Result<usize, NetNodesError> {
         match conn.conn.stream_recv(stream_id, buf) {
             Ok((length, _)) => Ok(length),
             Err(quiche::Error::Done) => Ok(0),
-            Err(e) => Err(ConnectionError::QuicheError(e)),
+            Err(e) => Err(NetNodesError::QuicheError(e)),
         }
     }
 
@@ -655,7 +652,7 @@ impl ConnectionHandler {
         &mut self,
         peer: &NetNodesConnectionId,
         mut data: BitVec<u64, Lsb0>,
-    ) -> std::result::Result<(), ConnectionError> {
+    ) -> std::result::Result<(), NetNodesError> {
         data.set_uninitialized(false);
 
         let data: Vec<u8> = data
@@ -671,7 +668,7 @@ impl ConnectionHandler {
                 Self::send_dgram_inner(c, data)
             }
             HandlerType::Server(ref mut s) => s.0.get_mut(peer).map_or_else(
-                || Err(ConnectionError::PeerNotFound),
+                || Err(NetNodesError::PeerNotFound),
                 |peer| Self::send_dgram_inner(peer, data),
             ),
         }
@@ -680,19 +677,19 @@ impl ConnectionHandler {
     fn send_dgram_inner(
         conn: &mut PeerConnection,
         data: Vec<u8>,
-    ) -> std::result::Result<(), ConnectionError> {
+    ) -> std::result::Result<(), NetNodesError> {
         if data.len() > conn.conn.dgram_max_writable_len().unwrap_or(0) {
-            return Err(ConnectionError::InvalidDatagramLength);
+            return Err(NetNodesError::InvalidDatagramLength);
         }
         conn.conn
             .dgram_send_buf(data)
-            .map_err(ConnectionError::QuicheError)
+            .map_err(NetNodesError::QuicheError)
     }
 
     pub fn recv_datagram(
         &mut self,
         peer: &NetNodesConnectionId,
-    ) -> std::result::Result<BitVec<u64, Lsb0>, ConnectionError> {
+    ) -> std::result::Result<BitVec<u64, Lsb0>, NetNodesError> {
         let mut dgram = match self.handler {
             HandlerType::Client(ref mut c) => {
                 let peer: ConnectionId = peer.into();
@@ -703,7 +700,7 @@ impl ConnectionHandler {
                 if let Some(peer) = s.0.get_mut(peer) {
                     peer.conn.dgram_recv_buf()?
                 } else {
-                    return Err(ConnectionError::PeerNotFound);
+                    return Err(NetNodesError::PeerNotFound);
                 }
             }
         };
@@ -718,12 +715,12 @@ impl ConnectionHandler {
         &mut self,
         identifier: [u8; 8],
         key: [u8; 32],
-    ) -> Result<(), ConnectionError> {
+    ) -> Result<(), NetNodesError> {
         if let HandlerType::Server(data) = &mut self.handler {
             data.2.lock().unwrap().insert(identifier, key);
             Ok(())
         } else {
-            Err(ConnectionError::InvalidHandlerType)
+            Err(NetNodesError::InvalidHandlerType)
         }
     }
 
