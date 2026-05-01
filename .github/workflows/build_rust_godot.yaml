@@ -190,8 +190,8 @@ jobs:
       - name: Download Linux Rust-lru-cache artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-lru-cache-ubuntu-latest-debug
-          path: rust/lru-cache/target/debug
+          name: rust-godot-lru-cache-ubuntu-latest-debug
+          path: rust/godot-lru-cache/target/debug
 
       - name: Setup Godot templates
         run: |
@@ -267,8 +267,8 @@ jobs:
       - name: Download Windows Rust-lru-cache artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-lru-cache-windows-latest-debug
-          path: rust/lru-cache/target/debug
+          name: rust-godot-lru-cache-windows-latest-debug
+          path: rust/godot-lru-cache/target/debug
 
       - name: Setup Godot templates
         run: |
