@@ -156,8 +156,8 @@ jobs:
       - name: Upload Rust artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rust-godot-lru-rust-${{ matrix.os }}-debug
-          path: rust/godot-lru-rust/target/debug/*.*
+          name: rust-godot-lru-${{ matrix.os }}-debug
+          path: rust/godot-lru/target/debug/*.*
 
   godot-linux:
     runs-on: ubuntu-22.04
@@ -190,8 +190,8 @@ jobs:
       - name: Download Linux Rust-lru-cache artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-godot-lru-cache-ubuntu-latest-debug
-          path: rust/godot-lru-cache/target/debug
+          name: rust-godot-lru-ubuntu-latest-debug
+          path: rust/godot-lru/target/debug
 
       - name: Setup Godot templates
         run: |
@@ -239,12 +239,12 @@ jobs:
           name: rust-agones-godot-rs-ubuntu-latest-debug
           path: rust/agones-godot-rs/target/debug
 
-
       - name: Download Linux Rust-lru-cache artifact to silence useless errors
         uses: actions/download-artifact@v4
         with:
-          name: rust-lru-cache-ubuntu-latest-debug
-          path: rust/lru-cache/target/debug
+          name: rust-godot-lru-ubuntu-latest-debug
+          path: rust/godot-lru/target/debug
+
 
       - name: Download Windows Rust artifact
         uses: actions/download-artifact@v4
@@ -267,8 +267,8 @@ jobs:
       - name: Download Windows Rust-lru-cache artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-godot-lru-cache-windows-latest-debug
-          path: rust/godot-lru-cache/target/debug
+          name: rust-godot-lru-windows-latest-debug
+          path: rust/godot-lru/target/debug
 
       - name: Setup Godot templates
         run: |
