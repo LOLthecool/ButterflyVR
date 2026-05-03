@@ -4,7 +4,7 @@ signal avatar_loaded
 
 @export var networker:PlayerNetworker
 @export var player:Player
-var owner_id:int
+var owner_id:PackedByteArray
 var equiped_avatar:Node3D
 var current_avatar:UUID
 
@@ -18,7 +18,7 @@ func _ready() -> void:
 		# todo: get current avatar from api
 		GlobalWorldHandler.current_world.avatar_change_handler.send_message(owner_id, UUID.new())
 
-func change_avatar(target_player:int, avatar:UUID) -> void:
+func change_avatar(target_player:PackedByteArray, avatar:UUID) -> void:
 	var new_avatar:PackedScene
 	if target_player != owner_id:
 		return

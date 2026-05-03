@@ -42,12 +42,12 @@ func _physics_process(delta: float) -> void:
 
 # this class should do nothing until this function is done
 func start(api_token:PackedByteArray, is_local:bool, local_world:UUID, 
-		local_bind_addr:String, key:PackedByteArray) -> void:
+		local_bind_port:int) -> void:
 	started = true
 	
 	if is_local:
 		# local instance
-		print("binding to address: ", local_bind_addr)
+		print("binding to address: 127.0.0.1:%s" % local_bind_port)
 		
 		print("set token to %s" % api_token)
 		# set_token assumes we are a client
@@ -56,7 +56,7 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 		GlobalAccountHandler.token_expiry_utc = -1
 		GlobalAccountHandler.token_renewable = false
 		
-		await GlobalWorldHandler.load_world_server(local_world, local_bind_addr, local_bind_addr, key)
+		await GlobalWorldHandler.load_world_server(local_world, local_bind_port)
 		
 		var local_token_file:FileAccess = FileAccess.open(LOCAL_SERVER_KEY_LOCATION, FileAccess.WRITE)
 		local_token_file.store_buffer(NetworkManager.get_next_client())
@@ -89,21 +89,19 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 				continue
 		
 		print("got allocation")
-		var addr:String = agones_response["address"]
 		var port:int = agones_response["ports"]["default"]
 		var world:UUID = UUID.from_String(agones_response["labels"]["world"])
 		var instance_token:PackedByteArray = (
 				agones_response["annotations"]["token"] as String
 				).hex_decode()
 		
-		print("addr:", addr)
 		print("port:", port)
 		print("world:", world)
 		print("instancetoken:", instance_token)
 		
 		await GlobalAccountHandler.set_token(instance_token, -1, false)
 		
-		await GlobalWorldHandler.load_world_server(world, addr, "0.0.0.0" + ":" + str(port), key)
+		await GlobalWorldHandler.load_world_server(world, port)
 		
 		var response:Array[Variant] = await GlobalAPIHandler.make_request(
 				HTTPClient.METHOD_POST, 

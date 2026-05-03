@@ -49,6 +49,8 @@ func create_online_instance(
 	return UUID.from_String(result[4]["id"])
 
 func create_and_join_offline_instance(world_uuid:UUID) -> void:
+	var port:int = randi_range(20000, 30000)
+	
 	var arguments:PackedStringArray = PackedStringArray(OFFLINE_INSTANCE_CMD_ARGUMENTS)
 	
 	var world_argument:String = "--world=%s" % world_uuid
@@ -58,6 +60,9 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	arguments.push_back(self_pid_argument)
 	
 	var token_argument:String = "--api_token=%s" % GlobalAccountHandler.session_token.hex_encode()
+	arguments.push_back(token_argument)
+	
+	var port_argument:String = "--port=%s" % port
 	arguments.push_back(token_argument)
 	
 	if FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
@@ -74,23 +79,30 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	var local_server_token:PackedByteArray = FileAccess.get_file_as_bytes(
 			ServerHandler.LOCAL_SERVER_KEY_LOCATION)
 	
-	NetworkManager.start_client(local_server_token)
+	assert(local_server_token.size() == 40)
+	
+	NetworkManager.start_client(
+			"127.0.0.1", 
+			port, 
+			(await GlobalAccountHandler.get_uuid()).as_array(), 
+			local_server_token.slice(0, 8), 
+			local_server_token.slice(8, 40))
 
 # do not call directly, call load_world instead
 func join_instance(instance:UUID) -> void:
 	for i in range(0, MAX_CONNECT_RETRYS):
-		await get_tree().create_timer(3).timeout
 		var response:Array[Variant] = await GlobalAPIHandler.make_request(
 				HTTPClient.METHOD_GET, 
 				INSTANCE_JOIN_ENDPOINT % instance.to_string(), 
 				PackedStringArray([GlobalAccountHandler.get_token_header()]))
 		
 		var result:Array[Variant] = GlobalAPIHandler.handle_response(
-				response[0], response[2], [200], ["token"])
+				response[0], response[2], [200], ["ip", "port", "token"])
 		
 		if !result[0]:
 			if result[1] == 202 and i + 1 < MAX_CONNECT_RETRYS:
 				push_warning("no connect token available, retrying")
+				await get_tree().create_timer(3).timeout
 				continue
 			
 			push_error("error while joining an online instance")
@@ -102,7 +114,16 @@ func join_instance(instance:UUID) -> void:
 				push_error("error message: %s" % result[3])
 			return
 		
+		var ip:String = result[4]["ip"]
+		var port:int = result[4]["port"]
 		var token:PackedByteArray = PackedByteArray(result[4]["token"])
 		
-		NetworkManager.start_client(token)
+		assert(token.size() == 40)
+	
+		NetworkManager.start_client(
+			ip, 
+			port, 
+			(await GlobalAccountHandler.get_uuid()).as_array(), 
+			token.slice(0, 8), 
+			token.slice(8, 40))
 		break

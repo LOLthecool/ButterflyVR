@@ -1,7 +1,7 @@
 extends Node3D
 
 @export var player_access:PlayerAccess
-var id:int
+var id:PackedByteArray
 
 func _ready() -> void:
 	id = player_access.networker.owner_id

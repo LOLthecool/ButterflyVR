@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://c2qdpk6unaxgl"]
+[gd_scene format=3 uid="uid://c2qdpk6unaxgl"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_awhje"]
 [ext_resource type="Script" uid="uid://dpwxpwh8y3x10" path="res://scenes/player/ui/page_avatars/avatar_list.gd" id="2_2ou7c"]
@@ -24,7 +24,7 @@ background_color = Color(0, 0, 0, 0)
 ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 
-[node name="AvatarPage" type="VBoxContainer"]
+[node name="AvatarPage" type="VBoxContainer" unique_id=291399223]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -35,103 +35,103 @@ size_flags_vertical = 3
 script = ExtResource("1_awhje")
 page_name = "Avatars"
 
-[node name="Control" type="TabContainer" parent="."]
+[node name="Control" type="TabContainer" parent="." unique_id=1814947361]
 layout_mode = 2
 size_flags_vertical = 3
 current_tab = 0
 tabs_visible = false
 
-[node name="VBoxContainer2" type="HBoxContainer" parent="Control"]
+[node name="VBoxContainer2" type="HBoxContainer" parent="Control" unique_id=1974814060]
 layout_mode = 2
 size_flags_vertical = 3
 metadata/_tab_index = 0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2" unique_id=671844509]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="FixedCatagories" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer"]
+[node name="FixedCatagories" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer" unique_id=255375540]
 layout_mode = 2
 
-[node name="VBoxContainer2" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories"]
+[node name="VBoxContainer2" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories" unique_id=312730310]
 layout_mode = 2
 
-[node name="PanelContainer5" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer5" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1460845619]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5" unique_id=797327780]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Featured"
 
-[node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1067050047]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2" unique_id=634219211]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "Owned"
 
-[node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1965589277]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3" unique_id=1487042667]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Shared"
 
-[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=225143686]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer" unique_id=1133522427]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Favourites"
 
-[node name="PanelContainer4" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer4" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=88138982]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4" unique_id=822388371]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "Popular"
 
-[node name="PanelContainer6" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer6" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1593982539]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6" unique_id=118464029]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "New"
 
-[node name="Customs" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer"]
+[node name="Customs" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer" unique_id=1174728129]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs" unique_id=1045595803]
 layout_mode = 2
 
-[node name="Catagories" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
+[node name="Catagories" type="VBoxContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer" unique_id=1044307398]
 layout_mode = 2
 
-[node name="Adder" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
+[node name="Adder" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer" unique_id=1528682431]
 layout_mode = 2
 
-[node name="Label" type="Button" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
+[node name="Label" type="Button" parent="Control/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder" unique_id=1326011808]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 disabled = true
 text = " + "
 
-[node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("avatar_previewer")]
+[node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2" unique_id=122960574 node_paths=PackedStringArray("avatar_previewer")]
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("2_2ou7c")
 avatar_previewer = NodePath("../VBoxContainer3")
 
-[node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2" node_paths=PackedStringArray("previewer", "avatar_name", "avatar_publicity", "avatar_author", "flag_list", "details_button", "equip_button")]
+[node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2" unique_id=1335291196 node_paths=PackedStringArray("previewer", "avatar_name", "avatar_publicity", "avatar_author", "flag_list", "details_button", "equip_button")]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.4
@@ -144,70 +144,70 @@ flag_list = NodePath("ScrollContainer/HFlowContainer")
 details_button = NodePath("Button")
 equip_button = NodePath("Button2")
 
-[node name="TextureRect" type="TextureRect" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="TextureRect" type="TextureRect" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=1054683923]
 custom_minimum_size = Vector2(256, 256)
 layout_mode = 2
 texture = SubResource("ViewportTexture_m82ti")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect"]
+[node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect" unique_id=1325922295]
 world_3d = SubResource("World3D_b27c1")
 transparent_bg = true
 
-[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" node_paths=PackedStringArray("viewport", "camera")]
-transform = Transform3D(0.56216776, 0, -0.82702315, 0, 1, 0, 0.82702315, 0, 0.56216776, 0, 0, 0)
+[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" unique_id=374216070 node_paths=PackedStringArray("viewport", "camera")]
+transform = Transform3D(0.8993819, 0, 0.43716365, 0, 1, 0, -0.43716365, 0, 0.8993819, 0, 0, 0)
 script = ExtResource("4_j5nty")
 viewport = NodePath("..")
 camera = NodePath("../Camera3D")
 
-[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D"]
+[node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D" unique_id=97176829]
 
-[node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport"]
+[node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" unique_id=553553929]
 environment = SubResource("Environment_m82ti")
 
-[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=78319080]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "UNNAMED"
 autowrap_mode = 3
 
-[node name="Label2" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="Label2" type="Label" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=1169018775]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "UNNAMED"
 autowrap_mode = 3
 
-[node name="Label3" type="Label" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="Label3" type="Label" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=161633121]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "UNNAMED"
 autowrap_mode = 3
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="ScrollContainer" type="ScrollContainer" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=743969736]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="HFlowContainer" type="HFlowContainer" parent="Control/VBoxContainer2/VBoxContainer3/ScrollContainer"]
+[node name="HFlowContainer" type="HFlowContainer" parent="Control/VBoxContainer2/VBoxContainer3/ScrollContainer" unique_id=96456450]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 8
 script = ExtResource("5_m82ti")
 
-[node name="Button3" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="Button3" type="Button" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=1586128697]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 disabled = true
 text = "favourite"
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=258551172]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 disabled = true
 text = "details"
 
-[node name="Button2" type="Button" parent="Control/VBoxContainer2/VBoxContainer3"]
+[node name="Button2" type="Button" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=808160002]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "equip"

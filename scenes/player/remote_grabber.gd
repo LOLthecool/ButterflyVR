@@ -2,7 +2,7 @@ extends Node3D
 
 @export var player_access:PlayerAccess
 var grabbed_node:Node3D
-var owner_id:int
+var owner_id:PackedByteArray
 var networker:PlayerNetworker
 var player:Player
 
@@ -21,7 +21,7 @@ func on_release() -> void:
 		(grabbed_node as RigidBody3D).freeze = false
 	grabbed_node = null
 
-func on_grab(grabbing_player:int, target:Node) -> void:
+func on_grab(grabbing_player:PackedByteArray, target:Node) -> void:
 	if grabbing_player != owner_id:
 		return
 	if target == null:

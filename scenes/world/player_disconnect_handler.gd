@@ -13,12 +13,8 @@ func _get_value_type(_previous_value: Variant, idx: int) -> int:
 	return -1
 func _process_message(values: Array) -> void:
 	handle_on_dc(values)
-	
-	while !NetworkManager.id_ready():
-		await get_tree().physics_frame
 
-func handle_on_dc(values: Array) -> void:
-	var player:int = values[0]
+func handle_on_dc(player: PackedByteArray) -> void:
 	for node:NetworkedNode in NetworkManager.get_networked_nodes():
 		if node.owner_id == player:
-			node._on_owner_dc()
+			node.on_owner_dc()
