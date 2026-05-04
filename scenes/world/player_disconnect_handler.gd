@@ -1,16 +1,15 @@
 extends MessageHandler
 
-func on_player_left(player:int) -> void:
-	send_message_final([player], [_get_value_type(null, 0)])
+func _physics_process(_delta: float) -> void:
+	for player:PackedByteArray in NetworkManager.get_dc_clients():
+		send_message_final([player], [_get_value_type(null, 0)])
 
-func _init() -> void:
-	NetworkManager.player_left.connect(on_player_left)
-
-func _get_value_type(_previous_value: Variant, idx: int) -> int:
+func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:
 		0:
-			return 2
-	return -1
+			return TypeHelper.NetworkedValueTypes.ByteArray
+	return TypeHelper.NetworkedValueTypes.End
+
 func _process_message(values: Array) -> void:
 	handle_on_dc(values)
 

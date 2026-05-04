@@ -1,22 +1,22 @@
-[gd_scene load_steps=5 format=3 uid="uid://dv34xwvl07l7v"]
+[gd_scene format=3 uid="uid://dv34xwvl07l7v"]
 
 [ext_resource type="Script" uid="uid://f1qkre3h8u0i" path="res://scenes/player/player_access.gd" id="1_rmxnb"]
 [ext_resource type="Script" uid="uid://by7wacrsb7mud" path="res://scenes/player/remote_grabber.gd" id="2_2ms3h"]
 [ext_resource type="Script" uid="uid://d287rq0d3v2ec" path="res://scenes/player/pivot_center.gd" id="2_840kl"]
 [ext_resource type="PackedScene" uid="uid://fqt8aa660pk8" path="res://scenes/player/name_plate.tscn" id="5_qn18y"]
 
-[node name="RemotePlayer" type="Node3D"]
+[node name="RemotePlayer" type="Node3D" unique_id=528957332]
 script = ExtResource("1_rmxnb")
 
-[node name="PivotCenter" type="Node3D" parent="." node_paths=PackedStringArray("player_access")]
+[node name="PivotCenter" type="Node3D" parent="." unique_id=1369108260 node_paths=PackedStringArray("player_access")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 script = ExtResource("2_840kl")
 player_access = NodePath("..")
 
-[node name="RemoteGrabber" type="Node3D" parent="PivotCenter" node_paths=PackedStringArray("player_access")]
+[node name="RemoteGrabber" type="Node3D" parent="PivotCenter" unique_id=1518065459 node_paths=PackedStringArray("player_access")]
 script = ExtResource("2_2ms3h")
 player_access = NodePath("../..")
 
-[node name="NamePlate" parent="." node_paths=PackedStringArray("player_access") instance=ExtResource("5_qn18y")]
+[node name="NamePlate" parent="." unique_id=107630917 node_paths=PackedStringArray("player_access") instance=ExtResource("5_qn18y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 player_access = NodePath("..")

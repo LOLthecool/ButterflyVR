@@ -31,6 +31,7 @@ var follow_target_right_leg:bool
 func setup(_is_local:bool) -> void:
 	head.bone_idx = head_bone
 	head.target = head_target
+	@warning_ignore("unsafe_method_access")
 	head.scale_local()
 	left_arm.bone_idx = left_arm_bone
 	left_arm.target = left_arm_target

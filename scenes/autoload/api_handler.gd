@@ -73,6 +73,7 @@ func handle_response(code:HTTPClient.ResponseCode, body:String, expected_codes:A
 		if !expected_body_keys.is_empty():
 			success = false
 		return [success, response_code, error_code, error_message, response_values]
+	@warning_ignore("unsafe_cast")
 	var data:Dictionary = decoder.data as Dictionary
 	
 	if "error_code" in data:

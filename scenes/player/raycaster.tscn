@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://cyw6fgjshkt2r"]
+[gd_scene format=3 uid="uid://cyw6fgjshkt2r"]
 
 [ext_resource type="Script" uid="uid://d26kogrs0h2jr" path="res://scenes/player/grabber.gd" id="1_6oxic"]
 [ext_resource type="Script" uid="uid://c053ffyni0v5k" path="res://scenes/player/interacter.gd" id="2_hk02f"]
@@ -13,25 +13,25 @@ func _ready() -> void:
 	player_access.interactor_origin = self
 "
 
-[node name="Raycaster" type="Node3D"]
+[node name="Raycaster" type="Node3D" unique_id=157174117]
 script = SubResource("GDScript_6oxic")
 
-[node name="Grabber" type="RayCast3D" parent="."]
+[node name="Grabber" type="RayCast3D" parent="." unique_id=638851480]
 enabled = false
 target_position = Vector3(0, 0, -100)
 collision_mask = 2
 script = ExtResource("1_6oxic")
 
-[node name="GrabTarget" type="Node3D" parent="Grabber"]
+[node name="GrabTarget" type="Node3D" parent="Grabber" unique_id=1349072820]
 
-[node name="Interactor" type="RayCast3D" parent="."]
+[node name="Interactor" type="RayCast3D" parent="." unique_id=523998896]
 enabled = false
 target_position = Vector3(0, 0, -100)
 collision_mask = 4
 collide_with_areas = true
 script = ExtResource("2_hk02f")
 
-[node name="Highlighter" type="RayCast3D" parent="."]
+[node name="Highlighter" type="RayCast3D" parent="." unique_id=1948325480]
 target_position = Vector3(0, 0, -100)
 collision_mask = 6
 hit_from_inside = true

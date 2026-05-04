@@ -12,13 +12,14 @@ func send_message(player:PackedByteArray, avatar:UUID) -> void:
 	
 	send_message_final(values, types)
 
-func _get_value_type(_previous_value: Variant, idx: int) -> int:
+func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:
 		0:
-			return 8
+			return TypeHelper.NetworkedValueTypes.ByteArray
 		1:
-			return 8
-	return -1
+			return TypeHelper.NetworkedValueTypes.ByteArray
+	return TypeHelper.NetworkedValueTypes.End
 
 func _process_message(values: Array) -> void:
-	avatar_changed.emit(values[0], UUID.from_bytes(values[1]))
+	@warning_ignore("unsafe_cast")
+	avatar_changed.emit(values[0], UUID.from_bytes(values[1] as PackedByteArray))

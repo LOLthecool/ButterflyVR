@@ -23,7 +23,8 @@ var token_checkable:bool = false
 
 func _enter_tree() -> void:
 	var saved_token:Array[int] = []
-	saved_token.assign(GlobalPersistanceHandler.register_value("user_login", "token", "token", []))
+	@warning_ignore("unsafe_cast")
+	saved_token.assign(GlobalPersistanceHandler.register_value("user_login", "token", "token", []) as Array)
 	var expiry:int = GlobalPersistanceHandler.register_value("user_login", "token", "expiry", -1)
 	var renewable:bool = GlobalPersistanceHandler.register_value("user_login", "token", "renewable", false)
 	if await is_token_valid(saved_token, expiry):
@@ -74,6 +75,7 @@ func get_uuid(use_cached_value:bool = true) -> UUID:
 		return user_id
 	var token_header:PackedStringArray = PackedStringArray([get_token_header()])
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, TOKEN_USER_ENDPOINT, token_header)
+	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["id"])
 	var values:Dictionary[String, Variant] = result[4]
 	if !result[0]:
@@ -85,7 +87,8 @@ func get_uuid(use_cached_value:bool = true) -> UUID:
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
 		return UUID.new()
-	return UUID.from_String(values["id"])
+	@warning_ignore("unsafe_cast")
+	return UUID.from_String(values["id"] as String)
 
 func is_token_valid(token:PackedByteArray, expiry_utc:int) -> bool:
 	if token == PackedByteArray():
@@ -121,8 +124,10 @@ func on_token_request(response_code:HTTPClient.ResponseCode, _headers:PackedStri
 	if response_code != HTTPClient.RESPONSE_OK:
 		push_warning("server error when renewing token. code: ", response_code)
 	var body_json:Dictionary = JSON.parse_string(body)
+	@warning_ignore("unsafe_cast")
 	var response_token:Array[int] = (body_json["token"] as String).hex_decode() as Array[int]
 	if response_token.size() == 0:
 		push_error("tried to renew token but server did not reply with one")
 		return
-	set_token(response_token, int(body_json["token_expiry_utc"]), true)
+	@warning_ignore("unsafe_cast")
+	set_token(response_token, body_json["token_expiry_utc"] as int, true)

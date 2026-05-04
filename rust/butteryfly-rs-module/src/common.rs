@@ -46,7 +46,7 @@ pub fn handle_stream_chunk(
     message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
     message_handlers: &mut HashMap<u16, Gd<MessageHandler>>,
     is_server: bool,
-    scene_access: Option<Gd<Node>>,
+    scene_access: Option<&Gd<Node>>,
 ) {
     if stream_chunk.is_empty() {
         return;
@@ -100,10 +100,12 @@ pub fn handle_stream_chunk(
                         InternalMessage::ClientId(_) => {
                             godot_error!(
                                 "unexpected ClientId from server? this should never happen."
-                            )
+                            );
                         }
-                        InternalMessage::NetNodeId((id, mut node)) => node.bind_mut().objectid = id,
-                        InternalMessage::MessageHandlerId((id, mut handler)) => {
+                        InternalMessage::NetNodeIdAssign((id, mut node)) => {
+                            node.bind_mut().objectid = id
+                        }
+                        InternalMessage::MessageHandlerIdAssign((id, mut handler)) => {
                             if message_handlers.contains_key(&id) {
                                 godot_warn!(
                                     "tried to register duplicate handlers for message type {:#?}",
@@ -135,7 +137,7 @@ pub fn handle_stream_chunk(
                     ));
                 }
             } else {
-                godot_error!("received a message but had no handler for it: {handler:?}")
+                godot_error!("received a message but had no handler for it: {handler:?}");
             }
         }
 
@@ -185,7 +187,7 @@ pub fn handle_stream_chunk(
                 ));
             }
         } else {
-            godot_error!("received a message but had no handler for it: {handler:?}")
+            godot_error!("received a message but had no handler for it: {handler:?}");
         }
     }
 }
@@ -233,11 +235,11 @@ pub fn handle_datagrams(
 
     // if no packets will be processed soon we can skip ahead without the user noticing too much
     // can happen if network latency decreases since we get future packets sooner
-    if (!got_soon_packet) && total_packets > 0 {
+    if (!got_soon_packet) && total_packets > 0 && late_packets == 0 {
         *tick_number += 1;
     }
 
-    // 25 is not the percentage, this triggers when packets loss > 4%
+    // 25 is not the percentage, this triggers when late packets > 4%
     if late_packets * 25 > total_packets {
         *tick_number -= 1;
     }
@@ -245,22 +247,20 @@ pub fn handle_datagrams(
 
 pub enum InternalMessage {
     ClientId([u8; 40]),
-    NetNodeId((u16, Gd<NetworkedNode>)),
-    MessageHandlerId((u16, Gd<MessageHandler>)),
+    NetNodeIdAssign((u16, Gd<NetworkedNode>)),
+    MessageHandlerIdAssign((u16, Gd<MessageHandler>)),
 }
 
-pub fn generate_internal_message(
-    message: InternalMessage,
-) -> Result<BitVec<u64, Lsb0>, NetNodesError> {
+pub fn generate_internal_message(message: InternalMessage) -> BitVec<u64, Lsb0> {
     match message {
         InternalMessage::ClientId(id) => {
             let id: Vec<u8> = id.into_iter().chain([0; 24]).collect();
             let (id, _) = id.as_chunks::<8>();
-            let id: Vec<u64> = id.into_iter().map(|x| u64::from_le_bytes(*x)).collect();
+            let id: Vec<u64> = id.iter().map(|x| u64::from_le_bytes(*x)).collect();
 
-            Ok(BitVec::from_vec(id))
+            BitVec::from_vec(id)
         }
-        InternalMessage::NetNodeId((node_id, node)) => {
+        InternalMessage::NetNodeIdAssign((node_id, node)) => {
             let mut packet: BitVec<u64, Lsb0> = BitVec::new();
 
             packet.push(true);
@@ -274,9 +274,9 @@ pub fn generate_internal_message(
                 packet.extend(idx.view_bits::<Lsb0>());
             }
 
-            Ok(packet)
+            packet
         }
-        InternalMessage::MessageHandlerId((handler_id, node)) => {
+        InternalMessage::MessageHandlerIdAssign((handler_id, node)) => {
             let mut packet: BitVec<u64, Lsb0> = BitVec::new();
             packet.push(false);
 
@@ -289,7 +289,7 @@ pub fn generate_internal_message(
                 packet.extend(idx.view_bits::<Lsb0>());
             }
 
-            Ok(packet)
+            packet
         }
     }
 }
@@ -298,9 +298,13 @@ pub fn decode_internal_message(
     packet: &BitSlice<u64, Lsb0>,
     pointer: &mut usize,
     is_server: bool,
-    scene_access: Gd<Node>,
+    scene_access: &Gd<Node>,
 ) -> Result<InternalMessage, NetNodesError> {
-    if !is_server {
+    if is_server {
+        // todo: it should
+        godot_error!("this function dosent handle ClientId messages");
+        Err(NetNodesError::InvalidDatagram)
+    } else {
         if packet.len() < *pointer + 1 + BYTES2 + BYTES4 {
             return Err(NetNodesError::InvalidDatagramLength);
         }
@@ -325,7 +329,7 @@ pub fn decode_internal_message(
             let mut node: Option<Gd<Node>> = scene_access
                 .get_tree_or_null()
                 .and_then(|x| x.get_root())
-                .map(|x| x.upcast());
+                .map(Gd::upcast);
 
             while let Some(idx) = path.pop_front() {
                 let Some(n) = node else {
@@ -334,8 +338,8 @@ pub fn decode_internal_message(
                 node = n.get_child(idx);
             }
 
-            if let Some(Ok(node)) = node.clone().map(|x| x.try_cast::<NetworkedNode>()) {
-                Ok(InternalMessage::NetNodeId((node_id, node)))
+            if let Some(Ok(node)) = node.clone().map(Gd::try_cast) {
+                Ok(InternalMessage::NetNodeIdAssign((node_id, node)))
             } else {
                 Err(NetNodesError::InvalidDatagram)
             }
@@ -356,7 +360,7 @@ pub fn decode_internal_message(
             let mut node: Option<Gd<Node>> = scene_access
                 .get_tree_or_null()
                 .and_then(|x| x.get_root())
-                .map(|x| x.upcast());
+                .map(Gd::upcast);
 
             while let Some(idx) = path.pop_front() {
                 let Some(n) = node else {
@@ -365,15 +369,12 @@ pub fn decode_internal_message(
                 node = n.get_child(idx);
             }
 
-            if let Some(Ok(node)) = node.clone().map(|x| x.try_cast::<MessageHandler>()) {
-                Ok(InternalMessage::MessageHandlerId((handler_id, node)))
+            if let Some(Ok(node)) = node.clone().map(Gd::try_cast) {
+                Ok(InternalMessage::MessageHandlerIdAssign((handler_id, node)))
             } else {
                 Err(NetNodesError::InvalidDatagram)
             }
         }
-    } else {
-        godot_error!("this function dosent handle ClientId messages");
-        Err(NetNodesError::InvalidDatagram)
     }
 }
 
@@ -384,7 +385,8 @@ fn get_node_path(node: Gd<Node>) -> VecDeque<u32> {
     let mut idx = current.get_index();
 
     while idx != -1 {
-        path.push_front(idx as u32);
+        path.push_front(idx.try_into().unwrap());
+        // parent will always exist if idx != -1
         current = current.get_parent().unwrap();
         idx = current.get_index();
     }

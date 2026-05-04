@@ -192,11 +192,13 @@ func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray,
 	if result[0]:
 		var data:Dictionary = result[4]
 		var token:Array[int] = []
-		token.assign(data["token"])
+		@warning_ignore("unsafe_cast")
+		token.assign(data["token"] as Array)
+		@warning_ignore("unsafe_cast")
 		GlobalAccountHandler.set_token(
 				token,
-				data["token_expiry"],
-				data["renewable"]
+				data["token_expiry"] as int,
+				data["renewable"] as bool
 				)
 		start()
 	else:

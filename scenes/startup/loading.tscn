@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://dq0jh8bb6ohna"]
+[gd_scene format=3 uid="uid://dq0jh8bb6ohna"]
 
 [ext_resource type="Script" uid="uid://d3sv3rpa5pvwh" path="res://scenes/startup/loading.gd" id="1_1u0nn"]
 [ext_resource type="Script" uid="uid://422hm72ur4fm" path="res://scenes/startup/exit.gd" id="2_nvabl"]
@@ -6,7 +6,7 @@
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nvabl"]
 bg_color = Color(0.121569, 0.121569, 0.121569, 1)
 
-[node name="Loading" type="Control" node_paths=PackedStringArray("tab_container", "popup", "popup_text", "popup_button", "loading_text", "register_username", "register_email", "register_password", "register_tos", "register_acknowledge", "signin_email", "signin_password", "signin_remember")]
+[node name="Loading" type="Control" unique_id=1077524711 node_paths=PackedStringArray("tab_container", "popup", "popup_text", "popup_button", "loading_text", "register_username", "register_email", "register_password", "register_tos", "register_acknowledge", "signin_email", "signin_password", "signin_remember")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -28,7 +28,7 @@ signin_email = NodePath("TabContainer/SignIn/LineEdit")
 signin_password = NodePath("TabContainer/SignIn/LineEdit2")
 signin_remember = NodePath("TabContainer/SignIn/CheckBox")
 
-[node name="TabContainer" type="TabContainer" parent="."]
+[node name="TabContainer" type="TabContainer" parent="." unique_id=441108368]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -42,11 +42,11 @@ grow_vertical = 2
 current_tab = 0
 tabs_visible = false
 
-[node name="Loading" type="Control" parent="TabContainer"]
+[node name="Loading" type="Control" parent="TabContainer" unique_id=871492324]
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="Label" type="Label" parent="TabContainer/Loading"]
+[node name="Label" type="Label" parent="TabContainer/Loading" unique_id=497385147]
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
@@ -59,7 +59,7 @@ horizontal_alignment = 1
 vertical_alignment = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="Button3" type="Button" parent="TabContainer/Loading"]
+[node name="Button3" type="Button" parent="TabContainer/Loading" unique_id=1569058408]
 layout_mode = 1
 anchors_preset = -1
 anchor_top = 0.816199
@@ -71,12 +71,12 @@ theme_override_font_sizes/font_size = 32
 text = "Cancel"
 metadata/_edit_use_anchors_ = true
 
-[node name="Greeter" type="Control" parent="TabContainer"]
+[node name="Greeter" type="Control" parent="TabContainer" unique_id=545229189]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 
-[node name="Button" type="Button" parent="TabContainer/Greeter"]
+[node name="Button" type="Button" parent="TabContainer/Greeter" unique_id=1517433757]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.174256
@@ -88,7 +88,7 @@ theme_override_font_sizes/font_size = 64
 text = "Sign In"
 metadata/_edit_use_anchors_ = true
 
-[node name="Button2" type="Button" parent="TabContainer/Greeter"]
+[node name="Button2" type="Button" parent="TabContainer/Greeter" unique_id=1137082750]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.174256
@@ -100,7 +100,7 @@ theme_override_font_sizes/font_size = 64
 text = "Sign Up"
 metadata/_edit_use_anchors_ = true
 
-[node name="Button3" type="Button" parent="TabContainer/Greeter"]
+[node name="Button3" type="Button" parent="TabContainer/Greeter" unique_id=120703733]
 layout_mode = 1
 anchors_preset = -1
 anchor_top = 0.911215
@@ -112,12 +112,12 @@ text = "Exit"
 script = ExtResource("2_nvabl")
 metadata/_edit_use_anchors_ = true
 
-[node name="SignIn" type="Control" parent="TabContainer"]
+[node name="SignIn" type="Control" parent="TabContainer" unique_id=1332276129]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 2
 
-[node name="LineEdit" type="LineEdit" parent="TabContainer/SignIn"]
+[node name="LineEdit" type="LineEdit" parent="TabContainer/SignIn" unique_id=86106584]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.110333
@@ -130,7 +130,7 @@ theme_override_font_sizes/font_size = 32
 placeholder_text = "Email"
 metadata/_edit_use_anchors_ = true
 
-[node name="LineEdit2" type="LineEdit" parent="TabContainer/SignIn"]
+[node name="LineEdit2" type="LineEdit" parent="TabContainer/SignIn" unique_id=483410230]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.110333
@@ -144,7 +144,7 @@ placeholder_text = "Password"
 secret = true
 metadata/_edit_use_anchors_ = true
 
-[node name="CheckBox" type="CheckBox" parent="TabContainer/SignIn"]
+[node name="CheckBox" type="CheckBox" parent="TabContainer/SignIn" unique_id=1056957839]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.110333
@@ -155,7 +155,7 @@ grow_vertical = 2
 text = "Remember Me"
 metadata/_edit_use_anchors_ = true
 
-[node name="Button2" type="Button" parent="TabContainer/SignIn"]
+[node name="Button2" type="Button" parent="TabContainer/SignIn" unique_id=1335597578]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.110333
@@ -167,7 +167,7 @@ theme_override_font_sizes/font_size = 32
 text = "Login"
 metadata/_edit_use_anchors_ = true
 
-[node name="Button3" type="Button" parent="TabContainer/SignIn"]
+[node name="Button3" type="Button" parent="TabContainer/SignIn" unique_id=1098492819]
 layout_mode = 1
 anchors_preset = -1
 anchor_top = 0.911215
@@ -178,12 +178,12 @@ theme_override_font_sizes/font_size = 32
 text = "Back"
 metadata/_edit_use_anchors_ = true
 
-[node name="Register" type="Control" parent="TabContainer"]
+[node name="Register" type="Control" parent="TabContainer" unique_id=563437191]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 3
 
-[node name="LineEdit" type="LineEdit" parent="TabContainer/Register"]
+[node name="LineEdit" type="LineEdit" parent="TabContainer/Register" unique_id=1305465144]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.110333
@@ -196,7 +196,7 @@ theme_override_font_sizes/font_size = 32
 placeholder_text = "Username"
 metadata/_edit_use_anchors_ = true
 
-[node name="LineEdit3" type="LineEdit" parent="TabContainer/Register"]
+[node name="LineEdit3" type="LineEdit" parent="TabContainer/Register" unique_id=874548086]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.110333
@@ -209,7 +209,7 @@ theme_override_font_sizes/font_size = 32
 placeholder_text = "Email"
 metadata/_edit_use_anchors_ = true
 
-[node name="LineEdit2" type="LineEdit" parent="TabContainer/Register"]
+[node name="LineEdit2" type="LineEdit" parent="TabContainer/Register" unique_id=769575305]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.110333
@@ -223,7 +223,7 @@ placeholder_text = "Password"
 secret = true
 metadata/_edit_use_anchors_ = true
 
-[node name="Button2" type="Button" parent="TabContainer/Register"]
+[node name="Button2" type="Button" parent="TabContainer/Register" unique_id=443619045]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.110333
@@ -235,7 +235,7 @@ theme_override_font_sizes/font_size = 32
 text = "Sign Up"
 metadata/_edit_use_anchors_ = true
 
-[node name="Button3" type="Button" parent="TabContainer/Register"]
+[node name="Button3" type="Button" parent="TabContainer/Register" unique_id=1872751416]
 layout_mode = 1
 anchors_preset = -1
 anchor_top = 0.911215
@@ -246,7 +246,7 @@ theme_override_font_sizes/font_size = 32
 text = "Back"
 metadata/_edit_use_anchors_ = true
 
-[node name="CheckBoxRichText" type="Control" parent="TabContainer/Register"]
+[node name="CheckBoxRichText" type="Control" parent="TabContainer/Register" unique_id=107346473]
 layout_mode = 1
 anchor_left = 0.109457
 anchor_top = 0.406542
@@ -257,7 +257,7 @@ grow_horizontal = 2
 grow_vertical = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/Register/CheckBoxRichText"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/Register/CheckBoxRichText" unique_id=1956619095]
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.82093
@@ -266,11 +266,11 @@ grow_horizontal = 2
 grow_vertical = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="CheckBox" type="CheckBox" parent="TabContainer/Register/CheckBoxRichText/HBoxContainer"]
+[node name="CheckBox" type="CheckBox" parent="TabContainer/Register/CheckBoxRichText/HBoxContainer" unique_id=741889814]
 layout_mode = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="RichTextLabel" type="RichTextLabel" parent="TabContainer/Register/CheckBoxRichText/HBoxContainer"]
+[node name="RichTextLabel" type="RichTextLabel" parent="TabContainer/Register/CheckBoxRichText/HBoxContainer" unique_id=62974758]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/normal_font_size = 24
@@ -278,7 +278,7 @@ bbcode_enabled = true
 text = "I agree to the ButterflyVR [url=local.TOS]Terms Of Service[/url] and [url=local.privacy]Privacy Policy[/url]"
 metadata/_edit_use_anchors_ = true
 
-[node name="CheckBoxRichText2" type="Control" parent="TabContainer/Register"]
+[node name="CheckBoxRichText2" type="Control" parent="TabContainer/Register" unique_id=1377686424]
 layout_mode = 1
 anchor_left = 0.110333
 anchor_top = 0.5
@@ -289,7 +289,7 @@ grow_horizontal = 2
 grow_vertical = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/Register/CheckBoxRichText2"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/Register/CheckBoxRichText2" unique_id=181504720]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -297,11 +297,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="CheckBox" type="CheckBox" parent="TabContainer/Register/CheckBoxRichText2/HBoxContainer"]
+[node name="CheckBox" type="CheckBox" parent="TabContainer/Register/CheckBoxRichText2/HBoxContainer" unique_id=970269821]
 layout_mode = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="RichTextLabel" type="RichTextLabel" parent="TabContainer/Register/CheckBoxRichText2/HBoxContainer"]
+[node name="RichTextLabel" type="RichTextLabel" parent="TabContainer/Register/CheckBoxRichText2/HBoxContainer" unique_id=376092418]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/normal_font_size = 24
@@ -309,7 +309,7 @@ bbcode_enabled = true
 text = "I understand that ButterflyVR is in a Pre-Alpha state and as such the current state of the game is not representative of the final product. I understand some features may be missing or broken."
 metadata/_edit_use_anchors_ = true
 
-[node name="Popup" type="Panel" parent="."]
+[node name="Popup" type="Panel" parent="." unique_id=609853379]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -322,7 +322,7 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_nvabl")
 metadata/_edit_use_anchors_ = true
 
-[node name="Button" type="Button" parent="Popup"]
+[node name="Button" type="Button" parent="Popup" unique_id=678983926]
 layout_mode = 1
 anchors_preset = -1
 anchor_top = 0.857401
@@ -334,7 +334,7 @@ theme_override_font_sizes/font_size = 40
 text = "close"
 metadata/_edit_use_anchors_ = true
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Popup"]
+[node name="ScrollContainer" type="ScrollContainer" parent="Popup" unique_id=1160668905]
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 0.999998
@@ -342,7 +342,7 @@ anchor_bottom = 0.857143
 grow_horizontal = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="Label" type="RichTextLabel" parent="Popup/ScrollContainer"]
+[node name="Label" type="RichTextLabel" parent="Popup/ScrollContainer" unique_id=87499466]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

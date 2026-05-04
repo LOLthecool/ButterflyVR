@@ -17,13 +17,13 @@ func send_message(target:String, interaction_type:int) -> void:
 	
 	send_message_final(values, types)
 
-func _get_value_type(_previous_value: Variant, idx: int) -> int:
+func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:
 		0:
-			return 1
+			return TypeHelper.NetworkedValueTypes.Unsigned8
 		1:
-			return 7
-	return -1
+			return TypeHelper.NetworkedValueTypes.ByteArray
+	return TypeHelper.NetworkedValueTypes.End
 
 func _process_message(values: Array) -> void:
 	var target:Node = get_tree().root

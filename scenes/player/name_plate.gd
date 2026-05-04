@@ -5,7 +5,8 @@ var id:PackedByteArray
 
 func _ready() -> void:
 	id = player_access.networker.owner_id
-	set_player_name("Player" + str(id))
+	# todo: get username
+	set_player_name("Player " + str(id))
 
 func set_player_name(player_name:String) -> void:
 	@warning_ignore("unsafe_property_access")

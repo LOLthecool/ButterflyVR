@@ -14,10 +14,11 @@ const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 var avatar:Dictionary[String, Variant]
 
 func preview_avatar(avatar:Dictionary[String, Variant]) -> void:
-	var response = await GlobalAPIHandler.make_request(
+	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, OBJECT_INFO_ENDPOINT % ["Avatar", avatar["id"]], 
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
-	var result = GlobalAPIHandler.handle_response(response[0], response[2], [200], 
+	@warning_ignore("unsafe_call_argument")
+	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], 
 			["id", "name", "description", "flags", "updated_at", "created_at", "object_size", "creator", "publicity", "tags"])
 	
 	if !result[0]:
@@ -33,11 +34,13 @@ func preview_avatar(avatar:Dictionary[String, Variant]) -> void:
 	avatar = result[4]
 	
 	self.avatar = avatar
-	previewer.create_preview(UUID.from_String(avatar["id"]))
+	@warning_ignore("unsafe_cast")
+	previewer.create_preview(UUID.from_String(avatar["id"] as String))
 	avatar_name.text = avatar["name"]
 	avatar_publicity.text = "publicity: %s" % avatar["publicity"]
 	avatar_author.text = "created by: %s" % avatar["creator"]
-	flag_list.create_list(avatar["flags"])
+	@warning_ignore("unsafe_cast")
+	flag_list.create_list(avatar["flags"] as Array)
 
 func on_avatar_details() -> void:
 	# todo: details page with extra info
@@ -45,4 +48,5 @@ func on_avatar_details() -> void:
 
 func on_avatar_equip() -> void:
 	var avatar_handler:AvatarChangeHandler = GlobalWorldHandler.current_world.avatar_change_handler
-	avatar_handler.send_message(NetworkManager.get_id(), avatar["id"])
+	@warning_ignore("unsafe_cast")
+	avatar_handler.send_message((await GlobalAccountHandler.get_uuid()).backing_storage, UUID.from_String(avatar["id"] as String))

@@ -31,6 +31,7 @@ func get_and_show_worlds(search_string:String, filters_untyped:Dictionary) -> vo
 			HTTPClient.METHOD_GET, 
 			SEARCH_ENDPOINT % search, 
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["worlds"])
 	if !result[0]:
 		var error_msg:Label = Label.new()

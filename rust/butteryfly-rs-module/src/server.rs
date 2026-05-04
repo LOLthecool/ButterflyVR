@@ -11,18 +11,19 @@ use godot::prelude::*;
 use quiche::ConnectionId;
 use rand::{RngExt, SeedableRng};
 use std::collections::{BTreeMap, HashSet, VecDeque};
-use std::mem;
 use std::{cmp, collections::HashMap};
+use std::{mem, thread};
 
 #[derive(Debug)]
 pub struct NetNodeServer {
     clients: HashMap<NetNodesConnectionId, Client>,
+    joined_clients: Vec<[u8; 16]>,
+    left_clients: Vec<[u8; 16]>,
     networked_nodes: Vec<Gd<NetworkedNode>>,
     priorities_invalidated: bool,
     networker: ConnectionHandler,
     // todo: add a way for MessageHandlers to mark old messages as irrelevant so we can discard them
     // right now this just grows forever
-    // as a tf2 dev would say "this leaks memory. too bad!"
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
     message_handlers: HashMap<u16, Gd<MessageHandler>>,
     current_tick: i8,
@@ -38,11 +39,10 @@ impl NetNodeServer {
     pub fn register_node(&mut self, mut new_node_ref: Gd<NetworkedNode>) {
         new_node_ref.bind_mut().objectid = self.get_next_object_id();
 
-        let message = generate_internal_message(InternalMessage::NetNodeId((
+        let message = generate_internal_message(InternalMessage::NetNodeIdAssign((
             new_node_ref.bind().objectid,
             new_node_ref.clone().upcast(),
-        )))
-        .unwrap();
+        )));
         self.queue_message(message, 0);
 
         self.priorities_invalidated = true;
@@ -70,6 +70,18 @@ impl NetNodeServer {
         }
     }
 
+    pub fn get_networked_nodes(&self) -> &[Gd<NetworkedNode>] {
+        &self.networked_nodes
+    }
+
+    pub fn get_new_joins(&mut self) -> Vec<[u8; 16]> {
+        mem::take(&mut self.joined_clients)
+    }
+
+    pub fn get_dc_clients(&mut self) -> Vec<[u8; 16]> {
+        mem::take(&mut self.left_clients)
+    }
+
     pub fn get_next_object_id(&mut self) -> u16 {
         // todo: should probably try to reuse object ids from removed nodes
         // if we manage to actually have no free ids, panicing is fine
@@ -86,11 +98,10 @@ impl NetNodeServer {
         handler.bind_mut().message_id = self.get_next_message_id();
         let message_id = handler.bind().message_id;
 
-        let message = generate_internal_message(InternalMessage::MessageHandlerId((
+        let message = generate_internal_message(InternalMessage::MessageHandlerIdAssign((
             message_id,
             handler.clone().upcast(),
-        )))
-        .unwrap();
+        )));
         self.queue_message(message, 0);
 
         self.message_handlers.insert(message_id, handler);
@@ -107,6 +118,8 @@ impl NetNodeServer {
     pub fn new(bind_port: u16) -> Self {
         Self {
             clients: HashMap::new(),
+            joined_clients: Vec::new(),
+            left_clients: Vec::new(),
             networked_nodes: Vec::new(),
             priorities_invalidated: false,
             networker: ConnectionHandler::new_server(bind_port),
@@ -171,29 +184,33 @@ impl NetNodeServer {
 
         self.networker.update()?;
 
-        Self::update_client_list(&mut self.clients, &self.networker);
+        Self::update_client_list(&mut self.clients, &mut self.left_clients, &self.networker);
 
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
 
         for (client_id, client) in &mut self.clients {
             match client.state {
                 ClientState::AwaitingIdentifier(ref mut data) => {
+                    // read 64 bytes to also get the padding
                     if let Ok(new_data) =
                         self.networker
-                            .recv_stream_bytes(client_id, 0, 48 - data.len())
+                            .recv_stream_bytes(client_id, 0, 64 - data.len())
                     {
                         data.extend(new_data.into_vec());
 
-                        if data.len() >= 48 {
+                        if data.len() == 64 {
                             // need to skip the length prefix
-                            client.state = ClientState::AwaitingUuid(data[8..].try_into().unwrap());
+                            client.state =
+                                ClientState::AwaitingUuid(data[8..48].try_into().unwrap());
                         }
                     }
                 }
                 ClientState::AwaitingUuid(_) => {}
                 ClientState::Connected(ref mut client) => {
                     for stream in self.networker.get_readable_streams(client_id) {
-                        while let Ok(stream_chunk) = self.networker.recv_stream(client_id, stream) {
+                        while let Ok(stream_chunk) =
+                            self.networker.recv_stream_chunk(client_id, stream)
+                        {
                             common::handle_stream_chunk(
                                 stream,
                                 &stream_chunk,
@@ -267,6 +284,17 @@ impl NetNodeServer {
 
         self.current_tick = self.current_tick.wrapping_add(1);
 
+        // this might be too aggressive,
+        // but we really want to avoid congestion so we dont spike latency
+        // todo: track pacing per connection
+        if self.networker.is_connection_pacing() {
+            for (_, client) in &mut self.clients {
+                if let ClientState::Connected(ref mut client) = client.state {
+                    client.bandwidth_budget_per_tick /= 2;
+                }
+            }
+        }
+
         for (conn, client) in &mut self.clients {
             if let ClientState::Connected(ref mut client) = client.state {
                 const MINIMUM_CONNECTION_BANDWIDTH: usize = 512;
@@ -276,12 +304,6 @@ impl NetNodeServer {
                     .max(MINIMUM_CONNECTION_BANDWIDTH);
 
                 let max_dgram_size: usize = self.networker.get_max_dgram_size(conn);
-
-                // this might be too aggressive,
-                // but we really want to avoid congestion so we dont spike latency
-                if self.networker.is_connection_pacing() {
-                    client.bandwidth_budget_per_tick /= 2;
-                }
 
                 let mut remaining_bandwidth = client.bandwidth_budget_per_tick;
 
@@ -296,8 +318,9 @@ impl NetNodeServer {
 
                     client.message_buffer_position += 1;
                     if let Err(e) = self.networker.send_stream(conn, *stream, message.clone()) {
-                        if e == NetNodesError::BufferFull {
-                            client.message_buffer_position -= 1;
+                        client.message_buffer_position -= 1;
+                        if e != NetNodesError::BufferFull {
+                            godot_error!("error while sending message to server: {e:?}");
                         }
                     }
                 }
@@ -314,12 +337,12 @@ impl NetNodeServer {
                 // channel 1 (syncing)
                 while remaining_bandwidth > PACKET_MAX_SIZE_THRESHOLD {
                     let mut packet: BitVec<u64> = BitVec::with_capacity(max_dgram_size);
+                    packet.extend_from_bitslice(
+                        (self.current_tick.cast_unsigned()).view_bits::<Lsb0>(),
+                    );
+                    debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
 
                     if let ClientSubState::ObjectSync(ref mut objects) = client.state {
-                        packet.extend_from_bitslice(
-                            (self.current_tick.cast_unsigned()).view_bits::<Lsb0>(),
-                        );
-
                         while let Some(object) = objects.last_mut() {
                             let node_ref = object;
                             let node = Gd::bind(node_ref);
@@ -353,18 +376,12 @@ impl NetNodeServer {
                         if packet.len() > DGRAM_HEADER_SIZE {
                             remaining_bandwidth -= packet.len();
                             self.networker.send_datagram(conn, packet)?;
-                            continue;
                         } else {
                             godot_error!(
                                 "tried to send empty dgram in ObjectSync. this is probably because a synced node tries to sync more data than can fit in a single packet"
-                            )
+                            );
                         }
                     } else {
-                        packet.extend_from_bitslice(
-                            (self.current_tick.cast_unsigned()).view_bits::<Lsb0>(),
-                        );
-                        debug_assert_eq!(DGRAM_HEADER_SIZE, packet.len());
-
                         // iterate in reverse because the btree is sorted ascendingly
                         let old_map = mem::take(&mut client.priorities);
                         client.priorities = old_map
@@ -411,6 +428,7 @@ impl NetNodeServer {
 
     fn update_client_list(
         clients: &mut HashMap<NetNodesConnectionId, Client>,
+        left_clients: &mut Vec<[u8; 16]>,
         networker: &ConnectionHandler,
     ) {
         let client_list: HashSet<NetNodesConnectionId> =
@@ -426,6 +444,15 @@ impl NetNodeServer {
         }
 
         for dc_client in dc_clients {
+            if let Some(uuid) = clients.get(dc_client).and_then(|x| {
+                if let ClientState::Connected(uuid) = &x.state {
+                    Some(uuid.uuid)
+                } else {
+                    None
+                }
+            }) {
+                left_clients.push(uuid);
+            }
             clients.remove(dc_client);
         }
     }
@@ -443,6 +470,7 @@ impl NetNodeServer {
             .iter_mut()
             .find(|x| x.1.state == ClientState::AwaitingUuid(identifier))
         {
+            self.joined_clients.push(uuid);
             client.1.state = ClientState::Connected(ConnectedClient::new(uuid));
         }
     }
@@ -452,7 +480,12 @@ impl NetNodeServer {
             self.networker
                 .disconnect_peer(&client, false, 0, "server shutting down");
         }
+
+        // todo: this technically guarentees the close packet will be sent but its also very hacky
         let _ = self.networker.update();
+        thread::sleep(std::time::Duration::from_millis(16));
+        let _ = self.networker.update();
+        thread::sleep(std::time::Duration::from_millis(16));
     }
 
     pub fn physics_process_inner(&mut self) {

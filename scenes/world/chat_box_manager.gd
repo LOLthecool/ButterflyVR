@@ -6,23 +6,21 @@ signal new_message_sent(message:Message)
 var messages:Array[Message]
 
 class Message:
-	var player:int
+	var player:PackedByteArray
 	var text:String
 
 
 func send_message(message:String) -> void:
-	while !NetworkManager.id_ready():
-		await get_tree().physics_frame
-	var player:int = NetworkManager.get_id()
+	var player:PackedByteArray = (await GlobalAccountHandler.get_uuid()).backing_storage
 	send_message_final([player, message], [_get_value_type(null, 0), _get_value_type(player, 1)])
 
-func _get_value_type(_previous_value: Variant, idx: int) -> int:
+func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:
 		0:
-			return 2
+			return TypeHelper.NetworkedValueTypes.ByteArray
 		1:
-			return 6
-	return -1
+			return TypeHelper.NetworkedValueTypes.String
+	return TypeHelper.NetworkedValueTypes.End
 
 func _process_message(values: Array) -> void:
 	var message:Message = Message.new()

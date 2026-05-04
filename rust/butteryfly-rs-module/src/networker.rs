@@ -329,7 +329,7 @@ impl ConnectionHandler {
                 }
             }
             PeerState::Disconnected => {
-                todo!()
+                return Err(NetNodesError::PeerNotFound);
             }
         }
 
@@ -434,10 +434,10 @@ impl ConnectionHandler {
             HandlerType::Client(ref c) => {
                 let peer: ConnectionId = peer.into();
                 debug_assert_eq!(peer, c.id);
-                c.conn.dgram_max_writable_len().map_or(4000, |x| x * 8)
+                c.conn.dgram_max_writable_len().map_or(0, |x| x * 8)
             }
             HandlerType::Server(ref s) => s.0.get(peer).map_or(0, |peer| {
-                peer.conn.dgram_max_writable_len().map_or(4000, |x| x * 8)
+                peer.conn.dgram_max_writable_len().map_or(0, |x| x * 8)
             }),
         }
     }
@@ -519,7 +519,11 @@ impl ConnectionHandler {
     ) -> std::result::Result<(), NetNodesError> {
         let size: u64 = 8 + data.len() as u64;
 
-        if !conn.conn.stream_writable(0, size as usize).unwrap_or(false) {
+        if !conn
+            .conn
+            .stream_writable(stream_id, size as usize)
+            .unwrap_or(false)
+        {
             return Err(NetNodesError::BufferFull);
         }
 
@@ -531,14 +535,16 @@ impl ConnectionHandler {
                 if length == data.len() {
                     Ok(())
                 } else {
-                    Err(NetNodesError::BufferFull)
+                    panic!(
+                        "failed to send entire message despite stream being writable. this is irrecoverable."
+                    )
                 }
             }
-            Err(e) => Err(NetNodesError::QuicheError(e)),
+            Err(e) => panic!("error while sending mesage body: {e:?}. this is irrecoverable."),
         }
     }
 
-    pub fn recv_stream(
+    pub fn recv_stream_chunk(
         &mut self,
         peer: &NetNodesConnectionId,
         stream_id: u64,
@@ -859,18 +865,5 @@ impl ConnectionHandler {
         });
 
         ctx
-    }
-}
-
-impl Default for ConnectionHandler {
-    fn default() -> Self {
-        Self {
-            handler: HandlerType::Server((
-                HashMap::new(),
-                HashMap::new(),
-                Arc::new(Mutex::new(HashMap::new())),
-            )),
-            listener: UDPListener::new_server(SocketAddr::new("0.0.0.0".parse().unwrap(), 3444)),
-        }
     }
 }

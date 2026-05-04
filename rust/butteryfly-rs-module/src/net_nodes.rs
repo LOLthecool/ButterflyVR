@@ -37,7 +37,7 @@ impl NetworkedNode {
     /// and the client's character's position.
     #[func(virtual)]
     pub fn get_server_priority(&self, clientid: PackedByteArray) -> i64 {
-        panic!("node has no impl for get_server_priority. this should never happen")
+        panic!("node has no impl for get_server_priority.")
     }
 
     /// Used by the client when updating this node's priority value. Priority is accumulated on a tick-by-tick basis.
@@ -47,7 +47,7 @@ impl NetworkedNode {
     /// This function should only matter in cases where the client is syncing many nodes to the server.
     #[func(virtual)]
     pub fn get_client_priority(&self) -> i64 {
-        panic!("node has no impl for get_client_priority. this should never happen")
+        panic!("node has no impl for get_client_priority.")
     }
 
     /// Returns the networked values of this node as a VarArray.
@@ -55,22 +55,22 @@ impl NetworkedNode {
     /// should be excluded when getting the types.
     #[func(virtual)]
     pub fn get_networked_values(&self) -> VarArray {
-        panic!("node has no impl for get_networked_values. this should never happen")
+        panic!("node has no impl for get_networked_values.")
     }
 
     /// Sets the networked values of this node from a VarArray.
     // TODO: Add more documentation.
     #[func(virtual)]
     pub fn set_networked_values(&mut self, values: VarArray) {
-        panic!("node has no impl for set_networked_values. this should never happen")
+        panic!("node has no impl for set_networked_values.")
     }
 
     /// Determines how values from `get_networked_values` are encoded in the packet.
     /// Types are provided using the enum values. Encoding must be valid for the variant type.
-    /// Called in a loop with incrementing `idx` until `-1` is returned.
+    /// Called in a loop with incrementing `idx` until `End` is returned.
     #[func(virtual)]
-    fn get_networked_value_type(&self, idx: i64) -> i64 {
-        panic!("node has no impl for get_networked_values_type. this should never happen")
+    fn get_networked_value_type(&self, idx: i64) -> NetworkedValueTypes {
+        panic!("node has no impl for get_networked_values_type.")
     }
 
     /// Called when the owner disconnects from the server.
@@ -122,10 +122,13 @@ impl NetworkedNode {
         let mut values: Vec<NetworkedValueTypes> = Vec::new();
         for i in 0..1000 {
             let tmp = self.get_networked_value_type(i);
-            if tmp == -1 {
+            if tmp == NetworkedValueTypes::End {
                 break;
             }
-            values.push(NetworkedValueTypes::try_from(tmp).unwrap());
+            values.push(tmp);
+            if i == 999 {
+                godot_warn!("get_networked_values_types: reached max iterations");
+            }
         }
         values
     }
@@ -140,7 +143,7 @@ impl INode for NetworkedNode {
         self.base()
             .get_node_as::<NetNodeManager>("/root/NetworkManager")
             .bind_mut()
-            .register_node(self.to_gd(), &self);
+            .register_node(self.to_gd(), self);
     }
     fn exit_tree(&mut self) {
         self.base()

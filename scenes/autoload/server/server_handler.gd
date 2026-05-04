@@ -82,6 +82,7 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 			print("waiting for allocation...")
 			agones_response = agones_sdk.get_gameserver_status()
 			
+			@warning_ignore("unsafe_cast")
 			if "world" in (agones_response["labels"] as Dictionary).keys():
 				break
 			else:
@@ -90,7 +91,9 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 		
 		print("got allocation")
 		var port:int = agones_response["ports"]["default"]
-		var world:UUID = UUID.from_String(agones_response["labels"]["world"])
+		@warning_ignore("unsafe_cast")
+		var world:UUID = UUID.from_String(agones_response["labels"]["world"] as String)
+		@warning_ignore("unsafe_cast")
 		var instance_token:PackedByteArray = (
 				agones_response["annotations"]["token"] as String
 				).hex_decode()
@@ -108,6 +111,7 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 				SET_CLIENT_TOKEN_ENDPOINT, 
 				PackedStringArray([GlobalAccountHandler.get_token_header()]), 
 				JSON.stringify({"client_token":NetworkManager.get_next_client() as Array[int]}))
+		@warning_ignore("unsafe_call_argument")
 		var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], [])
 		if !result[0]:
 			push_error("error while setting client token")

@@ -10,6 +10,7 @@ use godot::prelude::*;
 use rand::SeedableRng;
 use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
+use std::thread;
 use std::{cmp, collections::HashMap};
 
 #[derive(Debug)]
@@ -47,23 +48,29 @@ impl NetNodeClient {
         self.networked_nodes.push(new_node_ref);
     }
     pub fn unregister_node(&mut self, removed_node_ref: &Gd<NetworkedNode>) {
-        let Some(pos) = self
+        if let Some(pos) = self
             .networked_nodes
             .iter()
             .position(|x| x == removed_node_ref)
-        else {
+        {
+            self.networked_nodes.remove(pos);
+        } else {
             return;
         };
-        self.networked_nodes.remove(pos);
-        let Some(pos) = self
+
+        if let Some(pos) = self
             .owned_nodes
             .iter()
             .position(|x| &x.0 == removed_node_ref)
-        else {
-            return;
+        {
+            self.owned_nodes.remove(pos);
         };
-        self.owned_nodes.remove(pos);
     }
+
+    pub fn get_networked_nodes(&self) -> &[Gd<NetworkedNode>] {
+        &self.networked_nodes
+    }
+
     pub fn unregister_message(&mut self, message_type: u16) {
         self.message_handlers.remove(&message_type);
     }
@@ -96,13 +103,17 @@ impl NetNodeClient {
         }
     }
     pub fn disconnect(&mut self) {
-        self.networker.disconnect_peer(
-            self.networker.get_peers(true).first().unwrap(),
-            false,
-            0,
-            "player disconnected",
-        );
+        let tmp = self.networker.get_peers(true);
+        let Some(server) = tmp.first() else {
+            return;
+        };
+        self.networker
+            .disconnect_peer(&server, false, 0, "player disconnected");
+        // todo: this technically guarentees the close packet will be sent but its also very hacky
         let _ = self.networker.update();
+        thread::sleep(std::time::Duration::from_millis(16));
+        let _ = self.networker.update();
+        thread::sleep(std::time::Duration::from_millis(16));
     }
     fn tick(&mut self) -> Result<(), NetNodesError> {
         self.networker.update()?;
@@ -113,7 +124,7 @@ impl NetNodeClient {
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
 
         for stream in self.networker.get_readable_streams(server) {
-            while let Ok(stream_chunk) = self.networker.recv_stream(server, stream) {
+            while let Ok(stream_chunk) = self.networker.recv_stream_chunk(server, stream) {
                 common::handle_stream_chunk(
                     stream,
                     &stream_chunk,
@@ -121,7 +132,7 @@ impl NetNodeClient {
                     &mut self.message_buffer,
                     &mut self.message_handlers,
                     false,
-                    Some(self.scene_access.clone()),
+                    Some(&self.scene_access),
                 );
             }
         }
@@ -192,8 +203,9 @@ impl NetNodeClient {
             remaining_bandwidth -= message.len();
 
             if let Err(e) = self.networker.send_stream(server, stream, message.clone()) {
-                if e == NetNodesError::BufferFull {
-                    self.message_buffer.push_front((message, stream));
+                self.message_buffer.push_front((message, stream));
+                if e != NetNodesError::BufferFull {
+                    godot_error!("error while sending message to server: {e:?}");
                 }
             }
         }
@@ -246,25 +258,16 @@ impl NetNodeClient {
         owned_nodes.sort_by(|a, b| a.1.cmp(&b.1));
     }
     pub fn physics_process_inner(&mut self) {
+        let tmp = self.networker.get_peers(true);
+        let Some(server) = tmp.first() else {
+            godot_error!("client is not connected to the server");
+            return;
+        };
         if let ConnectionStatus::AwaitingConnection(ref identifier) = self.connected {
-            if self
-                .networker
-                .is_connected(self.networker.get_peers(true).first().unwrap())
-            {
-                match generate_internal_message(InternalMessage::ClientId(*identifier)) {
-                    Ok(packet) => {
-                        if let Err(e) = self.networker.send_stream(
-                            self.networker.get_peers(true).first().unwrap(),
-                            0,
-                            packet,
-                        ) {
-                            godot_error!("failed to send identifier {e:?}")
-                        }
-                    }
-                    Err(e) => {
-                        godot_error!("Failed to create identifier: {e:?}");
-                        return;
-                    }
+            if self.networker.is_connected(server) {
+                let packet = generate_internal_message(InternalMessage::ClientId(*identifier));
+                if let Err(e) = self.networker.send_stream(server, 0, packet) {
+                    godot_error!("failed to send identifier {e:?}");
                 }
                 self.connected = ConnectionStatus::Connected;
             } else {

@@ -28,6 +28,7 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 			HTTPClient.METHOD_GET, 
 			OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], 
 			response[2], [200], ["encryption_key", "encryption_iv"])
 	
@@ -48,8 +49,9 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 		return null
 	
 	var file:FileAccess = FileAccess.open(cache.object_file_path % [uuid], FileAccess.READ)
-	return decrypt_and_load_object(file, type, uuid, response_values["encryption_key"], 
-			response_values["encryption_iv"])
+	@warning_ignore("unsafe_cast")
+	return decrypt_and_load_object(file, type, uuid, response_values["encryption_key"] as PackedByteArray, 
+			response_values["encryption_iv"] as PackedByteArray)
 
 func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 	var object_type_string:String = "UNNAMED"
@@ -64,6 +66,7 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 			HTTPClient.METHOD_GET, 
 			OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], 
 			response[2], [200], ["updated_at", "object_size"])
 	
@@ -92,8 +95,9 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 	
 	# cache value didnt exist or was stale so we download
 	await download_object(uuid, type)
-	var item:LRUCache.Pack = LRUCache.Pack.new(response_values["updated_at"], 
-			response_values["object_size"] / 1024)
+	@warning_ignore("unsafe_cast")
+	var item:LRUCache.Pack = LRUCache.Pack.new(response_values["updated_at"] as int, 
+			int(ceilf(response_values["object_size"] as float / 1024)))
 	cache.push_front(uuid.to_string(), item)
 	return true
 

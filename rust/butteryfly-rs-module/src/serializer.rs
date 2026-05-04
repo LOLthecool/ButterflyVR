@@ -1,11 +1,12 @@
 use crate::common::{BYTE, BYTES2, BYTES4, BYTES8};
 use bitvec::{field::BitField, prelude::*};
 use godot::prelude::*;
-use std::borrow::Cow;
 
 /// All possible ways a value can be encoded for the network.
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+#[derive(GodotConvert, Var, Export, PartialEq, Eq, Debug, Copy, Clone)]
+#[godot(via = i64)]
 pub enum NetworkedValueTypes {
+    End,
     Nil,
     Bool,
     Unsigned8,
@@ -16,26 +17,6 @@ pub enum NetworkedValueTypes {
     String,
     ByteArray,
 }
-impl TryFrom<i64> for NetworkedValueTypes {
-    type Error = Cow<'static, str>;
-    fn try_from(value: i64) -> Result<Self, Self::Error> {
-        match value {
-            -2 => Ok(Self::Nil),
-            -1 => Err(Cow::Borrowed("invalid type")),
-            0 => Ok(Self::Bool),
-            1 => Ok(Self::Unsigned8),
-            2 => Ok(Self::Unsigned16),
-            3 => Ok(Self::Signed64),
-            4 => Ok(Self::Float32),
-            5 => Ok(Self::Vector3),
-            6 => Ok(Self::String),
-            7 => Ok(Self::ByteArray),
-            _ => Err(Cow::Owned(format!(
-                "tried to parse nonexistent type {value:#?}",
-            ))),
-        }
-    }
-}
 
 pub fn decode_with_known_type(
     data: &BitSlice<u64>,
@@ -43,6 +24,7 @@ pub fn decode_with_known_type(
     object_type: NetworkedValueTypes,
 ) -> Option<Variant> {
     match object_type {
+        NetworkedValueTypes::End => None,
         NetworkedValueTypes::Nil => Some(Variant::nil()),
         NetworkedValueTypes::Bool => {
             if *pointer + 1 > data.len() {
@@ -173,6 +155,7 @@ pub fn encode_with_known_type(
     object_type: NetworkedValueTypes,
 ) -> BitVec<u64, Lsb0> {
     match object_type {
+        NetworkedValueTypes::End => BitVec::new(),
         NetworkedValueTypes::Nil => BitVec::new(),
         NetworkedValueTypes::Bool => {
             let value: bool = bool::from_variant(object);
@@ -230,7 +213,7 @@ pub fn encode_with_known_type(
             let length = bytes.len() as u32;
             let mut bitvec = BitVec::with_capacity(BYTES4 + (BYTE * length as usize));
             bitvec.extend(length.view_bits::<Lsb0>());
-            for byte in bytes.into_iter().map(|x| x.try_into().unwrap_or(0u8)) {
+            for byte in bytes.into_iter() {
                 bitvec.extend(byte.view_bits::<Lsb0>());
             }
             bitvec

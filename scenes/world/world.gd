@@ -11,9 +11,7 @@ func _init() -> void:
 	GlobalWorldHandler.current_world = self
 
 func _ready() -> void:
-	while !NetworkManager.id_ready():
-		await get_tree().physics_frame
-	if NetworkManager.get_id() == 0:
+	if NetworkManager.is_server():
 		chat_box_manager.new_message_sent.connect(log_chat_to_console)
 
 func log_chat_to_console(message:ChatBoxManager.Message) -> void:

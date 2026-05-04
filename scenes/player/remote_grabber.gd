@@ -14,7 +14,7 @@ func _ready() -> void:
 
 func _physics_process(_delta: float) -> void:
 	if grabbed_node != null:
-		grabbed_node.global_position = global_position
+		grabbed_node.global_transform = global_transform
 
 func on_release() -> void:
 	if grabbed_node is RigidBody3D:
@@ -28,7 +28,7 @@ func on_grab(grabbing_player:PackedByteArray, target:Node) -> void:
 		on_release()
 		return
 	if target is Node3D:
-		global_position = (target as Node3D).global_position
+		global_transform = (target as Node3D).global_transform
 		grabbed_node = target
 		if grabbed_node is RigidBody3D:
 			(grabbed_node as RigidBody3D).freeze = true

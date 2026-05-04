@@ -19,7 +19,8 @@ func create(object:Dictionary[String, Variant], object_type:LRUCache.ObjectType)
 	add_child(notifier)
 
 func get_image(object_type:LRUCache.ObjectType) -> void:
-	icon = ImageTexture.create_from_image(await GlobalImageDownloadHandler.get_object(UUID.from_String(object["id"]), object_type))
+	@warning_ignore("unsafe_cast")
+	icon = ImageTexture.create_from_image(await GlobalImageDownloadHandler.get_object(UUID.from_String(object["id"] as String), object_type))
 
 func _pressed() -> void:
 	object_selected.emit(object)

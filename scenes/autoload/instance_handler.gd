@@ -34,6 +34,7 @@ func create_online_instance(
 			PackedStringArray([GlobalAccountHandler.get_token_header()]), 
 			JSON.stringify(body_dict))
 	
+	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(
 			response[0], response[2], [200], ["id"])
 	if !result[0]:
@@ -46,7 +47,8 @@ func create_online_instance(
 			push_error("error message: %s" % result[3])
 		return null
 	
-	return UUID.from_String(result[4]["id"])
+	@warning_ignore("unsafe_cast")
+	return UUID.from_String(result[4]["id"] as String)
 
 func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	var port:int = randi_range(20000, 30000)
@@ -63,7 +65,7 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	arguments.push_back(token_argument)
 	
 	var port_argument:String = "--port=%s" % port
-	arguments.push_back(token_argument)
+	arguments.push_back(port_argument)
 	
 	if FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
 		DirAccess.remove_absolute(ServerHandler.LOCAL_SERVER_KEY_LOCATION)
@@ -90,12 +92,13 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 
 # do not call directly, call load_world instead
 func join_instance(instance:UUID) -> void:
-	for i in range(0, MAX_CONNECT_RETRYS):
+	for i:int in range(0, MAX_CONNECT_RETRYS):
 		var response:Array[Variant] = await GlobalAPIHandler.make_request(
 				HTTPClient.METHOD_GET, 
 				INSTANCE_JOIN_ENDPOINT % instance.to_string(), 
 				PackedStringArray([GlobalAccountHandler.get_token_header()]))
 		
+		@warning_ignore("unsafe_call_argument")
 		var result:Array[Variant] = GlobalAPIHandler.handle_response(
 				response[0], response[2], [200], ["ip", "port", "token"])
 		
@@ -116,7 +119,8 @@ func join_instance(instance:UUID) -> void:
 		
 		var ip:String = result[4]["ip"]
 		var port:int = result[4]["port"]
-		var token:PackedByteArray = PackedByteArray(result[4]["token"])
+		@warning_ignore("unsafe_cast")
+		var token:PackedByteArray = PackedByteArray(result[4]["token"] as Array)
 		
 		assert(token.size() == 40)
 	

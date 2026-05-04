@@ -1,12 +1,12 @@
-[gd_scene load_steps=3 format=3 uid="uid://fqt8aa660pk8"]
+[gd_scene format=3 uid="uid://fqt8aa660pk8"]
 
 [ext_resource type="Script" uid="uid://ccmymxrkncbyi" path="res://scenes/player/name_plate.gd" id="1_v36bq"]
 [ext_resource type="Script" uid="uid://c22d7nyjnim6g" path="res://scenes/player/chat_bubble.gd" id="2_7paim"]
 
-[node name="NamePlate" type="Node3D"]
+[node name="NamePlate" type="Node3D" unique_id=1727174432]
 script = ExtResource("1_v36bq")
 
-[node name="Label3D" type="Label3D" parent="."]
+[node name="Label3D" type="Label3D" parent="." unique_id=701623038]
 pixel_size = 0.002
 billboard = 1
 double_sided = false
@@ -14,7 +14,7 @@ text = "UNNAMED"
 font_size = 75
 outline_size = 24
 
-[node name="Label3D2" type="Label3D" parent="."]
+[node name="Label3D2" type="Label3D" parent="." unique_id=502973441]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0796541, 0)
 pixel_size = 0.002
 billboard = 1

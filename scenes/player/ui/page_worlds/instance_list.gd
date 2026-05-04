@@ -9,7 +9,7 @@ const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
 var world_id:String
 var filters:Dictionary
 
-func update_filters(filters:Dictionary) -> void:
+func update_filters(_filters:Dictionary) -> void:
 	pass
 
 func show_instances(world:Dictionary) -> void:
@@ -26,6 +26,7 @@ func show_instances(world:Dictionary) -> void:
 			INSTANCE_SEARCH_ENDPOINT, 
 			PackedStringArray([GlobalAccountHandler.get_token_header()]), 
 			body)
+	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["instances"])
 	
 	if !result[0]:
@@ -39,7 +40,8 @@ func show_instances(world:Dictionary) -> void:
 		return
 	
 	for instance:Dictionary in result[4]["instances"]:
-		var id:UUID = UUID.from_String(instance["id"])
+		@warning_ignore("unsafe_cast")
+		var id:UUID = UUID.from_String(instance["id"] as String)
 		var instance_name:String = instance["name"]
 		var player_count:int = 0 # todo
 		var max_players:int = instance["max_players"]

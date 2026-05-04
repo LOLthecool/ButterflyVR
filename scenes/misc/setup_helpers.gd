@@ -58,11 +58,16 @@ static func setup_avatar(root:Node, player:Player) -> void:
 			ik.right_leg_bone = values["right_leg_bone"]
 			ik.spine_bone = values["spine_bone"]
 			ik.hip_bone = values["hip_bone"]
-			ik.head_target = node.get_child(values["head_target"])
-			ik.left_arm_target = node.get_child(values["left_arm_target"])
-			ik.right_arm_target = node.get_child(values["right_arm_target"])
-			ik.spine_target = node.get_child(values["spine_target"])
-			ik.hip_target = node.get_child(values["hip_target"])
+			@warning_ignore("unsafe_cast")
+			ik.head_target = node.get_child(values["head_target"] as int)
+			@warning_ignore("unsafe_cast")
+			ik.left_arm_target = node.get_child(values["left_arm_target"] as int)
+			@warning_ignore("unsafe_cast")
+			ik.right_arm_target = node.get_child(values["right_arm_target"] as int)
+			@warning_ignore("unsafe_cast")
+			ik.spine_target = node.get_child(values["spine_target"] as int)
+			@warning_ignore("unsafe_cast")
+			ik.hip_target = node.get_child(values["hip_target"] as int)
 			
 			ik.setup(player.is_local)
 			

@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://c5mw45v6rmycs"]
+[gd_scene format=3 uid="uid://c5mw45v6rmycs"]
 
 [ext_resource type="Script" uid="uid://cunre5bjrn1g" path="res://scenes/world/world.gd" id="1_2p20g"]
 [ext_resource type="PackedScene" uid="uid://d0c6k6kj0oe0k" path="res://scenes/world/world_components.tscn" id="2_wfvrq"]
 
-[node name="WorldController" type="Node" node_paths=PackedStringArray("chat_box_manager", "player_grab_handler", "avatar_change_handler", "interactable_handler")]
+[node name="WorldController" type="Node" unique_id=508548109 node_paths=PackedStringArray("chat_box_manager", "player_grab_handler", "avatar_change_handler", "interactable_handler")]
 script = ExtResource("1_2p20g")
 chat_box_manager = NodePath("WorldComponents/ChatBoxManager")
 player_grab_handler = NodePath("WorldComponents/PlayerGrabHandler")
@@ -11,6 +11,6 @@ avatar_change_handler = NodePath("WorldComponents/AvatarChangeHandler")
 interactable_handler = NodePath("WorldComponents/InteractableMessageHandler")
 metadata/_custom_type_script = "uid://cunre5bjrn1g"
 
-[node name="WorldComponents" parent="." instance=ExtResource("2_wfvrq")]
+[node name="WorldComponents" parent="." unique_id=1173816896 instance=ExtResource("2_wfvrq")]
 
 [editable path="WorldComponents"]

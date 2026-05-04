@@ -11,6 +11,7 @@ func load_homeworld() -> void:
 			HTTPClient.METHOD_GET, 
 			USER_INFO_ENDPOINT % await GlobalAccountHandler.get_uuid(), 
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["homeworld"])
 	var values:Dictionary[String, Variant] = result[4]
 	
@@ -27,7 +28,8 @@ func load_homeworld() -> void:
 	
 	# todo: get default instance type, if offline load_world(uuid, null), 
 	# otherwise create instance then load
-	await load_world(UUID.from_String(values["homeworld"]))
+	@warning_ignore("unsafe_cast")
+	await load_world(UUID.from_String(values["homeworld"] as String))
 
 func load_fallback_world() -> void:
 	if get_tree().current_scene:

@@ -7,7 +7,6 @@ func _ready() -> void:
 	var key:Array[int] = []
 	key.assign(Crypto.new().generate_random_bytes(32))
 	
-	var bind_ip:String = "127.0.0.1"
 	var bind_port:int = randi_range(20000, 40000)
 	var api_token:PackedByteArray = PackedByteArray()
 	var world:UUID = UUID.new()
@@ -26,11 +25,6 @@ func _ready() -> void:
 		var argument_value:String = split[1]
 		
 		match argument_key:
-			"bind_ip":
-				if argument_value.is_valid_ip_address():
-					bind_ip = argument_value
-				else:
-					push_error("invalid ip \"%s\"" % argument_value)
 			"bind_port":
 				if argument_value.is_valid_int():
 					var port_num:int = int(argument_value)
@@ -56,5 +50,4 @@ func _ready() -> void:
 				else:
 					push_error("expected a world UUID but got \"%s\"" % argument_value)
 	
-	var bind_addr:String = bind_ip + ":" + str(bind_port)
-	GlobalServerHandler.start(api_token, is_local, world, bind_addr, key)
+	GlobalServerHandler.start(api_token, is_local, world, bind_port)

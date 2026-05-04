@@ -12,10 +12,11 @@ const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 @export var instance_creator:InstanceCreator
 
 func show_details(short_world:Dictionary) -> void:
-	var response = await GlobalAPIHandler.make_request(
+	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, OBJECT_INFO_ENDPOINT % ["World", short_world["id"]], 
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
-	var result = await GlobalAPIHandler.handle_response(response[0], response[2], [200], 
+	@warning_ignore("unsafe_call_argument")
+	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], 
 			["id", "name", "description", "flags", "updated_at", "created_at", "object_size", "creator", "publicity", "tags"])
 	
 	if !result[0]:
@@ -30,9 +31,10 @@ func show_details(short_world:Dictionary) -> void:
 	
 	visible = true
 	
-	var world = result[4]
+	var world:Dictionary[String, Variant] = result[4]
 	
-	instance_creator.world = UUID.from_String(world["id"])
+	@warning_ignore("unsafe_cast")
+	instance_creator.world = UUID.from_String(world["id"] as String)
 	
 	details_name.text = world["name"]
 	details_description.text = world["description"]

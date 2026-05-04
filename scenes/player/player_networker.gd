@@ -4,14 +4,10 @@ class_name PlayerNetworker
 @export var target:Player
 
 func _ready() -> void:
-	while !NetworkManager.id_ready():
-		await get_tree().physics_frame
-	if owner_id == NetworkManager.get_id():
+	if owner_id == (await GlobalAccountHandler.get_uuid()).backing_storage:
 		target.init_local()
 	else:
 		target.init_remote()
-	if NetworkManager.is_server():
-		NetworkManager.register_player_object(owner_id, target)
 
 func _get_networked_values() -> Array:
 	var values:Array = []
@@ -67,7 +63,10 @@ func _get_networked_value_type(idx: int) -> int:
 			return 5
 	return -1
 
-func _get_priority(_clientid: int) -> int:
+func _get_server_priority(_clientid: PackedByteArray) -> int:
+	return 1000
+
+func _get_client_priority() -> int:
 	return 1000
 
 func _on_owner_dc() -> void:

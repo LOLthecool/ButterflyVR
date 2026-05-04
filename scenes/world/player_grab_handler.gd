@@ -1,9 +1,9 @@
 extends MessageHandler
 class_name PlayerGrabHandler
 
-signal player_grabbed(player:int, object:Node)
+signal player_grabbed(player:PackedByteArray, object:Node)
 
-func send_message(player:int, target:String) -> void:
+func send_message(player:PackedByteArray, target:String) -> void:
 	var index_path:Array[int] = []
 	if target != "":
 		index_path = PathHelper.path_to_index_path(target, self)
@@ -19,13 +19,13 @@ func send_message(player:int, target:String) -> void:
 	
 	send_message_final(values, types)
 
-func _get_value_type(_previous_value: Variant, idx: int) -> int:
+func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:
 		0:
-			return 2
+			return TypeHelper.NetworkedValueTypes.ByteArray
 		1:
-			return 7
-	return -1
+			return TypeHelper.NetworkedValueTypes.ByteArray
+	return TypeHelper.NetworkedValueTypes.End
 
 func _process_message(values: Array) -> void:
 	var target:Node = get_tree().root
