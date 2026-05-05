@@ -74,10 +74,10 @@ enum Inner {
 impl NetNodeManager {
     /// Not to be called directly; used by `NetworkedNode` internally.
     /// Registers a `NetworkedNode` with the inner client or server, allowing it to be synced across the network.
-    fn register_node(&mut self, node_ref: Gd<NetworkedNode>, node: &NetworkedNode) {
+    fn register_node(&mut self, node_ref: Gd<NetworkedNode>, node: &mut NetworkedNode) {
         match self.inner {
             Inner::Server(ref mut server) => {
-                server.register_node(node_ref);
+                server.register_node(node_ref, node);
             }
             Inner::Client(ref mut client) => {
                 client.register_node(node_ref, node);
@@ -298,7 +298,11 @@ impl NetNodeManager {
         }
     }
 
-    fn register_message_handler(&mut self, handler: Gd<MessageHandler>) {
+    fn register_message_handler(
+        &mut self,
+        handler_ref: Gd<MessageHandler>,
+        handler: &mut MessageHandler,
+    ) {
         match &mut self.inner {
             Inner::Client(_) => {
                 // todo: should probably avoid calling this in the first place on client to avoid confusion
@@ -307,7 +311,7 @@ impl NetNodeManager {
                 // this still gets called on enter_tree in the client so we ignore it
             }
             Inner::Server(server) => {
-                server.register_message(handler);
+                server.register_message(handler_ref, handler);
             }
             _ => {
                 godot_error!(

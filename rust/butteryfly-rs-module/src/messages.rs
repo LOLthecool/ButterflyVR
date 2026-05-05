@@ -149,19 +149,20 @@ impl MessageHandler {
 #[godot_api]
 impl INode for MessageHandler {
     fn enter_tree(&mut self) {
-        self.network_manager = Some(
-            self.base()
-                .get_node_as::<NetNodeManager>("/root/NetworkManager"),
-        );
+        let network_manager = self
+            .base()
+            .get_node_as::<NetNodeManager>("/root/NetworkManager");
+        self.network_manager = Some(network_manager);
 
-        self.base()
-            .get_node_as::<NetNodeManager>("/root/NetworkManager")
+        let network_manager = self.network_manager.clone();
+        network_manager
+            .unwrap()
             .bind_mut()
-            .register_message_handler(self.to_gd());
+            .register_message_handler(self.to_gd(), self);
     }
     fn exit_tree(&mut self) {
-        self.network_manager
-            .as_mut()
+        let network_manager = self.network_manager.clone();
+        network_manager
             .unwrap()
             .bind_mut()
             .unregister_message_handler(self.message_id);

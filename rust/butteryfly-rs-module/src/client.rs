@@ -115,9 +115,7 @@ impl NetNodeClient {
         let _ = self.networker.update();
         thread::sleep(std::time::Duration::from_millis(16));
     }
-    fn tick(&mut self) -> Result<(), NetNodesError> {
-        self.networker.update()?;
-
+    fn tick(&mut self) {
         let server = self.networker.get_peers(false).pop().unwrap();
         let server = &server;
 
@@ -144,7 +142,6 @@ impl NetNodeClient {
             &mut self.networker,
             &mut random,
         );
-        Ok(())
     }
     fn update_network_nodes(&mut self) {
         while let Some((_, packet)) = self.unapplied_packets.pop_first() {
@@ -263,8 +260,14 @@ impl NetNodeClient {
             godot_error!("client is not connected to the server");
             return;
         };
+
+        if let Err(e) = self.networker.update() {
+            godot_error!("failed to update client networker: {e:?}");
+        }
+
         if let ConnectionStatus::AwaitingConnection(ref identifier) = self.connected {
             if self.networker.is_connected(server) {
+                godot_print!("sent identifier");
                 let packet = generate_internal_message(InternalMessage::ClientId(*identifier));
                 if let Err(e) = self.networker.send_stream(server, 0, packet) {
                     godot_error!("failed to send identifier {e:?}");
@@ -274,17 +277,16 @@ impl NetNodeClient {
                 return;
             }
         }
+        godot_print!("connected");
 
         Self::tick_priorities(&mut self.owned_nodes);
 
-        let _ = self
-            .tick()
-            .inspect_err(|x| godot_error!("error while ticking client: {:?}", x));
+        self.tick();
 
         self.update_network_nodes();
 
-        let _ = self
-            .send_packets()
-            .inspect_err(|x| godot_error!("error while sending packets: {:?}", x));
+        if let Err(e) = self.send_packets() {
+            godot_error!("error while sending packets: {e:?}");
+        }
     }
 }

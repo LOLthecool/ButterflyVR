@@ -7,7 +7,7 @@ func _ready() -> void:
 	var key:Array[int] = []
 	key.assign(Crypto.new().generate_random_bytes(32))
 	
-	var bind_port:int = randi_range(20000, 40000)
+	var bind_port:int = 0
 	var api_token:PackedByteArray = PackedByteArray()
 	var world:UUID = UUID.new()
 	var is_local:bool = false

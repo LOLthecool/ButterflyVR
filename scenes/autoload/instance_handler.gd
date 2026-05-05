@@ -3,7 +3,7 @@ class_name InstanceHandler
 
 const INSTANCE_CREATION_ENDPOINT:String = "/api/v0/instances"
 const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
-const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless"]
+const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless", "--log-file server.log"]
 const MAX_CONNECT_RETRYS:int = 10
 
 enum InstanceJoinPermission{
@@ -64,7 +64,7 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	var token_argument:String = "--api_token=%s" % GlobalAccountHandler.session_token.hex_encode()
 	arguments.push_back(token_argument)
 	
-	var port_argument:String = "--port=%s" % port
+	var port_argument:String = "--bind_port=%s" % port
 	arguments.push_back(port_argument)
 	
 	if FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
@@ -86,7 +86,7 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	NetworkManager.start_client(
 			"127.0.0.1", 
 			port, 
-			(await GlobalAccountHandler.get_uuid()).as_array(), 
+			(await GlobalAccountHandler.get_uuid()).backing_storage, 
 			local_server_token.slice(0, 8), 
 			local_server_token.slice(8, 40))
 
@@ -127,7 +127,7 @@ func join_instance(instance:UUID) -> void:
 		NetworkManager.start_client(
 			ip, 
 			port, 
-			(await GlobalAccountHandler.get_uuid()).as_array(), 
+			(await GlobalAccountHandler.get_uuid()).backing_storage, 
 			token.slice(0, 8), 
 			token.slice(8, 40))
 		break

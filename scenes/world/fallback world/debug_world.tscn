@@ -1,10 +1,9 @@
-[gd_scene load_steps=11 format=3 uid="uid://dp5npmsern82o"]
+[gd_scene format=3 uid="uid://dp5npmsern82o"]
 
 [ext_resource type="Script" uid="uid://cunre5bjrn1g" path="res://scenes/world/world.gd" id="1_2wqxu"]
 [ext_resource type="Script" uid="uid://dls14642d2uaa" path="res://scenes/world/fallback world/dummy_grab_handler.gd" id="2_u0bto"]
 [ext_resource type="Script" uid="uid://bmtfchs21wwn2" path="res://scenes/world/fallback world/dummy_avatar_change_handler.gd" id="3_fl0hp"]
 [ext_resource type="Script" uid="uid://duqq822ghxpeq" path="res://scenes/player/player.gd" id="4_uiuld"]
-[ext_resource type="Script" uid="uid://bfufsu312gtpv" path="res://scenes/player/player_networker.gd" id="5_5ut5k"]
 [ext_resource type="Script" uid="uid://bsslrhuvewjrn" path="res://scenes/world/fallback world/player_init.gd" id="5_76sfd"]
 [ext_resource type="Script" uid="uid://dgh52eivd3tq4" path="res://scenes/player/avatar_manager.gd" id="6_d6ao2"]
 
@@ -15,42 +14,41 @@ size = Vector2(20, 20)
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_mfl08"]
 
-[node name="World" type="Node" node_paths=PackedStringArray("player_grab_handler", "avatar_change_handler")]
+[node name="World" type="Node" unique_id=1946532989 node_paths=PackedStringArray("player_grab_handler", "avatar_change_handler")]
 script = ExtResource("1_2wqxu")
 player_grab_handler = NodePath("WorldComponents/PlayerGrabHandler")
 avatar_change_handler = NodePath("WorldComponents/AvatarChangeHandler")
 
-[node name="WorldComponents" type="Node" parent="."]
+[node name="WorldComponents" type="Node" parent="." unique_id=1761813713]
 
-[node name="PlayerGrabHandler" type="MessageHandler" parent="WorldComponents"]
-message_type = 5
+[node name="PlayerGrabHandler" type="MessageHandler" parent="WorldComponents" unique_id=1529484291]
 script = ExtResource("2_u0bto")
 
-[node name="AvatarChangeHandler" type="MessageHandler" parent="WorldComponents"]
+[node name="AvatarChangeHandler" type="MessageHandler" parent="WorldComponents" unique_id=493937823]
 script = ExtResource("3_fl0hp")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1768496087]
 mesh = SubResource("PlaneMesh_64wdw")
 
-[node name="StaticBody3D" type="StaticBody3D" parent="MeshInstance3D"]
+[node name="StaticBody3D" type="StaticBody3D" parent="MeshInstance3D" unique_id=107238352]
 collision_layer = 17
 collision_mask = 17
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/StaticBody3D"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/StaticBody3D" unique_id=1309916086]
 shape = SubResource("WorldBoundaryShape3D_agtxg")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=504579172]
 transform = Transform3D(0.88165, -0.211182, 0.422014, -0.117749, 0.767547, 0.630085, -0.456978, -0.605206, 0.651841, 0, 2.35174, 0)
 shadow_enabled = true
 
-[node name="Label3D" type="Label3D" parent="."]
+[node name="Label3D" type="Label3D" parent="." unique_id=164346619]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 2.4041548, 7.7906075)
 text = "Sorry, something went wrong. 
 You can try joining another instance or filing a bug report."
 font_size = 128
 outline_size = 48
 
-[node name="player" type="CharacterBody3D" parent="." node_paths=PackedStringArray("networker", "collider") groups=["Players"]]
+[node name="player" type="CharacterBody3D" parent="." unique_id=1813712959 node_paths=PackedStringArray("collider") groups=["Players"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22542882, 0)
 collision_layer = 16
 axis_lock_angular_x = true
@@ -58,21 +56,15 @@ axis_lock_angular_z = true
 floor_constant_speed = true
 platform_on_leave = 1
 script = ExtResource("4_uiuld")
-networker = NodePath("PlayerNetworker")
 collider = NodePath("CollisionShape3D")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="player"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="player" unique_id=1109067218]
 shape = SubResource("CapsuleShape3D_mfl08")
 
-[node name="PlayerNetworker" type="NetworkedNode" parent="player" node_paths=PackedStringArray("target")]
-script = ExtResource("5_5ut5k")
-target = NodePath("..")
-
-[node name="AvatarManager" type="Node" parent="player" node_paths=PackedStringArray("networker", "player")]
+[node name="AvatarManager" type="Node" parent="player" unique_id=704341407 node_paths=PackedStringArray("player")]
 script = ExtResource("6_d6ao2")
-networker = NodePath("../PlayerNetworker")
 player = NodePath("..")
 
-[node name="PlayerInit" type="Node" parent="." node_paths=PackedStringArray("player")]
+[node name="PlayerInit" type="Node" parent="." unique_id=651731404 node_paths=PackedStringArray("player")]
 script = ExtResource("5_76sfd")
 player = NodePath("../player")

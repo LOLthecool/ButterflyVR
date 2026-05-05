@@ -43,4 +43,6 @@ static func from_bytes(bytes:PackedByteArray) -> UUID:
 	return result
 
 func as_array() -> Array[int]:
-	return backing_storage as Array[int]
+	var tmp:Array[int] = []
+	tmp.assign(backing_storage)
+	return tmp

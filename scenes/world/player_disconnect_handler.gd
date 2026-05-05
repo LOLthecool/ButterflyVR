@@ -1,8 +1,9 @@
 extends MessageHandler
 
 func _physics_process(_delta: float) -> void:
-	for player:PackedByteArray in NetworkManager.get_dc_clients():
-		send_message_final([player], [_get_value_type(null, 0)])
+	if NetworkManager.is_server():
+		for player:PackedByteArray in NetworkManager.get_dc_clients():
+			send_message_final([player], [_get_value_type(null, 0)])
 
 func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:

@@ -31,9 +31,6 @@ func _physics_process(delta: float) -> void:
 						HTTPClient.METHOD_GET, 
 						CLOSE_INSTANCE_ENDPOINT, 
 						PackedStringArray([GlobalAccountHandler.get_token_header()]))
-				# TEMP: dont want it to shutdown and delete logs
-				while true:
-					await get_tree().physics_frame
 				agones_sdk.shutdown()
 			else:
 				get_tree().quit()
@@ -121,13 +118,8 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 				push_error("error code: %s" % result[2])
 			if result[3] != "":
 				push_error("error message: %s" % result[3])
-			# TEMP: dont want it to shutdown and delete logs
-			while true:
-				await get_tree().physics_frame
 			agones_sdk.shutdown()
 			return
 		print("ready for connections")
-		while true:
-			await get_tree().physics_frame
 	
 	finished_starting = true

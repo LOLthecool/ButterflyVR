@@ -36,11 +36,11 @@ impl NetNodeServer {
         self.networker.get_peers(false).len()
     }
 
-    pub fn register_node(&mut self, mut new_node_ref: Gd<NetworkedNode>) {
-        new_node_ref.bind_mut().objectid = self.get_next_object_id();
+    pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &mut NetworkedNode) {
+        new_node.objectid = self.get_next_object_id();
 
         let message = generate_internal_message(InternalMessage::NetNodeIdAssign((
-            new_node_ref.bind().objectid,
+            new_node.objectid,
             new_node_ref.clone().upcast(),
         )));
         self.queue_message(message, 0);
@@ -94,17 +94,21 @@ impl NetNodeServer {
         self.last_message_id
     }
 
-    pub fn register_message(&mut self, mut handler: Gd<MessageHandler>) {
-        handler.bind_mut().message_id = self.get_next_message_id();
-        let message_id = handler.bind().message_id;
+    pub fn register_message(
+        &mut self,
+        handler_ref: Gd<MessageHandler>,
+        handler: &mut MessageHandler,
+    ) {
+        handler.message_id = self.get_next_message_id();
+        let message_id = handler.message_id;
 
         let message = generate_internal_message(InternalMessage::MessageHandlerIdAssign((
             message_id,
-            handler.clone().upcast(),
+            handler_ref.clone().upcast(),
         )));
         self.queue_message(message, 0);
 
-        self.message_handlers.insert(message_id, handler);
+        self.message_handlers.insert(message_id, handler_ref);
     }
 
     pub fn unregister_message(&mut self, message_type: u16) {
@@ -175,14 +179,12 @@ impl NetNodeServer {
         }
     }
 
-    fn tick(&mut self) -> std::result::Result<(), NetNodesError> {
+    fn tick(&mut self) {
         Self::tick_client_priorities(
             &mut self.clients,
             &self.networked_nodes,
             &mut self.priorities_invalidated,
         );
-
-        self.networker.update()?;
 
         Self::update_client_list(&mut self.clients, &mut self.left_clients, &self.networker);
 
@@ -233,7 +235,6 @@ impl NetNodeServer {
                 }
             }
         }
-        Ok(())
     }
 
     fn update_network_nodes(&mut self) {
@@ -489,15 +490,17 @@ impl NetNodeServer {
     }
 
     pub fn physics_process_inner(&mut self) {
-        let _ = self
-            .tick()
-            .inspect_err(|x| godot_error!("error while ticking server: {:?}", x));
+        if let Err(e) = self.networker.update() {
+            godot_error!("error while updating server networker: {e:?}")
+        };
+
+        self.tick();
 
         self.update_network_nodes();
 
-        let _ = self
-            .send_packets()
-            .inspect_err(|x| godot_error!("error while sending packets: {:?}", x));
+        if let Err(e) = self.send_packets() {
+            godot_error!("error while sending packets: {e:?}");
+        }
     }
 }
 

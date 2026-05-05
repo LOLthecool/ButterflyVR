@@ -5,6 +5,7 @@ use boring::ssl::SslMethod;
 use boring::ssl::SslVerifyMode;
 use boring::ssl::SslVersion;
 use bytes::{Bytes, BytesMut};
+use godot::global::godot_error;
 use quiche::Config;
 use quiche::Connection;
 use quiche::ConnectionId;
@@ -33,10 +34,10 @@ pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 pub enum NetNodesError {
     InvalidHandlerType,
     PeerNotFound,
+    Disconnected,
     BufferFull,
     InvalidDatagramLength,
     InvalidDatagram,
-    #[allow(dead_code)]
     QuicheError(quiche::Error),
 }
 
@@ -227,7 +228,7 @@ impl ConnectionHandler {
             let hdr = match quiche::Header::from_slice(&mut packet, quiche::MAX_CONN_ID_LEN) {
                 Ok(v) => v,
                 Err(e) => {
-                    eprintln!("Failed to parse header: {e:?}");
+                    godot_error!("Failed to parse header: {e:?}");
                     continue;
                 }
             };
@@ -245,19 +246,17 @@ impl ConnectionHandler {
                     if let Some(block) = data.1.get_mut(&source_addr)
                         && block.block_expiry > Instant::now()
                     {
-                        eprintln!("Blocked connection from {source_addr:?}");
+                        godot_error!("Blocked connection from {source_addr:?}");
                         continue;
                     }
 
                     if length >= MAX_CLIENT_CONNECTIONS {
-                        eprintln!("Max client connections reached");
+                        godot_error!("Max client connections reached");
                         continue;
                     }
-
                     entry.insert(Self::create_client(source_addr, listener, data.2.clone())?)
                 }
             };
-
             Self::recv_packet(source_addr, packet, client, listener.bind_addr)?;
         }
 
@@ -329,7 +328,7 @@ impl ConnectionHandler {
                 }
             }
             PeerState::Disconnected => {
-                return Err(NetNodesError::PeerNotFound);
+                return Err(NetNodesError::Disconnected);
             }
         }
 
@@ -822,7 +821,7 @@ impl ConnectionHandler {
         ctx.set_verify(SslVerifyMode::NONE);
 
         ctx.set_psk_server_callback(move |_ssl, identity, out| {
-            if let Some(Ok(id)) = identity.map(TryInto::try_into)
+            if let Some(id) = identity.and_then(|x| x[..8].try_into().ok())
                 && let Entry::Occupied(entry) = psks.lock().unwrap().entry(id)
             {
                 let psk = entry.into_mut();
@@ -849,16 +848,10 @@ impl ConnectionHandler {
 
         ctx.set_psk_client_callback(move |_ssl, _hint, identity, psk| {
             let id_bytes = &supplied_identity;
-            if identity.len() < id_bytes.len() + 1 {
-                return Err(boring::error::ErrorStack::get());
-            }
             identity[..id_bytes.len()].copy_from_slice(id_bytes);
             identity[id_bytes.len()] = 0;
 
             let key_len = supplied_psk.len();
-            if psk.len() < key_len {
-                return Err(boring::error::ErrorStack::get());
-            }
             psk[..key_len].copy_from_slice(&supplied_psk);
 
             Ok(key_len)
