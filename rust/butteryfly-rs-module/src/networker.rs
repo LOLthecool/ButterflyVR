@@ -1,5 +1,12 @@
 use bitvec::order::Lsb0;
 use bitvec::vec::BitVec;
+use boring::ec::EcGroup;
+use boring::ec::EcKey;
+use boring::nid::Nid;
+use boring::pkey::PKey;
+use boring::rsa::Rsa;
+use boring::ssl::SslContextBuilder;
+use boring::ssl::SslMethod;
 use bytes::{Bytes, BytesMut};
 use godot::global::godot_error;
 use quiche::Config;
@@ -9,6 +16,7 @@ use quiche::RecvInfo;
 use quiche::SendInfo;
 use quiche::StreamIter;
 use ring::rand::SecureRandom;
+use ring::signature::EcdsaSigningAlgorithm;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::collections::hash_map::Entry;
@@ -798,7 +806,17 @@ impl ConnectionHandler {
     }
 
     fn get_config() -> Config {
-        let mut config = Config::new(quiche::PROTOCOL_VERSION).unwrap();
+        let mut context: SslContextBuilder = SslContextBuilder::new(SslMethod::tls()).unwrap();
+        context
+            .set_private_key(
+                &PKey::from_ec_key(
+                    EcKey::generate(&EcGroup::from_curve_name(Nid::SECP521R1).unwrap()).unwrap(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        let mut config =
+            Config::with_boring_ssl_ctx_builder(quiche::PROTOCOL_VERSION, context).unwrap();
         config.discover_pmtu(true);
         config.set_application_protos(&[b"netnodes-1"]).unwrap();
         config.set_max_idle_timeout(10_000);
