@@ -3,7 +3,9 @@ class_name InstanceHandler
 
 const INSTANCE_CREATION_ENDPOINT:String = "/api/v0/instances"
 const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
-const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless", "--log-file server.log"]
+
+const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless"]
+
 const MAX_CONNECT_RETRYS:int = 10
 
 enum InstanceJoinPermission{
@@ -50,6 +52,7 @@ func create_online_instance(
 	@warning_ignore("unsafe_cast")
 	return UUID.from_String(result[4]["id"] as String)
 
+# do not call directly, call load_world with instance_id == null instead
 func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	var port:int = randi_range(20000, 30000)
 	
@@ -67,28 +70,18 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	var port_argument:String = "--bind_port=%s" % port
 	arguments.push_back(port_argument)
 	
-	if FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
-		DirAccess.remove_absolute(ServerHandler.LOCAL_SERVER_KEY_LOCATION)
-	
 	var local_server_pid:int = OS.create_instance(arguments)
 	
 	if local_server_pid == -1:
 		push_error("failed to create local instance")
-	
-	while !FileAccess.file_exists(ServerHandler.LOCAL_SERVER_KEY_LOCATION):
-		await get_tree().physics_frame
-	
-	var local_server_token:PackedByteArray = FileAccess.get_file_as_bytes(
-			ServerHandler.LOCAL_SERVER_KEY_LOCATION)
-	
-	assert(local_server_token.size() == 40)
+		
+	await get_tree().create_timer(2).timeout
 	
 	NetworkManager.start_client(
 			"127.0.0.1", 
 			port, 
 			(await GlobalAccountHandler.get_uuid()).backing_storage, 
-			local_server_token.slice(0, 8), 
-			local_server_token.slice(8, 40))
+			(await GlobalAccountHandler.get_uuid()).backing_storage.slice(0, 8))
 
 # do not call directly, call load_world instead
 func join_instance(instance:UUID) -> void:
@@ -120,14 +113,13 @@ func join_instance(instance:UUID) -> void:
 		var ip:String = result[4]["ip"]
 		var port:int = result[4]["port"]
 		@warning_ignore("unsafe_cast")
-		var token:PackedByteArray = PackedByteArray(result[4]["token"] as Array)
+		var identifier:PackedByteArray = PackedByteArray(result[4]["identifier"] as Array)
 		
-		assert(token.size() == 40)
+		assert(identifier.size() == 8)
 	
 		NetworkManager.start_client(
 			ip, 
 			port, 
 			(await GlobalAccountHandler.get_uuid()).backing_storage, 
-			token.slice(0, 8), 
-			token.slice(8, 40))
+			identifier, )
 		break

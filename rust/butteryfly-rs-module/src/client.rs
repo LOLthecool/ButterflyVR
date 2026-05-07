@@ -36,7 +36,7 @@ pub struct NetNodeClient {
 
 #[derive(Debug, Clone, PartialEq)]
 enum ConnectionStatus {
-    AwaitingConnection([u8; 40]),
+    AwaitingConnection([u8; 8]),
     Connected,
 }
 
@@ -80,16 +80,13 @@ impl NetNodeClient {
     pub fn new(
         server_addr: SocketAddr,
         uuid: [u8; 16],
-        psk_identifier: Vec<u8>,
-        psk_key: Vec<u8>,
+        identifier: [u8; 8],
         scene_access: Gd<Node>,
     ) -> Self {
-        let mut identifier = psk_identifier.clone();
-        identifier.extend(&psk_key);
         Self {
-            connected: ConnectionStatus::AwaitingConnection(identifier.try_into().unwrap()),
+            connected: ConnectionStatus::AwaitingConnection(identifier),
             uuid,
-            networker: ConnectionHandler::new_client(server_addr, psk_identifier, psk_key),
+            networker: ConnectionHandler::new_client(server_addr),
             networked_nodes: Vec::new(),
             owned_nodes: Vec::new(),
             bandwidth_budget_per_tick: 0,

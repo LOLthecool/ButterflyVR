@@ -105,10 +105,10 @@ impl NetNodeManager {
     }
 
     /// Gets the next client that has connected to the server, but has not yet been verified.
-    /// This is intended to connect the PSK used by this client to a user account on another server.
-    /// To use this, you should keep track of the user who received a PSK on the other server,
-    /// Get the user's PSK from this function, retrieve the account associated with the user from the other server,
-    /// and then call `verify_client` with the user's PSK and account.
+    /// This is intended to connect the identifier used by this client to a user account on another server.
+    /// To use this, you should keep track of which user received an identifier on the other server,
+    /// Get the user's identifier from this function, retrieve the account associated with the user from the other server,
+    /// and then call `verify_client` with the user's identifier and account.
     /// If you do not need to associate the client with an external account, you can generate a random identifier for the account.
     /// Once `verify_client` is called, the client finishes the connection process and will be processed on the server.
     /// This is a server-only method.
@@ -125,10 +125,10 @@ impl NetNodeManager {
     }
 
     /// Associates a client with a user account on the server.
-    /// This is intended to connect the PSK used by this client to a user account on another server.
-    /// To use this, you should keep track of the user who received a PSK on the other server,
-    /// get the user's PSK from `get_unverified_client`, retrieve the account associated with the user from the other server,
-    /// and then call this function with the user's PSK and account.
+    /// This is intended to connect the identifier used by this client to a user account on another server.
+    /// To use this, you should keep track of the user who received an identifier on the other server,
+    /// get the user's identifier from `get_unverified_client`, retrieve the account associated with the user from the other server,
+    /// and then call this function with the user's identifier and account.
     /// If you do not need to associate the client with an external account, you can generate a random identifier for the account.
     /// Once this function is called, the client finishes the connection process and will be processed on the server.
     /// This is a server-only method.
@@ -137,7 +137,7 @@ impl NetNodeManager {
         let Ok(identifier) = identifier.to_vec().try_into() else {
             godot_error!(
                 "verify_client(): identifier was not correct size: should be {:?} got {:?}",
-                40,
+                8,
                 identifier.len()
             );
             return;
@@ -159,6 +159,24 @@ impl NetNodeManager {
             _ => {
                 godot_error!("called verify_client but we are not a server");
             }
+        }
+    }
+
+    #[func]
+    fn reject_client(&mut self, identifier: PackedByteArray) {
+        let Ok(identifier) = identifier.to_vec().try_into() else {
+            godot_error!(
+                "reject_client(): identifier was not correct size: should be {}, got {}",
+                8,
+                identifier.len()
+            );
+            return;
+        };
+
+        if let Inner::Server(ref mut server) = self.inner {
+            server.reject_client(identifier);
+        } else {
+            godot_error!("called reject_client but we are not a server");
         }
     }
 
@@ -211,8 +229,7 @@ impl NetNodeManager {
         server_ip: String,
         server_port: u16,
         uuid: PackedByteArray,
-        psk_identifier: PackedByteArray,
-        psk_key: PackedByteArray,
+        identifier: PackedByteArray,
     ) {
         let Ok(server_ip) = IpAddr::from_str(&server_ip) else {
             godot_error!("failed to connect to server: invalid IP: {server_ip:?}");
@@ -222,11 +239,17 @@ impl NetNodeManager {
             godot_error!("failed to connect to server: uuid was wrong length: {uuid:?}");
             return;
         };
+        let Ok(identifier) = identifier.to_vec().try_into() else {
+            godot_error!(
+                "failed to connect to server: psk_identifier was wrong length: {identifier:?}"
+            );
+            return;
+        };
+
         self.inner = Inner::Client(NetNodeClient::new(
             SocketAddr::new(server_ip, server_port),
             uuid,
-            psk_identifier.to_vec(),
-            psk_key.to_vec(),
+            identifier,
             self.to_gd().upcast(),
         ));
     }
@@ -260,24 +283,6 @@ impl NetNodeManager {
     #[func]
     fn kill(&mut self) {
         self.inner = Inner::None;
-    }
-
-    /// Returns an identifier that can be used to connect to the server. It is composed of an 8-byte identifier and 32-byte key.
-    /// This is a server-only method.
-    #[func]
-    fn get_next_client(&mut self) -> PackedByteArray {
-        if let Inner::Server(ref mut server) = self.inner {
-            match server.get_next_client() {
-                Ok(client) => PackedByteArray::from(client),
-                Err(e) => {
-                    godot_error!("failed to get next client: {:?}", e);
-                    PackedByteArray::new()
-                }
-            }
-        } else {
-            godot_error!("called get_next_client() but we are not a server");
-            PackedByteArray::new()
-        }
     }
 
     /// Returns `true` if the node is a server, false if it is a client or not connected.

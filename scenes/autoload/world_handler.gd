@@ -66,7 +66,7 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	
 	await get_tree().physics_frame
 	
-	if instance_id != null:
+	if instance_id:
 		await GlobalInstanceHandler.join_instance(instance_id)
 	else:
 		await GlobalInstanceHandler.create_and_join_offline_instance(world_id)

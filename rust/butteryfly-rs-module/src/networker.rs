@@ -1,9 +1,5 @@
 use bitvec::order::Lsb0;
 use bitvec::vec::BitVec;
-use boring::ssl::SslContextBuilder;
-use boring::ssl::SslMethod;
-use boring::ssl::SslVerifyMode;
-use boring::ssl::SslVersion;
 use bytes::{Bytes, BytesMut};
 use godot::global::godot_error;
 use quiche::Config;
@@ -19,7 +15,6 @@ use std::collections::hash_map::Entry;
 use std::fmt::Debug;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::thread::{self};
 use std::time::{Duration, Instant};
@@ -32,7 +27,6 @@ pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum NetNodesError {
-    InvalidHandlerType,
     PeerNotFound,
     Disconnected,
     BufferFull,
@@ -183,7 +177,6 @@ impl Debug for PeerConnection {
 type ServerState = (
     HashMap<NetNodesConnectionId, PeerConnection>,
     HashMap<SocketAddr, BlockedConnection>,
-    Arc<Mutex<HashMap<[u8; 8], [u8; 32]>>>,
 );
 
 #[derive(Debug)]
@@ -240,6 +233,7 @@ impl ConnectionHandler {
 
                 Entry::Vacant(entry) => {
                     if hdr.ty != quiche::Type::Initial {
+                        godot_error!("got non initial packet from new client");
                         continue;
                     }
 
@@ -254,7 +248,7 @@ impl ConnectionHandler {
                         godot_error!("Max client connections reached");
                         continue;
                     }
-                    entry.insert(Self::create_client(source_addr, listener, data.2.clone())?)
+                    entry.insert(Self::create_client(source_addr, listener)?)
                 }
             };
             Self::recv_packet(source_addr, packet, client, listener.bind_addr)?;
@@ -352,7 +346,6 @@ impl ConnectionHandler {
     fn create_client(
         source_addr: SocketAddr,
         listener: &UDPListener,
-        psks: Arc<Mutex<HashMap<[u8; 8], [u8; 32]>>>,
     ) -> Result<PeerConnection, NetNodesError> {
         let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
@@ -360,15 +353,31 @@ impl ConnectionHandler {
             .unwrap();
         let scid = quiche::ConnectionId::from_vec(scid_bytes.to_vec());
 
-        let ssl_ctx = Self::build_server_ctx(psks).unwrap();
-
-        let conn = quiche::accept(
+        let mut conn = quiche::accept(
             &scid,
             None,
             listener.bind_addr,
             source_addr,
-            &mut Self::get_config(ssl_ctx),
+            &mut Self::get_config(),
         )?;
+
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&format!("/tmp/butterfly-server-{:?}.qlog", scid))
+        {
+            Ok(file) => {
+                conn.set_qlog(
+                    Box::new(file),
+                    format!("butteryfly-rs client connection"),
+                    format!("cid={:?}", scid),
+                );
+            }
+            Err(e) => {
+                godot_error!("qlog: could not open log file: {e}");
+            }
+        }
 
         Ok(PeerConnection {
             id: scid.clone(),
@@ -715,19 +724,6 @@ impl ConnectionHandler {
         Ok(dgram)
     }
 
-    pub fn add_client_token(
-        &mut self,
-        identifier: [u8; 8],
-        key: [u8; 32],
-    ) -> Result<(), NetNodesError> {
-        if let HandlerType::Server(data) = &mut self.handler {
-            data.2.lock().unwrap().insert(identifier, key);
-            Ok(())
-        } else {
-            Err(NetNodesError::InvalidHandlerType)
-        }
-    }
-
     pub fn disconnect_peer(
         &mut self,
         peer: &NetNodesConnectionId,
@@ -752,20 +748,34 @@ impl ConnectionHandler {
         }
     }
 
-    pub fn new_client(
-        server_addr: SocketAddr,
-        supplied_identity: Vec<u8>,
-        supplied_psk: Vec<u8>,
-    ) -> Self {
-        let ssl_ctx = Self::build_client_ctx(supplied_identity, supplied_psk);
-        let mut config = Self::get_config(ssl_ctx);
+    pub fn new_client(server_addr: SocketAddr) -> Self {
+        let mut config = Self::get_config();
         let mut id = vec![0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new().fill(&mut id).unwrap();
         let id = ConnectionId::from_vec(id);
         let listener =
             UDPListener::new_client(SocketAddr::new("0.0.0.0".parse().unwrap(), 0), server_addr);
-        let conn =
+        let mut conn =
             quiche::connect(None, &id, listener.bind_addr, server_addr, &mut config).unwrap();
+
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&"/tmp/butterfly.qlog")
+        {
+            Ok(file) => {
+                conn.set_qlog(
+                    Box::new(file),
+                    format!("butteryfly-rs client connection"),
+                    format!("cid={:?}", id),
+                );
+            }
+            Err(e) => {
+                godot_error!("qlog: could not open log file: {e}");
+            }
+        }
+
         Self {
             handler: HandlerType::Client(Box::new(PeerConnection {
                 id,
@@ -779,11 +789,7 @@ impl ConnectionHandler {
 
     pub fn new_server(target_port: u16) -> Self {
         Self {
-            handler: HandlerType::Server((
-                HashMap::new(),
-                HashMap::new(),
-                Arc::new(Mutex::new(HashMap::new())),
-            )),
+            handler: HandlerType::Server((HashMap::new(), HashMap::new())),
             listener: UDPListener::new_server(SocketAddr::new(
                 "0.0.0.0".parse().unwrap(),
                 target_port,
@@ -791,9 +797,8 @@ impl ConnectionHandler {
         }
     }
 
-    fn get_config(ssl_ctx: SslContextBuilder) -> Config {
-        let mut config =
-            Config::with_boring_ssl_ctx_builder(quiche::PROTOCOL_VERSION, ssl_ctx).unwrap();
+    fn get_config() -> Config {
+        let mut config = Config::new(quiche::PROTOCOL_VERSION).unwrap();
         config.discover_pmtu(true);
         config.set_application_protos(&[b"netnodes-1"]).unwrap();
         config.set_max_idle_timeout(10_000);
@@ -808,55 +813,5 @@ impl ConnectionHandler {
         config.enable_dgram(true, 1000, 1000);
         config.set_disable_active_migration(true);
         config
-    }
-
-    fn build_server_ctx(
-        psks: Arc<Mutex<HashMap<[u8; 8], [u8; 32]>>>,
-    ) -> Result<SslContextBuilder, boring::error::ErrorStack> {
-        let mut ctx = SslContextBuilder::new(SslMethod::tls_server())?;
-
-        ctx.set_min_proto_version(Some(SslVersion::TLS1_3))?;
-        ctx.set_max_proto_version(Some(SslVersion::TLS1_3))?;
-
-        ctx.set_verify(SslVerifyMode::NONE);
-
-        ctx.set_psk_server_callback(move |_ssl, identity, out| {
-            if let Some(id) = identity.and_then(|x| x[..8].try_into().ok())
-                && let Entry::Occupied(entry) = psks.lock().unwrap().entry(id)
-            {
-                let psk = entry.into_mut();
-                let key_len = psk.len();
-                if out.len() >= key_len {
-                    out[..key_len].copy_from_slice(psk);
-                    return Ok(key_len);
-                }
-            }
-
-            Ok(0)
-        });
-
-        Ok(ctx)
-    }
-
-    fn build_client_ctx(supplied_identity: Vec<u8>, supplied_psk: Vec<u8>) -> SslContextBuilder {
-        let mut ctx = SslContextBuilder::new(SslMethod::tls_client()).unwrap();
-
-        ctx.set_min_proto_version(Some(SslVersion::TLS1_3)).unwrap();
-        ctx.set_max_proto_version(Some(SslVersion::TLS1_3)).unwrap();
-
-        ctx.set_verify(SslVerifyMode::NONE);
-
-        ctx.set_psk_client_callback(move |_ssl, _hint, identity, psk| {
-            let id_bytes = &supplied_identity;
-            identity[..id_bytes.len()].copy_from_slice(id_bytes);
-            identity[id_bytes.len()] = 0;
-
-            let key_len = supplied_psk.len();
-            psk[..key_len].copy_from_slice(&supplied_psk);
-
-            Ok(key_len)
-        });
-
-        ctx
     }
 }

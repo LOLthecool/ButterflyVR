@@ -135,15 +135,6 @@ impl NetNodeServer {
         }
     }
 
-    pub fn get_next_client(&mut self) -> Result<[u8; 40], NetNodesError> {
-        let psk_identifier = rand::rng().random::<[u8; 8]>();
-        let psk_key = rand::rng().random::<[u8; 32]>();
-        self.networker.add_client_token(psk_identifier, psk_key)?;
-        let mut token = Vec::from(psk_identifier);
-        token.extend(&psk_key);
-        Ok(token.try_into().unwrap())
-    }
-
     fn tick_client_priorities(
         clients: &mut HashMap<NetNodesConnectionId, Client>,
         networked_nodes: &[Gd<NetworkedNode>],
@@ -458,14 +449,14 @@ impl NetNodeServer {
         }
     }
 
-    pub fn get_unverified_client(&self) -> Option<[u8; 40]> {
+    pub fn get_unverified_client(&self) -> Option<[u8; 8]> {
         self.clients.iter().find_map(|x| match x.1.state {
             ClientState::AwaitingUuid(x) => Some(x),
             _ => None,
         })
     }
 
-    pub fn verify_client(&mut self, identifier: [u8; 40], uuid: [u8; 16]) {
+    pub fn verify_client(&mut self, identifier: [u8; 8], uuid: [u8; 16]) {
         if let Some(client) = self
             .clients
             .iter_mut()
@@ -473,6 +464,17 @@ impl NetNodeServer {
         {
             self.joined_clients.push(uuid);
             client.1.state = ClientState::Connected(ConnectedClient::new(uuid));
+        }
+    }
+
+    pub fn reject_client(&mut self, identifier: [u8; 8]) {
+        if let Some(client) = self
+            .clients
+            .iter_mut()
+            .find(|x| x.1.state == ClientState::AwaitingUuid(identifier))
+        {
+            self.networker
+                .disconnect_peer(client.0, true, 1, "invalid identifier");
         }
     }
 
@@ -520,7 +522,7 @@ impl Client {
 #[derive(Debug, Clone, PartialEq)]
 enum ClientState {
     AwaitingIdentifier(Vec<u8>),
-    AwaitingUuid([u8; 40]),
+    AwaitingUuid([u8; 8]),
     Connected(ConnectedClient),
 }
 

@@ -246,7 +246,7 @@ pub fn handle_datagrams(
 }
 
 pub enum InternalMessage {
-    ClientId([u8; 40]),
+    ClientId([u8; 8]),
     NetNodeIdAssign((u16, Gd<NetworkedNode>)),
     MessageHandlerIdAssign((u16, Gd<MessageHandler>)),
 }
@@ -254,7 +254,7 @@ pub enum InternalMessage {
 pub fn generate_internal_message(message: InternalMessage) -> BitVec<u64, Lsb0> {
     match message {
         InternalMessage::ClientId(id) => {
-            let id: Vec<u8> = id.into_iter().chain([0; 24]).collect();
+            let id: Vec<u8> = id.to_vec();
             let (id, _) = id.as_chunks::<8>();
             let id: Vec<u64> = id.iter().map(|x| u64::from_le_bytes(*x)).collect();
 
