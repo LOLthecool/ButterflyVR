@@ -199,7 +199,7 @@ pub fn handle_datagrams(
     networker: &mut ConnectionHandler,
     random: &mut rand::rngs::SmallRng,
 ) {
-    *tick_number += 1;
+    *tick_number = tick_number.wrapping_add(1);
 
     let mut late_packets: usize = 0;
     let mut total_packets: usize = 0;

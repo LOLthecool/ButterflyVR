@@ -264,7 +264,6 @@ impl NetNodeClient {
 
         if let ConnectionStatus::AwaitingConnection(ref identifier) = self.connected {
             if self.networker.is_connected(server) {
-                godot_print!("sent identifier");
                 let packet = generate_internal_message(InternalMessage::ClientId(*identifier));
                 if let Err(e) = self.networker.send_stream(server, 0, packet) {
                     godot_error!("failed to send identifier {e:?}");
@@ -274,7 +273,6 @@ impl NetNodeClient {
                 return;
             }
         }
-        godot_print!("connected");
 
         Self::tick_priorities(&mut self.owned_nodes);
 

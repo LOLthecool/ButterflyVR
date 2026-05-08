@@ -75,7 +75,7 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 	if local_server_pid == -1:
 		push_error("failed to create local instance")
 		
-	await get_tree().create_timer(2).timeout
+	await get_tree().create_timer(5).timeout
 	
 	NetworkManager.start_client(
 			"127.0.0.1", 

@@ -1,5 +1,6 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::doc_markdown)]
+//todo: redo stream send with chunk sizing
 
 //! Low level networking library for the Godot engine.
 //!

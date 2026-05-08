@@ -1,12 +1,19 @@
 use bitvec::order::Lsb0;
 use bitvec::vec::BitVec;
+use boring::asn1::Asn1Integer;
+use boring::asn1::Asn1Time;
+use boring::bn::BigNum;
 use boring::ec::EcGroup;
 use boring::ec::EcKey;
+use boring::hash::MessageDigest;
 use boring::nid::Nid;
 use boring::pkey::PKey;
-use boring::rsa::Rsa;
 use boring::ssl::SslContextBuilder;
 use boring::ssl::SslMethod;
+use boring::x509::X509;
+use boring::x509::X509NameBuilder;
+use boring::x509::extension::BasicConstraints;
+use boring::x509::extension::SubjectAlternativeName;
 use bytes::{Bytes, BytesMut};
 use godot::global::godot_error;
 use quiche::Config;
@@ -16,13 +23,13 @@ use quiche::RecvInfo;
 use quiche::SendInfo;
 use quiche::StreamIter;
 use ring::rand::SecureRandom;
-use ring::signature::EcdsaSigningAlgorithm;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::collections::hash_map::Entry;
 use std::fmt::Debug;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::Arc;
+use std::sync::mpsc::RecvTimeoutError;
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::thread::{self};
 use std::time::{Duration, Instant};
@@ -40,6 +47,7 @@ pub enum NetNodesError {
     BufferFull,
     InvalidDatagramLength,
     InvalidDatagram,
+    ThreadPanic,
     QuicheError(quiche::Error),
 }
 
@@ -53,6 +61,8 @@ impl From<quiche::Error> for NetNodesError {
 struct UDPListener {
     send: SyncSender<(Bytes, SendInfo)>,
     recv: Receiver<(Bytes, SocketAddr)>,
+    send_thread: thread::JoinHandle<()>,
+    recv_thread: thread::JoinHandle<()>,
     bind_addr: SocketAddr,
     pacing_notifier: Receiver<()>,
 }
@@ -68,18 +78,20 @@ impl UDPListener {
         let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
 
         let socket_ref = socket.clone();
-        thread::spawn(move || {
+        let send_thread = thread::spawn(move || {
             Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref);
         });
 
         let socket_ref = socket;
-        thread::spawn(move || {
+        let recv_thread = thread::spawn(move || {
             Self::receiving_thread(&recv_tx, &socket_ref);
         });
 
         Self {
             send: send_tx,
             recv: recv_rx,
+            send_thread,
+            recv_thread,
             bind_addr,
             pacing_notifier: excessive_pacing_notifier_rx,
         }
@@ -94,21 +106,27 @@ impl UDPListener {
         let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
 
         let socket_ref = socket.clone();
-        thread::spawn(move || {
+        let send_thread = thread::spawn(move || {
             Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref);
         });
 
         let socket_ref = socket;
-        thread::spawn(move || {
+        let recv_thread = thread::spawn(move || {
             Self::receiving_thread(&recv_tx, &socket_ref);
         });
 
         Self {
             send: send_tx,
             recv: recv_rx,
+            send_thread,
+            recv_thread,
             bind_addr,
             pacing_notifier: excessive_pacing_notifier_rx,
         }
+    }
+
+    fn is_running(&self) -> bool {
+        (!self.send_thread.is_finished()) && (!self.recv_thread.is_finished())
     }
 
     fn receiving_thread(outgoing: &SyncSender<(Bytes, SocketAddr)>, socket: &Arc<UdpSocket>) {
@@ -136,7 +154,29 @@ impl UDPListener {
         loop {
             let now = Instant::now();
 
-            let (packet, info) = incoming.recv().unwrap();
+            while delayed_packets.front().is_some_and(|x| x.1.at <= now) {
+                let (packet, info) = delayed_packets.pop_front().unwrap();
+                socket.send_to(&packet, info.to).unwrap();
+            }
+
+            let (packet, info) = match incoming.recv_timeout(
+                delayed_packets
+                    .iter()
+                    .fold(Instant::now() + Duration::from_millis(16), |acc, x| {
+                        acc.min(x.1.at)
+                    })
+                    .saturating_duration_since(now),
+            ) {
+                Ok(x) => x,
+                Err(e) => {
+                    if e == RecvTimeoutError::Timeout {
+                        continue;
+                    } else {
+                        godot_error!("{}", e);
+                        return;
+                    }
+                }
+            };
 
             if info.at <= now {
                 socket.send_to(&packet, info.to).unwrap();
@@ -148,11 +188,6 @@ impl UDPListener {
                 let _ = excessive_pacing_notifier.try_send(());
             } else {
                 delayed_packets.push_back((packet, info));
-            }
-
-            while delayed_packets.front().is_some_and(|x| x.1.at <= now) {
-                let (packet, info) = delayed_packets.pop_front().unwrap();
-                socket.send_to(&packet, info.to).unwrap();
             }
         }
     }
@@ -207,6 +242,10 @@ pub struct ConnectionHandler {
 
 impl ConnectionHandler {
     pub fn update(&mut self) -> Result<(), NetNodesError> {
+        if !self.listener.is_running() {
+            return Err(NetNodesError::ThreadPanic);
+        }
+
         match self.handler {
             HandlerType::Server(ref mut data) => {
                 Self::update_server(data, &self.listener)?;
@@ -242,6 +281,11 @@ impl ConnectionHandler {
                 Entry::Vacant(entry) => {
                     if hdr.ty != quiche::Type::Initial {
                         godot_error!("got non initial packet from new client");
+                        continue;
+                    }
+
+                    if hdr.version != quiche::PROTOCOL_VERSION {
+                        godot_error!("Unsupported protocol version: {}", hdr.version);
                         continue;
                     }
 
@@ -355,18 +399,18 @@ impl ConnectionHandler {
         source_addr: SocketAddr,
         listener: &UDPListener,
     ) -> Result<PeerConnection, NetNodesError> {
-        let mut scid_bytes = [0u8; quiche::MAX_CONN_ID_LEN];
+        let mut scid_bytes = vec![0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new()
             .fill(&mut scid_bytes)
             .unwrap();
-        let scid = quiche::ConnectionId::from_vec(scid_bytes.to_vec());
+        let scid = quiche::ConnectionId::from_vec(scid_bytes);
 
         let mut conn = quiche::accept(
             &scid,
             None,
             listener.bind_addr,
             source_addr,
-            &mut Self::get_config(),
+            &mut Self::get_config_server(),
         )?;
 
         match std::fs::OpenOptions::new()
@@ -535,12 +579,11 @@ impl ConnectionHandler {
     ) -> std::result::Result<(), NetNodesError> {
         let size: u64 = 8 + data.len() as u64;
 
-        if !conn
-            .conn
-            .stream_writable(stream_id, size as usize)
-            .unwrap_or(false)
-        {
-            return Err(NetNodesError::BufferFull);
+        match conn.conn.stream_writable(stream_id, size as usize) {
+            Ok(true) => {}
+            Ok(false) => return Err(NetNodesError::BufferFull),
+            Err(quiche::Error::InvalidStreamState(_)) => {}
+            Err(e) => return Err(NetNodesError::QuicheError(e)),
         }
 
         conn.conn
@@ -757,7 +800,7 @@ impl ConnectionHandler {
     }
 
     pub fn new_client(server_addr: SocketAddr) -> Self {
-        let mut config = Self::get_config();
+        let mut config = Self::get_config_client();
         let mut id = vec![0u8; quiche::MAX_CONN_ID_LEN];
         ring::rand::SystemRandom::new().fill(&mut id).unwrap();
         let id = ConnectionId::from_vec(id);
@@ -805,18 +848,81 @@ impl ConnectionHandler {
         }
     }
 
-    fn get_config() -> Config {
-        let mut context: SslContextBuilder = SslContextBuilder::new(SslMethod::tls()).unwrap();
-        context
-            .set_private_key(
-                &PKey::from_ec_key(
-                    EcKey::generate(&EcGroup::from_curve_name(Nid::SECP521R1).unwrap()).unwrap(),
-                )
-                .unwrap(),
-            )
+    fn get_config_server() -> Config {
+        let mut builder = X509::builder().unwrap();
+
+        builder.set_version(2).unwrap();
+
+        let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).unwrap();
+        let ec_key = EcKey::generate(&group).unwrap();
+        let pkey = PKey::from_ec_key(ec_key).unwrap();
+
+        let mut name_builder = X509NameBuilder::new().unwrap();
+        name_builder.append_entry_by_text("C", "UK").unwrap();
+        name_builder
+            .append_entry_by_text("O", "ButterflyVR")
             .unwrap();
+        name_builder
+            .append_entry_by_text("CN", "instance.butterflyvr.net")
+            .unwrap();
+        let name = name_builder.build();
+
+        let serial_bn = BigNum::from_u32(rand::random()).unwrap();
+        let serial = Asn1Integer::from_bn(&serial_bn).unwrap();
+        builder.set_serial_number(&serial).unwrap();
+
+        let not_before = Asn1Time::days_from_now(0).unwrap();
+        let not_after = Asn1Time::days_from_now(365).unwrap();
+        builder.set_not_before(&not_before).unwrap();
+        builder.set_not_after(&not_after).unwrap();
+
+        builder.set_subject_name(&name).unwrap();
+        builder.set_issuer_name(&name).unwrap();
+
+        builder.set_pubkey(&pkey).unwrap();
+
+        let basic_constraints = BasicConstraints::new().critical().ca().build().unwrap();
+        builder.append_extension(basic_constraints).unwrap();
+
+        let ctx = builder.x509v3_context(None, None);
+
+        let san = SubjectAlternativeName::new()
+            .dns("localhost")
+            .ip("127.0.0.1")
+            .build(&ctx)
+            .unwrap();
+        builder.append_extension(san).unwrap();
+
+        builder.sign(&pkey, MessageDigest::sha256()).unwrap();
+
+        let cert = builder.build();
+
+        let mut context: SslContextBuilder = SslContextBuilder::new(SslMethod::tls()).unwrap();
+        context.set_private_key(&pkey).unwrap();
+
+        context.set_certificate(&cert).unwrap();
+
         let mut config =
             Config::with_boring_ssl_ctx_builder(quiche::PROTOCOL_VERSION, context).unwrap();
+
+        config.discover_pmtu(true);
+        config.set_application_protos(&[b"netnodes-1"]).unwrap();
+        config.set_max_idle_timeout(10_000);
+        config.set_max_recv_udp_payload_size(MAX_DATAGRAM_SIZE);
+        config.set_max_send_udp_payload_size(MAX_DATAGRAM_SIZE);
+        config.set_initial_max_data(1_000_000);
+        config.set_initial_max_stream_data_bidi_local(900_000);
+        config.set_initial_max_stream_data_bidi_remote(900_000);
+        config.set_initial_max_stream_data_uni(900_000);
+        config.set_initial_max_streams_bidi(10);
+        config.set_initial_max_streams_uni(10);
+        config.enable_dgram(true, 1000, 1000);
+        config.set_disable_active_migration(true);
+        config
+    }
+    fn get_config_client() -> Config {
+        let mut config = Config::new(quiche::PROTOCOL_VERSION).unwrap();
+        config.verify_peer(false);
         config.discover_pmtu(true);
         config.set_application_protos(&[b"netnodes-1"]).unwrap();
         config.set_max_idle_timeout(10_000);
