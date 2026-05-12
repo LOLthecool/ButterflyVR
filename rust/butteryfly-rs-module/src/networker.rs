@@ -22,7 +22,7 @@ use quiche::ConnectionId;
 use quiche::RecvInfo;
 use quiche::SendInfo;
 use quiche::StreamIter;
-use ring::rand::SecureRandom;
+use rand::TryRng;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::collections::hash_map::Entry;
@@ -472,9 +472,7 @@ impl ConnectionHandler {
         listener: &UDPListener,
     ) -> Result<PeerConnection, NetNodesError> {
         let mut scid_bytes = vec![0u8; quiche::MAX_CONN_ID_LEN];
-        ring::rand::SystemRandom::new()
-            .fill(&mut scid_bytes)
-            .unwrap();
+        rand::rngs::SysRng.try_fill_bytes(&mut scid_bytes).unwrap();
         let scid = quiche::ConnectionId::from_vec(scid_bytes);
 
         let mut conn = quiche::accept(
@@ -874,7 +872,7 @@ impl ConnectionHandler {
     pub fn new_client(server_addr: SocketAddr) -> Self {
         let mut config = Self::get_config_client();
         let mut id = vec![0u8; quiche::MAX_CONN_ID_LEN];
-        ring::rand::SystemRandom::new().fill(&mut id).unwrap();
+        rand::rngs::SysRng.try_fill_bytes(&mut id).unwrap();
         let id = ConnectionId::from_vec(id);
         let listener =
             UDPListener::new_client(SocketAddr::new("0.0.0.0".parse().unwrap(), 0), server_addr);
