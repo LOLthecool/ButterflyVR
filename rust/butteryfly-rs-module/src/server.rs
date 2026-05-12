@@ -202,14 +202,12 @@ impl NetNodeServer {
                     for stream in self.networker.get_readable_streams(client_id) {
                         let (length, data) = client.incomplete_messages.entry(stream).or_default();
                         common::handle_stream(
-                            length,
-                            data,
-                            &mut self.networker,
-                            client_id,
                             stream,
+                            client_id,
+                            (length, data),
+                            &mut self.networker,
                             &mut self.message_buffer,
                             &mut self.message_handlers,
-                            true,
                             None,
                         )?;
                     }
@@ -280,7 +278,7 @@ impl NetNodeServer {
         // but we really want to avoid congestion so we dont spike latency
         // todo: track pacing per connection
         if self.networker.is_connection_pacing() {
-            for (_, client) in &mut self.clients {
+            for client in self.clients.values_mut() {
                 if let ClientState::Connected(ref mut client) = client.state {
                     client.bandwidth_budget_per_tick /= 2;
                 }
@@ -493,12 +491,12 @@ impl NetNodeServer {
 
     pub fn physics_process_inner(&mut self) {
         if let Err(e) = self.networker.update() {
-            godot_error!("error while updating server networker: {e:?}")
-        };
+            godot_error!("error while updating server networker: {e:?}");
+        }
 
         if let Err(e) = self.tick() {
             godot_error!("error while ticking server: {e:?}");
-        };
+        }
 
         self.update_network_nodes();
 

@@ -56,22 +56,23 @@ pub enum NetNodesError {
 impl PartialEq for NetNodesError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (NetNodesError::PeerNotFound, NetNodesError::PeerNotFound) => true,
-            (NetNodesError::PeerNotFound, _) => false,
-            (NetNodesError::Disconnected, NetNodesError::Disconnected) => true,
-            (NetNodesError::Disconnected, _) => false,
-            (NetNodesError::BufferFull, NetNodesError::BufferFull) => true,
-            (NetNodesError::BufferFull, _) => false,
-            (NetNodesError::InvalidDatagramLength, NetNodesError::InvalidDatagramLength) => true,
-            (NetNodesError::InvalidDatagramLength, _) => false,
-            (NetNodesError::InvalidDatagram, NetNodesError::InvalidDatagram) => true,
-            (NetNodesError::InvalidDatagram, _) => false,
-            (NetNodesError::ThreadPanic, NetNodesError::ThreadPanic) => true,
-            (NetNodesError::ThreadPanic, _) => false,
-            (NetNodesError::QuicheError(_), NetNodesError::QuicheError(_)) => true,
-            (NetNodesError::QuicheError(_), _) => false,
-            (NetNodesError::SocketError(_), NetNodesError::SocketError(_)) => true,
-            (NetNodesError::SocketError(_), _) => false,
+            (Self::PeerNotFound, Self::PeerNotFound)
+            | (Self::Disconnected, Self::Disconnected)
+            | (Self::BufferFull, Self::BufferFull)
+            | (Self::InvalidDatagramLength, Self::InvalidDatagramLength)
+            | (Self::InvalidDatagram, Self::InvalidDatagram)
+            | (Self::ThreadPanic, Self::ThreadPanic)
+            | (Self::QuicheError(_), Self::QuicheError(_))
+            | (Self::SocketError(_), Self::SocketError(_)) => true,
+
+            (Self::PeerNotFound, _)
+            | (Self::Disconnected, _)
+            | (Self::BufferFull, _)
+            | (Self::InvalidDatagramLength, _)
+            | (Self::InvalidDatagram, _)
+            | (Self::ThreadPanic, _)
+            | (Self::QuicheError(_), _)
+            | (Self::SocketError(_), _) => false,
         }
     }
 }
@@ -82,12 +83,14 @@ impl From<quiche::Error> for NetNodesError {
     }
 }
 
+type NetworkerThread = thread::JoinHandle<Result<(), NetNodesError>>;
+
 #[derive(Debug)]
 struct UDPListener {
     send: SyncSender<(Bytes, SendInfo)>,
     recv: Receiver<(Bytes, SocketAddr)>,
-    send_thread: thread::JoinHandle<Result<(), NetNodesError>>,
-    recv_thread: thread::JoinHandle<Result<(), NetNodesError>>,
+    send_thread: NetworkerThread,
+    recv_thread: NetworkerThread,
     bind_addr: SocketAddr,
     pacing_notifier: Receiver<()>,
     socket: Arc<UdpSocket>,
@@ -152,10 +155,7 @@ impl UDPListener {
         recv_tx: SyncSender<(Bytes, SocketAddr)>,
         excessive_pacing_notifier_tx: SyncSender<()>,
         socket: Arc<UdpSocket>,
-    ) -> (
-        thread::JoinHandle<Result<(), NetNodesError>>,
-        thread::JoinHandle<Result<(), NetNodesError>>,
-    ) {
+    ) -> (NetworkerThread, NetworkerThread) {
         let socket_ref = socket.clone();
         (
             thread::spawn(move || {
@@ -485,18 +485,18 @@ impl ConnectionHandler {
             &mut Self::get_config_server(),
         )?;
 
+        #[cfg(debug_assertions)]
         match std::fs::OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
-            .open(&format!("/tmp/butterfly-server-{:?}.qlog", scid))
+            .open(format!("/tmp/butterfly-server-{scid:?}.qlog"))
         {
             Ok(file) => {
-                #[cfg(debug_assertions)]
                 conn.set_qlog(
                     Box::new(file),
-                    format!("butteryfly-rs client connection"),
-                    format!("cid={:?}", scid),
+                    "butteryfly-rs client connection".to_string(),
+                    format!("cid={scid:?}"),
                 );
             }
             Err(e) => {
@@ -653,9 +653,8 @@ impl ConnectionHandler {
         let size: u64 = data.len() as u64;
 
         match conn.conn.stream_writable(stream_id, size as usize) {
-            Ok(true) => {}
+            Ok(true) | Err(quiche::Error::InvalidStreamState(_)) => {}
             Ok(false) => return Err(NetNodesError::BufferFull),
-            Err(quiche::Error::InvalidStreamState(_)) => {}
             Err(e) => return Err(NetNodesError::QuicheError(e)),
         }
 
@@ -886,14 +885,14 @@ impl ConnectionHandler {
             .write(true)
             .create(true)
             .truncate(true)
-            .open(&"/tmp/butterfly.qlog")
+            .open("/tmp/butterfly.qlog")
         {
             Ok(file) => {
                 #[cfg(debug_assertions)]
                 conn.set_qlog(
                     Box::new(file),
-                    format!("butteryfly-rs client connection"),
-                    format!("cid={:?}", id),
+                    "butteryfly-rs client connection".to_string(),
+                    format!("cid={id:?}"),
                 );
             }
             Err(e) => {

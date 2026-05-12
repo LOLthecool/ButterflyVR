@@ -56,7 +56,7 @@ impl NetNodeClient {
             self.networked_nodes.remove(pos);
         } else {
             return;
-        };
+        }
 
         if let Some(pos) = self
             .owned_nodes
@@ -64,7 +64,7 @@ impl NetNodeClient {
             .position(|x| &x.0 == removed_node_ref)
         {
             self.owned_nodes.remove(pos);
-        };
+        }
     }
 
     pub fn get_networked_nodes(&self) -> &[Gd<NetworkedNode>] {
@@ -105,7 +105,7 @@ impl NetNodeClient {
             return;
         };
         self.networker
-            .disconnect_peer(&server, false, 0, "player disconnected");
+            .disconnect_peer(server, false, 0, "player disconnected");
         // todo: this technically guarentees the close packet will be sent but its also very hacky
         let _ = self.networker.update();
         thread::sleep(std::time::Duration::from_millis(16));
@@ -121,14 +121,12 @@ impl NetNodeClient {
         for stream in self.networker.get_readable_streams(server) {
             let (length, data) = self.incomplete_messages.entry(stream).or_default();
             common::handle_stream(
-                length,
-                data,
-                &mut self.networker,
-                server,
                 stream,
+                server,
+                (length, data),
+                &mut self.networker,
                 &mut self.message_buffer,
                 &mut self.message_handlers,
-                false,
                 Some(&self.scene_access),
             )?;
         }
@@ -281,7 +279,7 @@ impl NetNodeClient {
 
         if let Err(e) = self.tick() {
             godot_error!("failed to tick client: {e:?}");
-        };
+        }
 
         self.update_network_nodes();
 

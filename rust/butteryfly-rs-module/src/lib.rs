@@ -16,15 +16,17 @@
 //!
 //! Features:
 //! - zero type overhead by default, encoding and decoding is done symmetrically by a single user defined GDScript function
-//! - multiple serialization options for each data type, both lossless and lossy, with various quantization levels
 //! - reliable, ordered messages for sending and receiving data
+//! - per frame, unreliable networking for syncing node variables
 //! - independent ordered networking streams
 //! - flexible node based networking
-//! - secure quic based networking using tls 1.3 PSK
 //!
 //! Upcoming features:
+//! - unordered unreliable datagram oriented networking functions
+//! - multiple serialization options for each data type, both lossless and lossy, with various quantization levels
 //! - branching type decoding using previously decoded data, allowing unneeded data to skip encoding
 //! - delta encoding, usable by both the type serializer and the user defined GDScript function
+//! - certificate authentication for servers
 
 mod client;
 mod common;
@@ -152,13 +154,10 @@ impl NetNodeManager {
             return;
         };
 
-        match self.inner {
-            Inner::Server(ref mut server) => {
-                server.verify_client(identifier, uuid);
-            }
-            _ => {
-                godot_error!("called verify_client but we are not a server");
-            }
+        if let Inner::Server(ref mut server) = self.inner {
+            server.verify_client(identifier, uuid);
+        } else {
+            godot_error!("called verify_client but we are not a server");
         }
     }
 
@@ -185,7 +184,7 @@ impl NetNodeManager {
         match self.inner {
             Inner::Client(ref client) => client.get_networked_nodes().to_godot(),
             Inner::Server(ref server) => server.get_networked_nodes().to_godot(),
-            _ => {
+            Inner::None => {
                 godot_error!("called get_networked_nodes but no client or server is running");
                 Array::new()
             }
@@ -318,7 +317,7 @@ impl NetNodeManager {
             Inner::Server(server) => {
                 server.register_message(handler_ref, handler);
             }
-            _ => {
+            Inner::None => {
                 godot_error!(
                     "tried to register_message_handler but no client or server is running"
                 );
@@ -330,7 +329,7 @@ impl NetNodeManager {
         match &mut self.inner {
             Inner::Client(client) => client.unregister_message(message_type),
             Inner::Server(server) => server.unregister_message(message_type),
-            _ => {
+            Inner::None => {
                 godot_error!(
                     "tried to unregister_message_handler but no client or server is running"
                 );
@@ -342,7 +341,7 @@ impl NetNodeManager {
         match &mut self.inner {
             Inner::Client(client) => client.queue_message(message, stream),
             Inner::Server(server) => server.queue_message(message, stream),
-            _ => {
+            Inner::None => {
                 godot_warn!("tried to queue_message but no client or server is running");
             }
         }
@@ -355,7 +354,7 @@ impl INode for NetNodeManager {
         match &mut self.inner {
             Inner::Client(client) => client.physics_process_inner(),
             Inner::Server(server) => server.physics_process_inner(),
-            _ => {}
+            Inner::None => {}
         }
     }
 }

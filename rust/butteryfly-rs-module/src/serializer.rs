@@ -155,8 +155,7 @@ pub fn encode_with_known_type(
     object_type: NetworkedValueTypes,
 ) -> BitVec<u64, Lsb0> {
     match object_type {
-        NetworkedValueTypes::End => BitVec::new(),
-        NetworkedValueTypes::Nil => BitVec::new(),
+        NetworkedValueTypes::End | NetworkedValueTypes::Nil => BitVec::new(),
         NetworkedValueTypes::Bool => {
             let value: bool = bool::from_variant(object);
             let mut bitvec = BitVec::with_capacity(1);
@@ -213,7 +212,7 @@ pub fn encode_with_known_type(
             let length = bytes.len() as u32;
             let mut bitvec = BitVec::with_capacity(BYTES4 + (BYTE * length as usize));
             bitvec.extend(length.view_bits::<Lsb0>());
-            for byte in bytes.into_iter() {
+            for byte in bytes {
                 bitvec.extend(byte.view_bits::<Lsb0>());
             }
             bitvec

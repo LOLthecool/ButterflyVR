@@ -40,17 +40,17 @@ impl<'a> From<&'a NetNodesConnectionId> for quiche::ConnectionId<'a> {
 }
 
 pub fn handle_stream(
-    previous_length: &mut Option<usize>,
-    data: &mut BitVec<u64, Lsb0>,
-    networker: &mut ConnectionHandler,
-    peer: &NetNodesConnectionId,
     stream: u64,
+    peer: &NetNodesConnectionId,
+    previous_data: (&mut Option<usize>, &mut BitVec<u64, Lsb0>),
+    networker: &mut ConnectionHandler,
     message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
     message_handlers: &mut HashMap<u16, Gd<MessageHandler>>,
-    is_server: bool,
     scene_access: Option<&Gd<Node>>,
 ) -> Result<(), NetNodesError> {
-    assert_eq!(is_server, scene_access.is_none());
+    let is_server = scene_access.is_none();
+    let (previous_length, data) = previous_data;
+
     loop {
         if previous_length.is_none() {
             data.extend_from_bitslice(&networker.recv_stream(peer, stream, 8 - data.len())?);
@@ -88,7 +88,7 @@ pub fn handle_stream(
                             );
                         }
                         InternalMessage::NetNodeIdAssign((id, mut node)) => {
-                            node.bind_mut().objectid = id
+                            node.bind_mut().objectid = id;
                         }
                         InternalMessage::MessageHandlerIdAssign((id, mut handler)) => {
                             if message_handlers.contains_key(&id) {
@@ -105,25 +105,22 @@ pub fn handle_stream(
                     godot_error!("failed to decode internal message");
                 }
             }
-        } else {
-            if let Some(handler) = message_handlers.get_mut(&handler) {
-                let (values, types) =
-                    handler
-                        .bind_mut()
-                        .handle_message(data, &mut pointer, is_server);
-                if is_server {
-                    message_buffer.push_back((
-                        MessageHandler::generate_packet(
-                            &values,
-                            &types,
-                            handler.bind().get_message_id(),
-                        ),
-                        stream,
-                    ));
-                }
-            } else {
-                godot_error!("received a message but had no handler for it: {handler:?}");
+        } else if let Some(handler) = message_handlers.get_mut(&handler) {
+            let (values, types) = handler
+                .bind_mut()
+                .handle_message(data, &mut pointer, is_server);
+            if is_server {
+                message_buffer.push_back((
+                    MessageHandler::generate_packet(
+                        &values,
+                        &types,
+                        handler.bind().get_message_id(),
+                    ),
+                    stream,
+                ));
             }
+        } else {
+            godot_error!("received a message but had no handler for it: {handler:?}");
         }
 
         *previous_length = None;
