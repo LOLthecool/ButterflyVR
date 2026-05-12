@@ -112,24 +112,25 @@ impl NetNodeClient {
         let _ = self.networker.update();
         thread::sleep(std::time::Duration::from_millis(16));
     }
-    fn tick(&mut self) {
+    fn tick(&mut self) -> Result<(), NetNodesError> {
         let server = self.networker.get_peers(false).pop().unwrap();
         let server = &server;
 
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
 
         for stream in self.networker.get_readable_streams(server) {
-            while let Ok(stream_chunk) = self.networker.recv_stream_chunk(server, stream) {
-                common::handle_stream_chunk(
-                    stream,
-                    &stream_chunk,
-                    &mut self.incomplete_messages,
-                    &mut self.message_buffer,
-                    &mut self.message_handlers,
-                    false,
-                    Some(&self.scene_access),
-                );
-            }
+            let (length, data) = self.incomplete_messages.entry(stream).or_default();
+            common::handle_stream(
+                length,
+                data,
+                &mut self.networker,
+                server,
+                stream,
+                &mut self.message_buffer,
+                &mut self.message_handlers,
+                false,
+                Some(&self.scene_access),
+            )?;
         }
 
         common::handle_datagrams(
@@ -139,6 +140,8 @@ impl NetNodeClient {
             &mut self.networker,
             &mut random,
         );
+
+        Ok(())
     }
     fn update_network_nodes(&mut self) {
         while let Some((_, packet)) = self.unapplied_packets.pop_first() {
@@ -276,7 +279,9 @@ impl NetNodeClient {
 
         Self::tick_priorities(&mut self.owned_nodes);
 
-        self.tick();
+        if let Err(e) = self.tick() {
+            godot_error!("failed to tick client: {e:?}");
+        };
 
         self.update_network_nodes();
 

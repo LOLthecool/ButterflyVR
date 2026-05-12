@@ -170,7 +170,7 @@ impl NetNodeServer {
         }
     }
 
-    fn tick(&mut self) {
+    fn tick(&mut self) -> Result<(), NetNodesError> {
         Self::tick_client_priorities(
             &mut self.clients,
             &self.networked_nodes,
@@ -184,36 +184,34 @@ impl NetNodeServer {
         for (client_id, client) in &mut self.clients {
             match client.state {
                 ClientState::AwaitingIdentifier(ref mut data) => {
-                    // read 64 bytes to also get the padding
                     if let Ok(new_data) =
                         self.networker
-                            .recv_stream_bytes(client_id, 0, 64 - data.len())
+                            .recv_stream_bytes(client_id, 0, 16 - data.len())
                     {
-                        data.extend(new_data.into_vec());
+                        data.extend(new_data);
 
-                        if data.len() == 64 {
+                        if data.len() == 16 {
                             // need to skip the length prefix
                             client.state =
-                                ClientState::AwaitingUuid(data[8..48].try_into().unwrap());
+                                ClientState::AwaitingUuid(data[8..16].try_into().unwrap());
                         }
                     }
                 }
                 ClientState::AwaitingUuid(_) => {}
                 ClientState::Connected(ref mut client) => {
                     for stream in self.networker.get_readable_streams(client_id) {
-                        while let Ok(stream_chunk) =
-                            self.networker.recv_stream_chunk(client_id, stream)
-                        {
-                            common::handle_stream_chunk(
-                                stream,
-                                &stream_chunk,
-                                &mut client.incomplete_messages,
-                                &mut self.message_buffer,
-                                &mut self.message_handlers,
-                                true,
-                                None,
-                            );
-                        }
+                        let (length, data) = client.incomplete_messages.entry(stream).or_default();
+                        common::handle_stream(
+                            length,
+                            data,
+                            &mut self.networker,
+                            client_id,
+                            stream,
+                            &mut self.message_buffer,
+                            &mut self.message_handlers,
+                            true,
+                            None,
+                        )?;
                     }
 
                     common::handle_datagrams(
@@ -226,6 +224,8 @@ impl NetNodeServer {
                 }
             }
         }
+
+        Ok(())
     }
 
     fn update_network_nodes(&mut self) {
@@ -496,7 +496,9 @@ impl NetNodeServer {
             godot_error!("error while updating server networker: {e:?}")
         };
 
-        self.tick();
+        if let Err(e) = self.tick() {
+            godot_error!("error while ticking server: {e:?}");
+        };
 
         self.update_network_nodes();
 

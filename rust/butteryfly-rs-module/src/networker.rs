@@ -27,9 +27,9 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::collections::hash_map::Entry;
 use std::fmt::Debug;
+use std::mem;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::Arc;
-use std::sync::mpsc::RecvTimeoutError;
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::thread::{self};
 use std::time::{Duration, Instant};
@@ -40,7 +40,8 @@ pub const MAX_DATAGRAM_SIZE: usize = 1350;
 const PACKET_QUEUE_CAPACITY: usize = 1024;
 pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
+#[allow(dead_code)]
 pub enum NetNodesError {
     PeerNotFound,
     Disconnected,
@@ -49,6 +50,30 @@ pub enum NetNodesError {
     InvalidDatagram,
     ThreadPanic,
     QuicheError(quiche::Error),
+    SocketError(std::io::Error),
+}
+
+impl PartialEq for NetNodesError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (NetNodesError::PeerNotFound, NetNodesError::PeerNotFound) => true,
+            (NetNodesError::PeerNotFound, _) => false,
+            (NetNodesError::Disconnected, NetNodesError::Disconnected) => true,
+            (NetNodesError::Disconnected, _) => false,
+            (NetNodesError::BufferFull, NetNodesError::BufferFull) => true,
+            (NetNodesError::BufferFull, _) => false,
+            (NetNodesError::InvalidDatagramLength, NetNodesError::InvalidDatagramLength) => true,
+            (NetNodesError::InvalidDatagramLength, _) => false,
+            (NetNodesError::InvalidDatagram, NetNodesError::InvalidDatagram) => true,
+            (NetNodesError::InvalidDatagram, _) => false,
+            (NetNodesError::ThreadPanic, NetNodesError::ThreadPanic) => true,
+            (NetNodesError::ThreadPanic, _) => false,
+            (NetNodesError::QuicheError(_), NetNodesError::QuicheError(_)) => true,
+            (NetNodesError::QuicheError(_), _) => false,
+            (NetNodesError::SocketError(_), NetNodesError::SocketError(_)) => true,
+            (NetNodesError::SocketError(_), _) => false,
+        }
+    }
 }
 
 impl From<quiche::Error> for NetNodesError {
@@ -61,10 +86,11 @@ impl From<quiche::Error> for NetNodesError {
 struct UDPListener {
     send: SyncSender<(Bytes, SendInfo)>,
     recv: Receiver<(Bytes, SocketAddr)>,
-    send_thread: thread::JoinHandle<()>,
-    recv_thread: thread::JoinHandle<()>,
+    send_thread: thread::JoinHandle<Result<(), NetNodesError>>,
+    recv_thread: thread::JoinHandle<Result<(), NetNodesError>>,
     bind_addr: SocketAddr,
     pacing_notifier: Receiver<()>,
+    socket: Arc<UdpSocket>,
 }
 
 impl UDPListener {
@@ -77,23 +103,21 @@ impl UDPListener {
 
         let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
 
-        let socket_ref = socket.clone();
-        let send_thread = thread::spawn(move || {
-            Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref);
-        });
-
-        let socket_ref = socket;
-        let recv_thread = thread::spawn(move || {
-            Self::receiving_thread(&recv_tx, &socket_ref);
-        });
+        let (send_thread, recv_thread) = Self::spawn_threads(
+            send_rx,
+            recv_tx,
+            excessive_pacing_notifier_tx,
+            socket.clone(),
+        );
 
         Self {
             send: send_tx,
             recv: recv_rx,
             send_thread,
             recv_thread,
-            bind_addr,
+            bind_addr: socket.local_addr().unwrap(),
             pacing_notifier: excessive_pacing_notifier_rx,
+            socket,
         }
     }
 
@@ -105,34 +129,82 @@ impl UDPListener {
 
         let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
 
-        let socket_ref = socket.clone();
-        let send_thread = thread::spawn(move || {
-            Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref);
-        });
-
-        let socket_ref = socket;
-        let recv_thread = thread::spawn(move || {
-            Self::receiving_thread(&recv_tx, &socket_ref);
-        });
+        let (send_thread, recv_thread) = Self::spawn_threads(
+            send_rx,
+            recv_tx,
+            excessive_pacing_notifier_tx,
+            socket.clone(),
+        );
 
         Self {
             send: send_tx,
             recv: recv_rx,
             send_thread,
             recv_thread,
-            bind_addr,
+            bind_addr: socket.local_addr().unwrap(),
             pacing_notifier: excessive_pacing_notifier_rx,
+            socket,
         }
+    }
+
+    fn spawn_threads(
+        send_rx: Receiver<(Bytes, SendInfo)>,
+        recv_tx: SyncSender<(Bytes, SocketAddr)>,
+        excessive_pacing_notifier_tx: SyncSender<()>,
+        socket: Arc<UdpSocket>,
+    ) -> (
+        thread::JoinHandle<Result<(), NetNodesError>>,
+        thread::JoinHandle<Result<(), NetNodesError>>,
+    ) {
+        let socket_ref = socket.clone();
+        (
+            thread::spawn(move || {
+                Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref)
+            }),
+            thread::spawn(move || Self::receiving_thread(&recv_tx, &socket)),
+        )
     }
 
     fn is_running(&self) -> bool {
         (!self.send_thread.is_finished()) && (!self.recv_thread.is_finished())
     }
 
-    fn receiving_thread(outgoing: &SyncSender<(Bytes, SocketAddr)>, socket: &Arc<UdpSocket>) {
+    fn get_errors_and_reset(&mut self) -> (Option<NetNodesError>, Option<NetNodesError>) {
+        let socket = self.socket.clone();
+
+        let (send_tx, send_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
+        let (recv_tx, recv_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
+
+        let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
+
+        let (send_thread, recv_thread) =
+            Self::spawn_threads(send_rx, recv_tx, excessive_pacing_notifier_tx, socket);
+
+        let send_error = mem::replace(&mut self.send_thread, send_thread)
+            .join()
+            .unwrap_or(Err(NetNodesError::ThreadPanic))
+            .err();
+        let recv_error = mem::replace(&mut self.recv_thread, recv_thread)
+            .join()
+            .unwrap_or(Err(NetNodesError::ThreadPanic))
+            .err();
+
+        self.send = send_tx;
+        self.recv = recv_rx;
+        self.pacing_notifier = excessive_pacing_notifier_rx;
+
+        (send_error, recv_error)
+    }
+
+    fn receiving_thread(
+        outgoing: &SyncSender<(Bytes, SocketAddr)>,
+        socket: &Arc<UdpSocket>,
+    ) -> Result<(), NetNodesError> {
         loop {
             let mut buffer = BytesMut::zeroed(MAX_DATAGRAM_SIZE);
-            let (len, from) = socket.recv_from(&mut buffer).unwrap();
+            let (len, from) = socket
+                .recv_from(&mut buffer)
+                .map_err(NetNodesError::SocketError)?;
             buffer.truncate(len);
             let packet = buffer.freeze();
             outgoing.send((packet, from)).unwrap();
@@ -143,7 +215,7 @@ impl UDPListener {
         incoming: &Receiver<(Bytes, SendInfo)>,
         excessive_pacing_notifier: &SyncSender<()>,
         socket: &Arc<UdpSocket>,
-    ) {
+    ) -> Result<(), NetNodesError> {
         // generally we don't want to be queuing packets to send across multiple ticks
         // better to just send less data per frame in the priority accumulator
         const MAX_PACING_DELAY: Duration = Duration::from_millis(17);
@@ -156,27 +228,21 @@ impl UDPListener {
 
             while delayed_packets.front().is_some_and(|x| x.1.at <= now) {
                 let (packet, info) = delayed_packets.pop_front().unwrap();
-                socket.send_to(&packet, info.to).unwrap();
+                socket
+                    .send_to(&packet, info.to)
+                    .map_err(NetNodesError::SocketError)?;
             }
 
-            let (packet, info) = match incoming.recv_timeout(
-                delayed_packets
-                    .iter()
-                    .fold(Instant::now() + Duration::from_millis(16), |acc, x| {
-                        acc.min(x.1.at)
-                    })
-                    .saturating_duration_since(now),
-            ) {
-                Ok(x) => x,
-                Err(e) => {
-                    if e == RecvTimeoutError::Timeout {
-                        continue;
-                    } else {
-                        godot_error!("{}", e);
-                        return;
-                    }
-                }
-            };
+            let (packet, info) = incoming
+                .recv_timeout(
+                    delayed_packets
+                        .iter()
+                        .fold(Instant::now() + Duration::from_millis(16), |acc, x| {
+                            acc.min(x.1.at)
+                        })
+                        .saturating_duration_since(now),
+                )
+                .unwrap();
 
             if info.at <= now {
                 socket.send_to(&packet, info.to).unwrap();
@@ -243,7 +309,13 @@ pub struct ConnectionHandler {
 impl ConnectionHandler {
     pub fn update(&mut self) -> Result<(), NetNodesError> {
         if !self.listener.is_running() {
-            return Err(NetNodesError::ThreadPanic);
+            let (send_error, recv_error) = self.listener.get_errors_and_reset();
+            if let Some(error) = send_error {
+                return Err(error);
+            }
+            if let Some(error) = recv_error {
+                return Err(error);
+            }
         }
 
         match self.handler {
@@ -420,6 +492,7 @@ impl ConnectionHandler {
             .open(&format!("/tmp/butterfly-server-{:?}.qlog", scid))
         {
             Ok(file) => {
+                #[cfg(debug_assertions)]
                 conn.set_qlog(
                     Box::new(file),
                     format!("butteryfly-rs client connection"),
@@ -577,7 +650,7 @@ impl ConnectionHandler {
         stream_id: u64,
         data: &[u8],
     ) -> std::result::Result<(), NetNodesError> {
-        let size: u64 = 8 + data.len() as u64;
+        let size: u64 = data.len() as u64;
 
         match conn.conn.stream_writable(stream_id, size as usize) {
             Ok(true) => {}
@@ -603,15 +676,14 @@ impl ConnectionHandler {
         }
     }
 
-    pub fn recv_stream_chunk(
+    pub fn recv_stream(
         &mut self,
         peer: &NetNodesConnectionId,
         stream_id: u64,
+        chunk_length_bytes: usize,
     ) -> std::result::Result<BitVec<u64, Lsb0>, NetNodesError> {
-        const STREAM_CHUNK_SIZE: usize = 4096;
-
-        let mut buf = BytesMut::zeroed(STREAM_CHUNK_SIZE);
-        let buffer_length: usize;
+        let mut buf = BytesMut::zeroed(chunk_length_bytes);
+        let recv_length: usize;
 
         match self.handler {
             HandlerType::Client(ref mut c) => {
@@ -619,7 +691,7 @@ impl ConnectionHandler {
                 debug_assert_eq!(peer, c.id);
                 match Self::recv_inner(c, stream_id, &mut buf) {
                     Ok(length) => {
-                        buffer_length = length;
+                        recv_length = length;
                     }
                     Err(e) => return Err(e),
                 }
@@ -628,7 +700,7 @@ impl ConnectionHandler {
                 if let Some(peer) = s.0.get_mut(peer) {
                     match Self::recv_inner(peer, stream_id, &mut buf) {
                         Ok(length) => {
-                            buffer_length = length;
+                            recv_length = length;
                         }
                         Err(e) => return Err(e),
                     }
@@ -638,19 +710,22 @@ impl ConnectionHandler {
             }
         }
 
-        let mut buffer_bits = Self::packet_to_bits(&buf.freeze())?;
+        buf.resize(buf.len().next_multiple_of(8), 0);
 
-        buffer_bits.truncate(buffer_length * 8);
-        Ok(buffer_bits)
+        let mut buf = Self::packet_to_bits(&buf.freeze())?;
+        buf.truncate(chunk_length_bytes.min(recv_length) * 8);
+
+        Ok(buf)
     }
 
     pub fn recv_stream_bytes(
         &mut self,
         peer: &NetNodesConnectionId,
         stream_id: u64,
-        max_length: usize,
-    ) -> std::result::Result<BitVec<u8, Lsb0>, NetNodesError> {
-        let mut buf = BytesMut::zeroed(max_length);
+        chunk_length_bytes: usize,
+    ) -> std::result::Result<Vec<u8>, NetNodesError> {
+        let mut buf = BytesMut::zeroed(chunk_length_bytes);
+        let recv_length: usize;
 
         match self.handler {
             HandlerType::Client(ref mut c) => {
@@ -658,7 +733,7 @@ impl ConnectionHandler {
                 debug_assert_eq!(peer, c.id);
                 match Self::recv_inner(c, stream_id, &mut buf) {
                     Ok(length) => {
-                        buf.truncate(length);
+                        recv_length = length;
                     }
                     Err(e) => return Err(e),
                 }
@@ -667,7 +742,7 @@ impl ConnectionHandler {
                 if let Some(peer) = s.0.get_mut(peer) {
                     match Self::recv_inner(peer, stream_id, &mut buf) {
                         Ok(length) => {
-                            buf.truncate(length);
+                            recv_length = length;
                         }
                         Err(e) => return Err(e),
                     }
@@ -677,7 +752,9 @@ impl ConnectionHandler {
             }
         }
 
-        Ok(Self::unaligned_packet_to_bits(buf))
+        buf.truncate(recv_length);
+
+        Ok(buf.to_vec())
     }
 
     fn packet_to_bits(buf: &Bytes) -> Result<BitVec<u64, Lsb0>, NetNodesError> {
@@ -694,10 +771,6 @@ impl ConnectionHandler {
         let buf: Vec<u64> = buf.iter().map(|x| u64::from_le_bytes(*x)).collect();
 
         Ok(BitVec::from_vec(buf))
-    }
-
-    fn unaligned_packet_to_bits(buf: BytesMut) -> BitVec<u8, Lsb0> {
-        BitVec::from_vec(buf.into())
     }
 
     fn recv_inner(
@@ -816,6 +889,7 @@ impl ConnectionHandler {
             .open(&"/tmp/butterfly.qlog")
         {
             Ok(file) => {
+                #[cfg(debug_assertions)]
                 conn.set_qlog(
                     Box::new(file),
                     format!("butteryfly-rs client connection"),

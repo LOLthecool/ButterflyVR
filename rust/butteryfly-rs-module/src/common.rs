@@ -7,7 +7,7 @@ use bitvec::prelude::*;
 use godot::prelude::*;
 use rand::RngExt;
 use std::{
-    collections::{BTreeMap, HashMap, VecDeque, hash_map},
+    collections::{BTreeMap, HashMap, VecDeque},
     rc::Rc,
 };
 
@@ -39,63 +39,48 @@ impl<'a> From<&'a NetNodesConnectionId> for quiche::ConnectionId<'a> {
     }
 }
 
-pub fn handle_stream_chunk(
+pub fn handle_stream(
+    previous_length: &mut Option<usize>,
+    data: &mut BitVec<u64, Lsb0>,
+    networker: &mut ConnectionHandler,
+    peer: &NetNodesConnectionId,
     stream: u64,
-    stream_chunk: &BitVec<u64, Lsb0>,
-    incomplete_message_buffer: &mut HashMap<u64, (Option<usize>, BitVec<u64, Lsb0>)>,
     message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
     message_handlers: &mut HashMap<u16, Gd<MessageHandler>>,
     is_server: bool,
     scene_access: Option<&Gd<Node>>,
-) {
-    if stream_chunk.is_empty() {
-        return;
-    }
-
-    let mut stream_chunk = stream_chunk.as_bitslice();
-
-    if let hash_map::Entry::Occupied(mut entry) = incomplete_message_buffer.entry(stream) {
-        let &mut (ref mut length, ref mut incomplete) = entry.get_mut();
-
-        let length_bytes_missing = BYTES8.saturating_sub(incomplete.len());
-        if stream_chunk.len() < length_bytes_missing {
-            incomplete.extend_from_bitslice(stream_chunk);
-            return;
+) -> Result<(), NetNodesError> {
+    assert_eq!(is_server, scene_access.is_none());
+    loop {
+        if previous_length.is_none() {
+            data.extend_from_bitslice(&networker.recv_stream(peer, stream, 8 - data.len())?);
+            if data.len() == BYTES8 {
+                *previous_length = Some(data.load_le::<usize>() * BYTE);
+                data.clear();
+            } else {
+                return Ok(());
+            }
         }
 
-        let length = length.unwrap_or_else(|| {
-            incomplete.extend_from_bitslice(&stream_chunk[..length_bytes_missing]);
+        let length = previous_length.as_mut().unwrap();
 
-            (_, stream_chunk) = stream_chunk.split_at(length_bytes_missing);
+        let remaining = *length - data.len();
 
-            *length = Some(incomplete[..BYTES8].load_le::<usize>() * 8);
-            // length is in bytes but we need it in bits
-            length.unwrap()
-        });
+        data.extend_from_bitslice(&networker.recv_stream(peer, stream, remaining)?);
 
-        let remaining = length - incomplete.len();
-        // should never be 0 since we would have already finished
-        assert!(remaining > 0);
-
-        if remaining > stream_chunk.len() {
-            incomplete.extend_from_bitslice(stream_chunk);
-            return;
+        if data.len() != *length {
+            return Ok(());
         }
 
-        incomplete.extend_from_bitslice(&stream_chunk[..remaining]);
-
-        let mut pointer = BYTES8;
-        let handler: u16 = incomplete[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
+        let mut pointer = 0;
+        let handler: u16 = data[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
         pointer += MESSAGE_HEADER_SIZE;
 
         if handler == 0 {
             if !is_server {
-                if let Ok(msg) = decode_internal_message(
-                    incomplete,
-                    &mut pointer,
-                    is_server,
-                    scene_access.unwrap(),
-                ) {
+                if let Ok(msg) =
+                    decode_internal_message(data, &mut pointer, is_server, scene_access.unwrap())
+                {
                     match msg {
                         InternalMessage::ClientId(_) => {
                             godot_error!(
@@ -125,7 +110,7 @@ pub fn handle_stream_chunk(
                 let (values, types) =
                     handler
                         .bind_mut()
-                        .handle_message(incomplete, &mut pointer, is_server);
+                        .handle_message(data, &mut pointer, is_server);
                 if is_server {
                     message_buffer.push_back((
                         MessageHandler::generate_packet(
@@ -141,54 +126,8 @@ pub fn handle_stream_chunk(
             }
         }
 
-        (_, stream_chunk) = stream_chunk.split_at(remaining);
-        entry.remove_entry();
-    }
-
-    loop {
-        if stream_chunk.is_empty() {
-            break;
-        }
-
-        if stream_chunk.len() < BYTES8 {
-            incomplete_message_buffer.insert(stream, (None, stream_chunk.to_bitvec()));
-            break;
-        }
-
-        // length is in bytes but we need it in bits
-        let length: usize = stream_chunk[..BYTES8].load_le::<usize>() * 8;
-        let mut pointer = BYTES8;
-
-        if stream_chunk.len() < length {
-            incomplete_message_buffer.insert(stream, (Some(length), stream_chunk.to_bitvec()));
-            break;
-        }
-
-        let incomplete_stream;
-        (incomplete_stream, stream_chunk) = stream_chunk.split_at(length);
-
-        let handler: u16 = incomplete_stream[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
-        pointer += MESSAGE_HEADER_SIZE;
-
-        // clients treat messages from the server as authoritative, the server does not
-        if let Some(handler) = message_handlers.get_mut(&handler) {
-            let (values, types) =
-                handler
-                    .bind_mut()
-                    .handle_message(incomplete_stream, &mut pointer, is_server);
-            if is_server {
-                message_buffer.push_back((
-                    MessageHandler::generate_packet(
-                        &values,
-                        &types,
-                        handler.bind().get_message_id(),
-                    ),
-                    stream,
-                ));
-            }
-        } else {
-            godot_error!("received a message but had no handler for it: {handler:?}");
-        }
+        *previous_length = None;
+        data.clear();
     }
 }
 
