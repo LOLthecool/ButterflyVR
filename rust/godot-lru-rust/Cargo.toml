@@ -8,6 +8,6 @@ crate-type = ["cdylib"]  # Compile this crate to a dynamic C library.
 
 [dependencies]
 godot = "0.4.5"
-moka = { version = "0.12.13", features = ["sync"] }
+moka = { version = "0.12.15", features = ["sync"] }
 serde = { version = "1.0.228", features = ["derive"] }
-uuid = "1.21.0"
+uuid = "1.23.1"

@@ -7,6 +7,6 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-agones = "1.55.0"
+agones = "1.57.0"
 godot = "0.4.5"
-tokio = { version = "1.49.0", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }

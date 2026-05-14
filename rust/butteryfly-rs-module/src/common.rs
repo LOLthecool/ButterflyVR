@@ -39,6 +39,12 @@ impl<'a> From<&'a NetNodesConnectionId> for quiche::ConnectionId<'a> {
     }
 }
 
+impl From<NetNodesConnectionId> for quiche::ConnectionId<'_> {
+    fn from(value: NetNodesConnectionId) -> Self {
+        Self::from_vec(Rc::unwrap_or_clone(value.id_bytes))
+    }
+}
+
 pub fn handle_stream(
     stream: u64,
     peer: &NetNodesConnectionId,
@@ -49,26 +55,27 @@ pub fn handle_stream(
     scene_access: Option<&Gd<Node>>,
 ) -> Result<(), NetNodesError> {
     let is_server = scene_access.is_none();
-    let (previous_length, data) = previous_data;
+    let (previous_length_bytes, data) = previous_data;
 
     loop {
-        if previous_length.is_none() {
+        if previous_length_bytes.is_none() {
             data.extend_from_bitslice(&networker.recv_stream(peer, stream, 8 - data.len())?);
             if data.len() == BYTES8 {
-                *previous_length = Some(data.load_le::<usize>() * BYTE);
+                *previous_length_bytes = Some(data.load_le::<usize>());
                 data.clear();
             } else {
                 return Ok(());
             }
         }
 
-        let length = previous_length.as_mut().unwrap();
+        let length_bytes = previous_length_bytes.as_mut().unwrap();
 
-        let remaining = *length - data.len();
+        assert!(data.len().is_multiple_of(BYTE));
+        let remaining = *length_bytes - (data.len() / BYTE);
 
         data.extend_from_bitslice(&networker.recv_stream(peer, stream, remaining)?);
 
-        if data.len() != *length {
+        if (data.len() / BYTE) != *length_bytes {
             return Ok(());
         }
 
@@ -123,7 +130,7 @@ pub fn handle_stream(
             godot_error!("received a message but had no handler for it: {handler:?}");
         }
 
-        *previous_length = None;
+        *previous_length_bytes = None;
         data.clear();
     }
 }

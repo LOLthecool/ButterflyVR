@@ -13,6 +13,7 @@ bytes = "1.11.1"
 godot = { version = "0.5.2", features = ["register-docs"] }
 quiche = { version = "0.28.0", features = ["boringssl-boring-crate", "qlog"], default-features = false }
 rand = "0.10.1"
+ring = "0.17.14"
 
 
 [profile.dev]

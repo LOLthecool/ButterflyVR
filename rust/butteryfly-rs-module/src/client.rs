@@ -261,6 +261,7 @@ impl NetNodeClient {
 
         if let Err(e) = self.networker.update() {
             godot_error!("failed to update client networker: {e:?}");
+            return;
         }
 
         if let ConnectionStatus::AwaitingConnection(ref identifier) = self.connected {
@@ -268,6 +269,7 @@ impl NetNodeClient {
                 let packet = generate_internal_message(InternalMessage::ClientId(*identifier));
                 if let Err(e) = self.networker.send_stream(server, 0, packet) {
                     godot_error!("failed to send identifier {e:?}");
+                    return;
                 }
                 self.connected = ConnectionStatus::Connected;
             } else {

@@ -492,6 +492,7 @@ impl NetNodeServer {
     pub fn physics_process_inner(&mut self) {
         if let Err(e) = self.networker.update() {
             godot_error!("error while updating server networker: {e:?}");
+            return;
         }
 
         if let Err(e) = self.tick() {

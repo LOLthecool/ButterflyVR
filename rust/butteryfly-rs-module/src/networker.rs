@@ -30,6 +30,7 @@ use std::fmt::Debug;
 use std::mem;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::Arc;
+use std::sync::mpsc::RecvTimeoutError;
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::thread::{self};
 use std::time::{Duration, Instant};
@@ -43,6 +44,7 @@ pub const MAX_CLIENT_CONNECTIONS: usize = 256;
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum NetNodesError {
+    NotSupported,
     PeerNotFound,
     Disconnected,
     BufferFull,
@@ -56,7 +58,8 @@ pub enum NetNodesError {
 impl PartialEq for NetNodesError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::PeerNotFound, Self::PeerNotFound)
+            (Self::NotSupported, Self::NotSupported)
+            | (Self::PeerNotFound, Self::PeerNotFound)
             | (Self::Disconnected, Self::Disconnected)
             | (Self::BufferFull, Self::BufferFull)
             | (Self::InvalidDatagramLength, Self::InvalidDatagramLength)
@@ -65,14 +68,16 @@ impl PartialEq for NetNodesError {
             | (Self::QuicheError(_), Self::QuicheError(_))
             | (Self::SocketError(_), Self::SocketError(_)) => true,
 
-            (Self::PeerNotFound, _)
-            | (Self::Disconnected, _)
-            | (Self::BufferFull, _)
-            | (Self::InvalidDatagramLength, _)
-            | (Self::InvalidDatagram, _)
-            | (Self::ThreadPanic, _)
-            | (Self::QuicheError(_), _)
-            | (Self::SocketError(_), _) => false,
+            (Self::NotSupported, _)
+            | (_, Self::PeerNotFound)
+            | (_, Self::Disconnected)
+            | (_, Self::BufferFull)
+            | (_, Self::InvalidDatagramLength)
+            | (_, Self::InvalidDatagram)
+            | (_, Self::ThreadPanic)
+            | (_, Self::QuicheError(_))
+            | (_, Self::SocketError(_))
+            | (_, Self::NotSupported) => false,
         }
     }
 }
@@ -156,13 +161,29 @@ impl UDPListener {
         excessive_pacing_notifier_tx: SyncSender<()>,
         socket: Arc<UdpSocket>,
     ) -> (NetworkerThread, NetworkerThread) {
-        let socket_ref = socket.clone();
         (
-            thread::spawn(move || {
-                Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref)
-            }),
-            thread::spawn(move || Self::receiving_thread(&recv_tx, &socket)),
+            Self::spawn_send_thread(send_rx, excessive_pacing_notifier_tx, socket.clone()),
+            Self::spawn_recv_thread(recv_tx, socket),
         )
+    }
+
+    fn spawn_send_thread(
+        send_rx: Receiver<(Bytes, SendInfo)>,
+        excessive_pacing_notifier_tx: SyncSender<()>,
+        socket: Arc<UdpSocket>,
+    ) -> NetworkerThread {
+        let socket_ref = socket.clone();
+
+        thread::spawn(move || {
+            Self::sending_thread(&send_rx, &excessive_pacing_notifier_tx, &socket_ref)
+        })
+    }
+
+    fn spawn_recv_thread(
+        recv_tx: SyncSender<(Bytes, SocketAddr)>,
+        socket: Arc<UdpSocket>,
+    ) -> NetworkerThread {
+        thread::spawn(move || Self::receiving_thread(&recv_tx, &socket))
     }
 
     fn is_running(&self) -> bool {
@@ -172,26 +193,45 @@ impl UDPListener {
     fn get_errors_and_reset(&mut self) -> (Option<NetNodesError>, Option<NetNodesError>) {
         let socket = self.socket.clone();
 
-        let (send_tx, send_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
-        let (recv_tx, recv_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
+        let (send_tx, send_rx);
+        let (recv_tx, recv_rx);
 
-        let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
+        let (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx);
 
-        let (send_thread, recv_thread) =
-            Self::spawn_threads(send_rx, recv_tx, excessive_pacing_notifier_tx, socket);
+        let send_thread;
+        let recv_thread;
 
-        let send_error = mem::replace(&mut self.send_thread, send_thread)
-            .join()
-            .unwrap_or(Err(NetNodesError::ThreadPanic))
-            .err();
-        let recv_error = mem::replace(&mut self.recv_thread, recv_thread)
-            .join()
-            .unwrap_or(Err(NetNodesError::ThreadPanic))
-            .err();
+        let mut send_error = None;
+        let mut recv_error = None;
 
-        self.send = send_tx;
-        self.recv = recv_rx;
-        self.pacing_notifier = excessive_pacing_notifier_rx;
+        if self.send_thread.is_finished() {
+            (send_tx, send_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
+            (excessive_pacing_notifier_tx, excessive_pacing_notifier_rx) = sync_channel(1);
+
+            send_thread =
+                Self::spawn_send_thread(send_rx, excessive_pacing_notifier_tx, socket.clone());
+
+            send_error = mem::replace(&mut self.send_thread, send_thread)
+                .join()
+                .unwrap_or(Err(NetNodesError::ThreadPanic))
+                .err();
+
+            self.send = send_tx;
+            self.pacing_notifier = excessive_pacing_notifier_rx;
+        }
+
+        if self.recv_thread.is_finished() {
+            (recv_tx, recv_rx) = sync_channel(PACKET_QUEUE_CAPACITY);
+
+            recv_thread = Self::spawn_recv_thread(recv_tx, socket);
+
+            recv_error = mem::replace(&mut self.recv_thread, recv_thread)
+                .join()
+                .unwrap_or(Err(NetNodesError::ThreadPanic))
+                .err();
+
+            self.recv = recv_rx;
+        }
 
         (send_error, recv_error)
     }
@@ -233,16 +273,18 @@ impl UDPListener {
                     .map_err(NetNodesError::SocketError)?;
             }
 
-            let (packet, info) = incoming
-                .recv_timeout(
-                    delayed_packets
-                        .iter()
-                        .fold(Instant::now() + Duration::from_millis(16), |acc, x| {
-                            acc.min(x.1.at)
-                        })
-                        .saturating_duration_since(now),
-                )
-                .unwrap();
+            let (packet, info) = match incoming.recv_timeout(
+                delayed_packets
+                    .iter()
+                    .fold(Instant::now() + Duration::from_millis(16), |acc, x| {
+                        acc.min(x.1.at)
+                    })
+                    .saturating_duration_since(now),
+            ) {
+                Ok(packet_info) => packet_info,
+                Err(RecvTimeoutError::Timeout) => continue,
+                Err(_) => return Err(NetNodesError::Disconnected),
+            };
 
             if info.at <= now {
                 socket.send_to(&packet, info.to).unwrap();
@@ -286,6 +328,7 @@ impl Debug for PeerConnection {
 type ServerState = (
     HashMap<NetNodesConnectionId, PeerConnection>,
     HashMap<SocketAddr, BlockedConnection>,
+    ring::hmac::Key,
 );
 
 #[derive(Debug)]
@@ -345,9 +388,23 @@ impl ConnectionHandler {
                 }
             };
 
+            let conn_id = ring::hmac::sign(&data.2, &hdr.dcid);
+            let conn_id = &conn_id.as_ref()[..quiche::MAX_CONN_ID_LEN];
+            let conn_id: ConnectionId = conn_id.to_vec().into();
+            let conn_id = NetNodesConnectionId::from(conn_id);
+
+            let dcid = ConnectionId::from_ref(hdr.dcid.clone().first_chunk::<16>().unwrap()).into();
+
+            godot_error!(
+                "ids: {:?}, {:?}, {:?}",
+                dcid,
+                hdr.scid,
+                ConnectionId::from(conn_id.clone())
+            );
+
             let length = data.0.len();
 
-            let client = match data.0.entry(hdr.dcid.into()) {
+            let client = match data.0.entry(dcid) {
                 Entry::Occupied(entry) => entry.into_mut(),
 
                 Entry::Vacant(entry) => {
@@ -372,7 +429,7 @@ impl ConnectionHandler {
                         godot_error!("Max client connections reached");
                         continue;
                     }
-                    entry.insert(Self::create_client(source_addr, listener)?)
+                    entry.insert(Self::create_client(source_addr, hdr.dcid, listener)?)
                 }
             };
             Self::recv_packet(source_addr, packet, client, listener.bind_addr)?;
@@ -469,11 +526,11 @@ impl ConnectionHandler {
 
     fn create_client(
         source_addr: SocketAddr,
+        dcid: quiche::ConnectionId,
         listener: &UDPListener,
     ) -> Result<PeerConnection, NetNodesError> {
-        let mut scid_bytes = vec![0u8; quiche::MAX_CONN_ID_LEN];
-        rand::rngs::SysRng.try_fill_bytes(&mut scid_bytes).unwrap();
-        let scid = quiche::ConnectionId::from_vec(scid_bytes);
+        let scid = NetNodesConnectionId::from(dcid.clone());
+        let scid = ConnectionId::from(scid);
 
         let mut conn = quiche::accept(
             &scid,
@@ -911,7 +968,15 @@ impl ConnectionHandler {
 
     pub fn new_server(target_port: u16) -> Self {
         Self {
-            handler: HandlerType::Server((HashMap::new(), HashMap::new())),
+            handler: HandlerType::Server((
+                HashMap::new(),
+                HashMap::new(),
+                ring::hmac::Key::generate(
+                    ring::hmac::HMAC_SHA256,
+                    &ring::rand::SystemRandom::new(),
+                )
+                .unwrap(),
+            )),
             listener: UDPListener::new_server(SocketAddr::new(
                 "0.0.0.0".parse().unwrap(),
                 target_port,

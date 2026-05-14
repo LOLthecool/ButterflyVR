@@ -5,7 +5,6 @@
 [ext_resource type="Script" uid="uid://bmtfchs21wwn2" path="res://scenes/world/fallback world/dummy_avatar_change_handler.gd" id="3_fl0hp"]
 [ext_resource type="Script" uid="uid://duqq822ghxpeq" path="res://scenes/player/player.gd" id="4_uiuld"]
 [ext_resource type="Script" uid="uid://bsslrhuvewjrn" path="res://scenes/world/fallback world/player_init.gd" id="5_76sfd"]
-[ext_resource type="Script" uid="uid://dgh52eivd3tq4" path="res://scenes/player/avatar_manager.gd" id="6_d6ao2"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_64wdw"]
 size = Vector2(20, 20)
@@ -60,10 +59,6 @@ collider = NodePath("CollisionShape3D")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="player" unique_id=1109067218]
 shape = SubResource("CapsuleShape3D_mfl08")
-
-[node name="AvatarManager" type="Node" parent="player" unique_id=704341407 node_paths=PackedStringArray("player")]
-script = ExtResource("6_d6ao2")
-player = NodePath("..")
 
 [node name="PlayerInit" type="Node" parent="." unique_id=651731404 node_paths=PackedStringArray("player")]
 script = ExtResource("5_76sfd")

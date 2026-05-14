@@ -7,4 +7,4 @@ func _ready() -> void:
 	player.init_local()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	player.get_child(2).get_child(2).queue_free()
+	player.get_child(1).get_child(2).queue_free()
