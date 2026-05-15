@@ -13,11 +13,6 @@ var agones_sdk:AgonesSDK = null
 var api_token:PackedByteArray
 var inactivity:float
 
-func _ready() -> void:
-	await get_tree().create_timer(5).timeout
-	if !started:
-		queue_free()
-
 func _physics_process(delta: float) -> void:
 	if finished_starting:
 		while true:

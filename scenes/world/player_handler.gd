@@ -12,7 +12,8 @@ func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.Networked
 	return TypeHelper.NetworkedValueTypes.End
 
 func _process_message(values: Array) -> void:
-	var player_owner:int = values[0]
+	@warning_ignore("unsafe_cast")
+	var player_owner:PackedByteArray = PackedByteArray(values[0] as Array)
 	var world:WorldController = GlobalWorldHandler.current_world
 	var player:Player = preload("res://scenes/player/player.tscn").instantiate()
 	player.set_meta("owner_id", player_owner)

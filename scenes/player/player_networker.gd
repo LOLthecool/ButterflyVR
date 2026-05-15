@@ -4,6 +4,9 @@ class_name PlayerNetworker
 @export var target:Player
 
 func _ready() -> void:
+	if get_parent():
+		if get_parent().has_meta("owner_id"):
+			owner_id = get_parent().get_meta("owner_id", PackedByteArray())
 	if owner_id == (await GlobalAccountHandler.get_uuid()).backing_storage:
 		target.init_local()
 	else:
@@ -37,31 +40,31 @@ func _set_networked_values(values: Array) -> void:
 	target.interactor_origin.position = values[9]
 	target.interactor_origin.rotation = values[10]
 
-func _get_networked_value_type(idx: int) -> int:
+func _get_networked_value_type(idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:
 		0:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		1:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		2:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		3:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		4:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		5:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		6:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		7:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		8:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		9:
-			return 5
+			return TypeHelper.NetworkedValueTypes.Vector3
 		10:
-			return 5
-	return -1
+			return TypeHelper.NetworkedValueTypes.Vector3
+	return TypeHelper.NetworkedValueTypes.End
 
 func _get_server_priority(_clientid: PackedByteArray) -> int:
 	return 1000

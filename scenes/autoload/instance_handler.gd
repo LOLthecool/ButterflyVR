@@ -4,7 +4,7 @@ class_name InstanceHandler
 const INSTANCE_CREATION_ENDPOINT:String = "/api/v0/instances"
 const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
 
-const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless"]
+const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless", "--log-file", "user://logs/server.log"]
 
 const MAX_CONNECT_RETRYS:int = 10
 

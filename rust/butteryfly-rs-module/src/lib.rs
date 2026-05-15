@@ -1,5 +1,7 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::doc_markdown)]
+// todo: split message handling to seperate node, call deferred from common, server and client get scene access via this node
+// message applier just calls the usual handle_message, handle message shouldnt defer itself
 
 //! Low level networking library for the Godot engine.
 //!
@@ -76,13 +78,13 @@ enum Inner {
 impl NetNodeManager {
     /// Not to be called directly; used by `NetworkedNode` internally.
     /// Registers a `NetworkedNode` with the inner client or server, allowing it to be synced across the network.
-    fn register_node(&mut self, node_ref: Gd<NetworkedNode>, node: &mut NetworkedNode) {
+    fn register_node(&mut self, node_ref: Gd<NetworkedNode>, mut node: GdMut<NetworkedNode>) {
         match self.inner {
             Inner::Server(ref mut server) => {
-                server.register_node(node_ref, node);
+                server.register_node(node_ref, &mut node);
             }
             Inner::Client(ref mut client) => {
-                client.register_node(node_ref, node);
+                client.register_node(node_ref, &mut node);
             }
             Inner::None => {
                 godot_warn!("called register_node but no client or server is running");

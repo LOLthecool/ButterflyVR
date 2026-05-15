@@ -388,19 +388,7 @@ impl ConnectionHandler {
                 }
             };
 
-            let conn_id = ring::hmac::sign(&data.2, &hdr.dcid);
-            let conn_id = &conn_id.as_ref()[..quiche::MAX_CONN_ID_LEN];
-            let conn_id: ConnectionId = conn_id.to_vec().into();
-            let conn_id = NetNodesConnectionId::from(conn_id);
-
             let dcid = ConnectionId::from_ref(hdr.dcid.clone().first_chunk::<16>().unwrap()).into();
-
-            godot_error!(
-                "ids: {:?}, {:?}, {:?}",
-                dcid,
-                hdr.scid,
-                ConnectionId::from(conn_id.clone())
-            );
 
             let length = data.0.len();
 

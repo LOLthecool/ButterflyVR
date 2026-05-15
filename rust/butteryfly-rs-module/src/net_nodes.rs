@@ -16,13 +16,13 @@ use godot::prelude::*;
 pub struct NetworkedNode {
     /// The unique object ID of this node. It is assigned by the server when the node is added to the scene tree,
     /// and synced to clients using the internal `MessageHandler`.
-    #[var]
+    #[export]
     pub objectid: u16,
     /// The UUID of the owner of this node.
     /// In a game server, the owner will be able to update this node on the server's behalf; however, the server may subject given values to anti-cheat checks.
     /// In an instance server, the updates from the owner will be applied directly on other clients and
     /// applied immediately by the owner, effectively giving the owner 0 latency.
-    #[var]
+    #[export]
     pub owner_id: PackedByteArray,
     base: Base<Node>,
 }
@@ -137,18 +137,22 @@ impl NetworkedNode {
 #[godot_api]
 impl INode for NetworkedNode {
     fn enter_tree(&mut self) {
-        if self.base().has_meta("owner_id") {
-            self.owner_id = PackedByteArray::from_variant(&self.base().get_meta("owner_id"));
-        }
-        self.base()
-            .get_node_as::<NetNodeManager>("/root/NetworkManager")
-            .bind_mut()
-            .register_node(self.to_gd(), self);
+        // todo: clean this up
+        let mut manager = self
+            .base_mut()
+            .get_node_as::<NetNodeManager>("/root/NetworkManager");
+
+        let mut self_ref = self.to_gd();
+
+        manager.run_deferred(move |this| this.register_node(self_ref.clone(), self_ref.bind_mut()));
     }
     fn exit_tree(&mut self) {
-        self.base()
-            .get_node_as::<NetNodeManager>("/root/NetworkManager")
-            .bind_mut()
-            .unregister_node(&self.to_gd());
+        let mut manager = self
+            .base_mut()
+            .get_node_as::<NetNodeManager>("/root/NetworkManager");
+
+        let self_ref = self.to_gd();
+
+        manager.run_deferred(move |this| this.unregister_node(&self_ref));
     }
 }

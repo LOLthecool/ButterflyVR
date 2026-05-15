@@ -65,6 +65,13 @@ impl MessageHandler {
 
         let packet = Self::generate_packet(&values, &types, self.message_id);
 
+        // need to do this before handling on server side since handling a message could queue other messages
+        self.network_manager
+            .as_mut()
+            .unwrap()
+            .bind_mut()
+            .queue_message(packet.clone(), self.stream.cast_unsigned().into());
+
         if self
             .network_manager
             .as_mut()
@@ -75,11 +82,6 @@ impl MessageHandler {
             let mut pointer = MESSAGE_HEADER_SIZE;
             self.handle_message(packet.as_bitslice(), &mut pointer, false);
         }
-        self.network_manager
-            .as_mut()
-            .unwrap()
-            .bind_mut()
-            .queue_message(packet, self.stream.cast_unsigned().into());
     }
     pub fn handle_message(
         &mut self,
@@ -140,9 +142,6 @@ impl MessageHandler {
             ));
         }
         packet
-    }
-    pub fn get_message_id(&self) -> u16 {
-        self.message_id
     }
 }
 

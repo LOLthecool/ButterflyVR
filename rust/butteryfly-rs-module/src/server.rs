@@ -9,6 +9,7 @@ use crate::{common, messages::MessageHandler};
 use bitvec::prelude::*;
 use godot::prelude::*;
 use quiche::ConnectionId;
+use rand::distr::weighted::Weight;
 use rand::{RngExt, SeedableRng};
 use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::{cmp, collections::HashMap};
@@ -90,7 +91,7 @@ impl NetNodeServer {
     }
 
     pub fn get_next_message_id(&mut self) -> u16 {
-        self.last_message_id = self.last_message_id.checked_add(1).unwrap();
+        self.last_message_id.checked_add_assign(&1).unwrap();
         self.last_message_id
     }
 

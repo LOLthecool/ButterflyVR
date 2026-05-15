@@ -79,9 +79,8 @@ pub fn handle_stream(
             return Ok(());
         }
 
-        let mut pointer = 0;
-        let handler: u16 = data[pointer..pointer + MESSAGE_HEADER_SIZE].load_le();
-        pointer += MESSAGE_HEADER_SIZE;
+        let handler: u16 = data[0..MESSAGE_HEADER_SIZE].load_le();
+        let mut pointer = MESSAGE_HEADER_SIZE;
 
         if handler == 0 {
             if !is_server {
@@ -90,9 +89,7 @@ pub fn handle_stream(
                 {
                     match msg {
                         InternalMessage::ClientId(_) => {
-                            godot_error!(
-                                "unexpected ClientId from server? this should never happen."
-                            );
+                            unreachable!();
                         }
                         InternalMessage::NetNodeIdAssign((id, mut node)) => {
                             node.bind_mut().objectid = id;
@@ -118,11 +115,7 @@ pub fn handle_stream(
                 .handle_message(data, &mut pointer, is_server);
             if is_server {
                 message_buffer.push_back((
-                    MessageHandler::generate_packet(
-                        &values,
-                        &types,
-                        handler.bind().get_message_id(),
-                    ),
+                    MessageHandler::generate_packet(&values, &types, handler.bind().message_id),
                     stream,
                 ));
             }
@@ -195,17 +188,19 @@ pub enum InternalMessage {
 }
 
 pub fn generate_internal_message(message: InternalMessage) -> BitVec<u64, Lsb0> {
+    let mut packet: BitVec<u64, Lsb0> = BitVec::new();
+    packet.extend(0u16.view_bits::<Lsb0>());
     match message {
         InternalMessage::ClientId(id) => {
             let id: Vec<u8> = id.to_vec();
             let (id, _) = id.as_chunks::<8>();
             let id: Vec<u64> = id.iter().map(|x| u64::from_le_bytes(*x)).collect();
 
-            BitVec::from_vec(id)
+            packet.extend(BitVec::<u64, Lsb0>::from_vec(id));
+
+            packet
         }
         InternalMessage::NetNodeIdAssign((node_id, node)) => {
-            let mut packet: BitVec<u64, Lsb0> = BitVec::new();
-
             packet.push(true);
 
             packet.extend(node_id.view_bits::<Lsb0>());
@@ -220,7 +215,6 @@ pub fn generate_internal_message(message: InternalMessage) -> BitVec<u64, Lsb0> 
             packet
         }
         InternalMessage::MessageHandlerIdAssign((handler_id, node)) => {
-            let mut packet: BitVec<u64, Lsb0> = BitVec::new();
             packet.push(false);
 
             packet.extend(handler_id.view_bits::<Lsb0>());
@@ -278,7 +272,7 @@ pub fn decode_internal_message(
                 let Some(n) = node else {
                     return Err(NetNodesError::InvalidDatagram);
                 };
-                node = n.get_child(idx);
+                node = n.get_child_ex(idx).include_internal(true).done();
             }
 
             if let Some(Ok(node)) = node.clone().map(Gd::try_cast) {
@@ -309,7 +303,7 @@ pub fn decode_internal_message(
                 let Some(n) = node else {
                     return Err(NetNodesError::InvalidDatagram);
                 };
-                node = n.get_child(idx);
+                node = n.get_child_ex(idx).include_internal(true).done();
             }
 
             if let Some(Ok(node)) = node.clone().map(Gd::try_cast) {
@@ -325,13 +319,13 @@ fn get_node_path(node: Gd<Node>) -> VecDeque<u32> {
     let mut path = VecDeque::new();
 
     let mut current = node;
-    let mut idx = current.get_index();
+    let mut idx = current.get_index_ex().include_internal(true).done();
 
     while idx != -1 {
         path.push_front(idx.try_into().unwrap());
         // parent will always exist if idx != -1
         current = current.get_parent().unwrap();
-        idx = current.get_index();
+        idx = current.get_index_ex().include_internal(true).done();
     }
 
     path

@@ -8,8 +8,6 @@ const OBJECT_DOWNLOAD_ENDPOINT:String = "/api/v0/%s/%s/epck"
 const MEGABYTE:int = 1024 * 1024
 const GIGABYTE:int = MEGABYTE * 1024
 
-
-# max size: 10GB
 var cache:LRUCache = LRUCache.load_cache("cache_meta", GIGABYTE * 10, "cache")
 
 func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
@@ -101,10 +99,6 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 	cache.push_front(uuid.to_string(), item)
 	return true
 
-func remove_all_expired() -> void:
-	## todo
-	push_error("not yet implemented")
-
 func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	var object_type_string:String = "UNNAMED"
 	
@@ -180,8 +174,14 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	new_object.store_buffer(decrypted_buffer)
 	new_object.flush()
 	
+	# todo: a malicious object could contain files in _loaded_content/_/_ for another object uuid
+	# since overwiting is forbidden (cant have then overwriting internal files) if that object is later loaded
+	# it will use the malicious files. 
+	# it will still need to follow the safety checks 
+	# but this could allow bypassing a hypothetical permission system for creators
+	
 	if !ProjectSettings.load_resource_pack(new_object.get_path(), false):
-		push_error("failed to load object pck")
+		push_error("failed to load object pck from %s" % new_object.get_path())
 	
 	new_object.close()
 	
