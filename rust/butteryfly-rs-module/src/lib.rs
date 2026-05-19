@@ -32,6 +32,7 @@
 
 mod client;
 mod common;
+mod message_manager;
 mod messages;
 mod net_nodes;
 mod networker;
@@ -43,6 +44,7 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 
 use crate::client::NetNodeClient;
+use crate::message_manager::MessageManager;
 use crate::messages::MessageHandler;
 use crate::net_nodes::NetworkedNode;
 use crate::server::NetNodeServer;
@@ -247,11 +249,13 @@ impl NetNodeManager {
             return;
         };
 
+        let message_manager = MessageManager::new_alloc();
+
         self.inner = Inner::Client(NetNodeClient::new(
             SocketAddr::new(server_ip, server_port),
             uuid,
             identifier,
-            self.to_gd().upcast(),
+            message_manager,
         ));
     }
 

@@ -209,7 +209,7 @@ impl NetNodeServer {
                             &mut self.networker,
                             &mut self.message_buffer,
                             &mut self.message_handlers,
-                            None,
+                            &mut None,
                         )?;
                     }
 

@@ -1,10 +1,11 @@
+use crate::common;
 use crate::common::{
     DGRAM_HEADER_SIZE, InternalMessage, OBJECT_HEADER_SIZE, generate_internal_message,
 };
+use crate::message_manager::MessageManager;
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionHandler, NetNodesError};
 use crate::serializer::NetworkedValueTypes;
-use crate::{common, messages::MessageHandler};
 use bitvec::prelude::*;
 use godot::prelude::*;
 use rand::SeedableRng;
@@ -28,10 +29,9 @@ pub struct NetNodeClient {
     unapplied_packets: BTreeMap<(i8, [u8; 16]), BitVec<u64, Lsb0>>,
     incomplete_messages: HashMap<u64, (Option<usize>, BitVec<u64, Lsb0>)>,
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
-    message_handlers: HashMap<u16, Gd<MessageHandler>>,
     server_tick_number: i8,
     current_tick: i8,
-    scene_access: Gd<Node>,
+    message_manager: Gd<MessageManager>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -67,13 +67,16 @@ impl NetNodeClient {
         }
     }
 
+    pub fn unregister_message(&mut self, message_type: u16) {
+        self.message_manager
+            .bind_mut()
+            .unregister_message(message_type);
+    }
+
     pub fn get_networked_nodes(&self) -> &[Gd<NetworkedNode>] {
         &self.networked_nodes
     }
 
-    pub fn unregister_message(&mut self, message_type: u16) {
-        self.message_handlers.remove(&message_type);
-    }
     pub fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {
         self.message_buffer.push_back((message, stream));
     }
@@ -81,7 +84,7 @@ impl NetNodeClient {
         server_addr: SocketAddr,
         uuid: [u8; 16],
         identifier: [u8; 8],
-        scene_access: Gd<Node>,
+        message_manager: Gd<MessageManager>,
     ) -> Self {
         Self {
             connected: ConnectionStatus::AwaitingConnection(identifier),
@@ -93,10 +96,9 @@ impl NetNodeClient {
             unapplied_packets: BTreeMap::new(),
             incomplete_messages: HashMap::new(),
             message_buffer: VecDeque::new(),
-            message_handlers: HashMap::new(),
             server_tick_number: 0,
             current_tick: 0,
-            scene_access,
+            message_manager,
         }
     }
     pub fn disconnect(&mut self) {
@@ -126,8 +128,7 @@ impl NetNodeClient {
                 (length, data),
                 &mut self.networker,
                 &mut self.message_buffer,
-                &mut self.message_handlers,
-                Some(&self.scene_access),
+                &mut Some(self.message_manager.clone()),
             )?;
         }
 
@@ -288,5 +289,11 @@ impl NetNodeClient {
         if let Err(e) = self.send_packets() {
             godot_error!("error while sending packets: {e:?}");
         }
+    }
+}
+
+impl Drop for NetNodeClient {
+    fn drop(&mut self) {
+        self.message_manager.queue_free();
     }
 }
