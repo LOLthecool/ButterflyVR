@@ -1,4 +1,4 @@
-use crate::common;
+use crate::common::{self, MessageAccess};
 use crate::common::{
     DGRAM_HEADER_SIZE, InternalMessage, OBJECT_HEADER_SIZE, generate_internal_message,
 };
@@ -128,7 +128,7 @@ impl NetNodeClient {
                 (length, data),
                 &mut self.networker,
                 &mut self.message_buffer,
-                &mut Some(self.message_manager.clone()),
+                MessageAccess::Manager(&mut self.message_manager),
             )?;
         }
 

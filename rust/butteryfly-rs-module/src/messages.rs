@@ -80,7 +80,7 @@ impl MessageHandler {
             .is_server()
         {
             let mut pointer = MESSAGE_HEADER_SIZE;
-            self.handle_message(packet.as_bitslice(), &mut pointer, false);
+            self.handle_message(packet.as_bitslice(), &mut pointer, false, true);
         }
     }
     pub fn handle_message(
@@ -88,6 +88,7 @@ impl MessageHandler {
         packet: &BitSlice<u64, Lsb0>,
         pointer: &mut usize,
         clean_message: bool,
+        run_deferred: bool,
     ) -> (VarArray, Array<NetworkedValueTypes>) {
         let mut idx = 0;
         let mut last_value = Variant::nil();
@@ -116,7 +117,11 @@ impl MessageHandler {
             values = self.clean_message(values);
         }
         let tmp = values.clone();
-        self.run_deferred(move |this| this.process_message(values));
+        if run_deferred {
+            self.run_deferred(move |this| this.process_message(values));
+        } else {
+            self.process_message(values);
+        }
         (tmp, types)
     }
     pub fn generate_packet(

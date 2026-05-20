@@ -1,6 +1,6 @@
 use crate::common::{
-    BYTES2, DGRAM_HEADER_SIZE, InternalMessage, NetNodesConnectionId, OBJECT_HEADER_SIZE,
-    generate_internal_message,
+    BYTES2, DGRAM_HEADER_SIZE, InternalMessage, MessageAccess, NetNodesConnectionId,
+    OBJECT_HEADER_SIZE, generate_internal_message,
 };
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionHandler, NetNodesError};
@@ -208,8 +208,7 @@ impl NetNodeServer {
                             (length, data),
                             &mut self.networker,
                             &mut self.message_buffer,
-                            &mut self.message_handlers,
-                            &mut None,
+                            MessageAccess::Handlers(&mut self.message_handlers),
                         )?;
                     }
 

@@ -250,6 +250,7 @@ impl NetNodeManager {
         };
 
         let message_manager = MessageManager::new_alloc();
+        self.base_mut().add_child(&message_manager);
 
         self.inner = Inner::Client(NetNodeClient::new(
             SocketAddr::new(server_ip, server_port),

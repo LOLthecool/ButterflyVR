@@ -46,9 +46,9 @@ impl From<NetNodesConnectionId> for quiche::ConnectionId<'_> {
     }
 }
 
-enum MessageAccess<'a> {
+pub enum MessageAccess<'a> {
     Handlers(&'a mut HashMap<u16, Gd<MessageHandler>>),
-    Manager(&'a mut Option<Gd<MessageManager>>),
+    Manager(&'a mut Gd<MessageManager>),
 }
 
 pub fn handle_stream(
@@ -57,12 +57,10 @@ pub fn handle_stream(
     previous_data: (&mut Option<usize>, &mut BitVec<u64, Lsb0>),
     networker: &mut ConnectionHandler,
     message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
-    message_access: MessageAccess,
+    // this function requires that message access corrosponds to the peer being either a client or a server
+    // clients should use manager while servers should use handlers
+    mut message_access: MessageAccess,
 ) -> Result<(), NetNodesError> {
-    let is_server = match message_access {
-        MessageAccess::Handlers(_) => true,
-        MessageAccess::Manager(_) => false,
-    };
     let (previous_length_bytes, data) = previous_data;
 
     loop {
@@ -91,37 +89,37 @@ pub fn handle_stream(
         let mut pointer = MESSAGE_HEADER_SIZE;
 
         if handler == 0 {
-            if let MessageAccess::Manager(manager) = message_access {
+            if let MessageAccess::Manager(ref mut manager) = message_access {
                 let data = data.to_owned();
-                manager
-                    .as_mut()
-                    .unwrap()
-                    .run_deferred(|this| this.handle_internal_message(data));
+                manager.run_deferred(|this| this.handle_internal_message(data));
+            } else {
+                godot_error!("server got internal message after client_id");
             }
         } else {
             match message_access {
-                MessageAccess::Handlers(message_handlers) => {
+                MessageAccess::Handlers(ref mut message_handlers) => {
                     if let Some(handler) = message_handlers.get_mut(&handler) {
                         let (values, types) =
                             handler
                                 .bind_mut()
-                                .handle_message(data, &mut pointer, is_server);
-                        if is_server {
-                            message_buffer.push_back((
-                                MessageHandler::generate_packet(
-                                    &values,
-                                    &types,
-                                    handler.bind().message_id,
-                                ),
-                                stream,
-                            ));
-                        }
+                                .handle_message(data, &mut pointer, true, true);
+                        message_buffer.push_back((
+                            MessageHandler::generate_packet(
+                                &values,
+                                &types,
+                                handler.bind().message_id,
+                            ),
+                            stream,
+                        ));
                     } else {
                         godot_error!("received a message but had no handler for it: {handler:?}");
                     }
                 }
-                MessageAccess::Manager(manager) => {
-                    manager.as_mut().unwrap().bind_mut().handle_message();
+                MessageAccess::Manager(ref mut manager) => {
+                    let mut data = data.clone();
+                    manager.run_deferred(move |this| {
+                        this.handle_message(&mut data, handler, &mut pointer)
+                    });
                 }
             }
         }
@@ -266,9 +264,11 @@ pub fn decode_internal_message(
             .map(Gd::upcast);
 
         while let Some(idx) = path.pop_front() {
+            godot_error!("netnode node: {:?}", node);
             let Some(n) = node else {
                 return Err(NetNodesError::InvalidDatagram);
             };
+            godot_error!("children: {:?}", n.get_children());
             node = n.get_child_ex(idx).include_internal(true).done();
         }
 
@@ -297,9 +297,11 @@ pub fn decode_internal_message(
             .map(Gd::upcast);
 
         while let Some(idx) = path.pop_front() {
+            godot_error!("node: {:?}", node);
             let Some(n) = node else {
                 return Err(NetNodesError::InvalidDatagram);
             };
+            godot_error!("children: {:?}", n.get_children());
             node = n.get_child_ex(idx).include_internal(true).done();
         }
 
