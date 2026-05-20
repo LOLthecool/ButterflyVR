@@ -264,11 +264,9 @@ pub fn decode_internal_message(
             .map(Gd::upcast);
 
         while let Some(idx) = path.pop_front() {
-            godot_error!("netnode node: {:?}", node);
             let Some(n) = node else {
                 return Err(NetNodesError::InvalidDatagram);
             };
-            godot_error!("children: {:?}", n.get_children());
             node = n.get_child_ex(idx).include_internal(true).done();
         }
 
@@ -297,11 +295,9 @@ pub fn decode_internal_message(
             .map(Gd::upcast);
 
         while let Some(idx) = path.pop_front() {
-            godot_error!("node: {:?}", node);
             let Some(n) = node else {
                 return Err(NetNodesError::InvalidDatagram);
             };
-            godot_error!("children: {:?}", n.get_children());
             node = n.get_child_ex(idx).include_internal(true).done();
         }
 
