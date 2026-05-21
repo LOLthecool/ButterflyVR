@@ -45,38 +45,39 @@ static func setup_avatar(root:Node, player:Player) -> void:
 			combined_aabb.merge(aabb)
 		
 		if node.has_meta("IKMarker") and node is Skeleton3D:
-			var ik:AvatarIK = preload("res://scenes/player/avatar/godot_ik.tscn").instantiate()
-			var values:Dictionary = node.get_meta("IKMarker")
-			
-			# todo: check marker is valid
-			node.add_child(ik)
-			
-			ik.head_bone = values["head_bone"]
-			ik.left_arm_bone = values["left_arm_bone"]
-			ik.right_arm_bone = values["right_arm_bone"]
-			ik.left_leg_bone = values["left_leg_bone"]
-			ik.right_leg_bone = values["right_leg_bone"]
-			ik.spine_bone = values["spine_bone"]
-			ik.hip_bone = values["hip_bone"]
-			@warning_ignore("unsafe_cast")
-			ik.head_target = node.get_child(values["head_target"] as int)
-			@warning_ignore("unsafe_cast")
-			ik.left_arm_target = node.get_child(values["left_arm_target"] as int)
-			@warning_ignore("unsafe_cast")
-			ik.right_arm_target = node.get_child(values["right_arm_target"] as int)
-			@warning_ignore("unsafe_cast")
-			ik.spine_target = node.get_child(values["spine_target"] as int)
-			@warning_ignore("unsafe_cast")
-			ik.hip_target = node.get_child(values["hip_target"] as int)
-			
-			ik.setup(player.is_local)
-			
-			player.head_ik_target = ik.head.target
-			player.left_arm_ik_target = ik.left_arm.target
-			player.right_arm_ik_target = ik.right_arm.target
-			
-			@warning_ignore("unsafe_call_argument", "unsafe_property_access")
-			player.head_view_offset = node.get_child(values["head_view"]).position - node.get_child(values["head_target"]).position
+			continue
+			#var ik:AvatarIK = preload("res://scenes/player/avatar/godot_ik.tscn").instantiate()
+			#var values:Dictionary = node.get_meta("IKMarker")
+			#
+			## todo: check marker is valid
+			#node.add_child(ik)
+			#
+			#ik.head_bone = values["head_bone"]
+			#ik.left_arm_bone = values["left_arm_bone"]
+			#ik.right_arm_bone = values["right_arm_bone"]
+			#ik.left_leg_bone = values["left_leg_bone"]
+			#ik.right_leg_bone = values["right_leg_bone"]
+			#ik.spine_bone = values["spine_bone"]
+			#ik.hip_bone = values["hip_bone"]
+			#@warning_ignore("unsafe_cast")
+			#ik.head_target = node.get_child(values["head_target"] as int)
+			#@warning_ignore("unsafe_cast")
+			#ik.left_arm_target = node.get_child(values["left_arm_target"] as int)
+			#@warning_ignore("unsafe_cast")
+			#ik.right_arm_target = node.get_child(values["right_arm_target"] as int)
+			#@warning_ignore("unsafe_cast")
+			#ik.spine_target = node.get_child(values["spine_target"] as int)
+			#@warning_ignore("unsafe_cast")
+			#ik.hip_target = node.get_child(values["hip_target"] as int)
+			#
+			#ik.setup(player.is_local)
+			#
+			#player.head_ik_target = ik.head.target
+			#player.left_arm_ik_target = ik.left_arm.target
+			#player.right_arm_ik_target = ik.right_arm.target
+			#
+			#@warning_ignore("unsafe_call_argument", "unsafe_property_access")
+			#player.head_view_offset = node.get_child(values["head_view"]).position - node.get_child(values["head_target"]).position
 	
 	player.position.y -= (player.collider.shape as CapsuleShape3D).height / 2
 	

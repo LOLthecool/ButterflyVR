@@ -22,7 +22,8 @@ func _ready() -> void:
 	player_access.player.avatar_changed.connect(on_avatar_changed)
 
 func on_avatar_changed() -> void:
-	rotation_center.global_position = player_access.player.head_ik_target.global_position
+	if player_access.player.head_ik_target:
+		rotation_center.global_position = player_access.player.head_ik_target.global_position
 	position = player_access.player.head_view_offset
 	if movement_handler.player_state == MovementHandler.Player_states.CROUCHED:
 		movement_handler.player_state = MovementHandler.Player_states.NONE
@@ -38,6 +39,6 @@ func move_cam(xrot:float, yrot:float) -> void:
 	rotation_center.rotation.x = clamp(rotation_center.rotation.x - (yrot * verticalSensitivity), VERTICAL_LIMIT_MIN, VERTICAL_LIMIT_MAX)
 
 func _physics_process(_delta: float) -> void:
-	if head_target_ready:
+	if head_target_ready and player_access.player.head_ik_target:
 		player_access.player.head_ik_target.global_position = rotation_center.global_position
 		player_access.player.head_ik_target.global_basis = rotation_center.global_basis

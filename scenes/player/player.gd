@@ -6,10 +6,10 @@ class_name Player
 
 signal avatar_changed
 
-var head_ik_target:Node3D = Node3D.new()
-var left_arm_ik_target:Node3D = Node3D.new()
-var right_arm_ik_target:Node3D = Node3D.new()
-var interactor_origin:Node3D = Node3D.new()
+var head_ik_target:Node3D
+var left_arm_ik_target:Node3D
+var right_arm_ik_target:Node3D
+var interactor_origin:Node3D
 var head_view_offset:Vector3
 var player_logic:PlayerAccess
 var is_local:bool

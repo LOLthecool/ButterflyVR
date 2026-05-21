@@ -1,6 +1,13 @@
 extends NetworkedNode
 class_name PlayerNetworker
 
+# todo: get max latency from netnodes, maintain buffer of previous data (pos, rot, vel, inputs) for that long,
+# if server sends a position that cant be matched within threshold, change closest match to server value and resimulate
+# resim uses deltas between buffer items + inputs to estimate the correct position
+# should be able to move_and_slide/collide for collision detection? otherwise might need to get fancy
+# if multiple desyncs in a row: snap to server position
+# some of this logic probably going in player_desktop
+
 @export var target:Player
 
 func _ready() -> void:
@@ -17,28 +24,28 @@ func _get_networked_values() -> Array:
 	values.push_back(target.position)
 	values.push_back(target.rotation)
 	values.push_back(target.velocity)
-	values.push_back(target.head_ik_target.position)
-	values.push_back(target.head_ik_target.rotation)
-	values.push_back(target.left_arm_ik_target.position)
-	values.push_back(target.left_arm_ik_target.rotation)
-	values.push_back(target.right_arm_ik_target.position)
-	values.push_back(target.right_arm_ik_target.rotation)
-	values.push_back(target.interactor_origin.position)
-	values.push_back(target.interactor_origin.rotation)
+	#values.push_back(target.head_ik_target.position)
+	#values.push_back(target.head_ik_target.rotation)
+	#values.push_back(target.left_arm_ik_target.position)
+	#values.push_back(target.left_arm_ik_target.rotation)
+	#values.push_back(target.right_arm_ik_target.position)
+	#values.push_back(target.right_arm_ik_target.rotation)
+	#values.push_back(target.interactor_origin.position)
+	#values.push_back(target.interactor_origin.rotation)
 	return values
 
 func _set_networked_values(values: Array) -> void:
 	target.position = values[0]
 	target.rotation = values[1]
 	target.velocity = values[2]
-	target.head_ik_target.position = values[3]
-	target.head_ik_target.rotation = values[4]
-	target.left_arm_ik_target.position = values[5]
-	target.left_arm_ik_target.rotation = values[6]
-	target.right_arm_ik_target.position = values[7]
-	target.right_arm_ik_target.rotation = values[8]
-	target.interactor_origin.position = values[9]
-	target.interactor_origin.rotation = values[10]
+	#target.head_ik_target.position = values[3]
+	#target.head_ik_target.rotation = values[4]
+	#target.left_arm_ik_target.position = values[5]
+	#target.left_arm_ik_target.rotation = values[6]
+	#target.right_arm_ik_target.position = values[7]
+	#target.right_arm_ik_target.rotation = values[8]
+	#target.interactor_origin.position = values[9]
+	#target.interactor_origin.rotation = values[10]
 
 func _get_networked_value_type(idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:
@@ -48,22 +55,22 @@ func _get_networked_value_type(idx: int) -> TypeHelper.NetworkedValueTypes:
 			return TypeHelper.NetworkedValueTypes.Vector3
 		2:
 			return TypeHelper.NetworkedValueTypes.Vector3
-		3:
-			return TypeHelper.NetworkedValueTypes.Vector3
-		4:
-			return TypeHelper.NetworkedValueTypes.Vector3
-		5:
-			return TypeHelper.NetworkedValueTypes.Vector3
-		6:
-			return TypeHelper.NetworkedValueTypes.Vector3
-		7:
-			return TypeHelper.NetworkedValueTypes.Vector3
-		8:
-			return TypeHelper.NetworkedValueTypes.Vector3
-		9:
-			return TypeHelper.NetworkedValueTypes.Vector3
-		10:
-			return TypeHelper.NetworkedValueTypes.Vector3
+		#3:
+			#return TypeHelper.NetworkedValueTypes.Vector3
+		#4:
+			#return TypeHelper.NetworkedValueTypes.Vector3
+		#5:
+			#return TypeHelper.NetworkedValueTypes.Vector3
+		#6:
+			#return TypeHelper.NetworkedValueTypes.Vector3
+		#7:
+			#return TypeHelper.NetworkedValueTypes.Vector3
+		#8:
+			#return TypeHelper.NetworkedValueTypes.Vector3
+		#9:
+			#return TypeHelper.NetworkedValueTypes.Vector3
+		#10:
+			#return TypeHelper.NetworkedValueTypes.Vector3
 	return TypeHelper.NetworkedValueTypes.End
 
 func _get_server_priority(_clientid: PackedByteArray) -> int:
