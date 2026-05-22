@@ -32,11 +32,15 @@ func on_avatar_changed() -> void:
 
 func _unhandled_input(event:InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-		move_cam((event as InputEventMouseMotion).relative.x, (event as InputEventMouseMotion).relative.y)
+		move_cam((event as InputEventMouseMotion).relative.x, 
+				(event as InputEventMouseMotion).relative.y)
 
 func move_cam(xrot:float, yrot:float) -> void:
 	rotation_center.rotate_y(-xrot * horizontalSensitivity)
-	rotation_center.rotation.x = clamp(rotation_center.rotation.x - (yrot * verticalSensitivity), VERTICAL_LIMIT_MIN, VERTICAL_LIMIT_MAX)
+	rotation_center.rotation.x = clamp(
+			rotation_center.rotation.x - (yrot * verticalSensitivity), 
+			VERTICAL_LIMIT_MIN, 
+			VERTICAL_LIMIT_MAX)
 
 func _physics_process(_delta: float) -> void:
 	if head_target_ready and player_access.player.head_ik_target:

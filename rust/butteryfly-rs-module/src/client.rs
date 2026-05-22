@@ -12,6 +12,7 @@ use rand::SeedableRng;
 use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
 use std::thread;
+use std::time::Duration;
 use std::{cmp, collections::HashMap};
 
 #[derive(Debug)]
@@ -80,6 +81,12 @@ impl NetNodeClient {
     pub fn queue_message(&mut self, message: BitVec<u64, Lsb0>, stream: u64) {
         self.message_buffer.push_back((message, stream));
     }
+
+    pub fn get_connection_rtt(&self) -> Option<Duration> {
+        let client = self.networker.get_peers(true).pop().unwrap();
+        self.networker.get_connection_rtt(&client)
+    }
+
     pub fn new(
         server_addr: SocketAddr,
         uuid: [u8; 16],

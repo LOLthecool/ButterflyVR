@@ -6,6 +6,9 @@ class_name Player
 
 signal avatar_changed
 
+var server_position:Vector3
+var server_rotation:Vector3
+var server_velocity:Vector3
 var head_ik_target:Node3D
 var left_arm_ik_target:Node3D
 var right_arm_ik_target:Node3D

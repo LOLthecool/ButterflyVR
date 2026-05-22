@@ -622,6 +622,20 @@ impl ConnectionHandler {
         self.listener.pacing_notifier.try_recv().is_ok()
     }
 
+    pub fn get_connection_rtt(&self, peer: &NetNodesConnectionId) -> Option<Duration> {
+        match self.handler {
+            HandlerType::Client(ref c) => {
+                let peer: ConnectionId = peer.into();
+                debug_assert_eq!(peer, c.id);
+                c.conn.path_stats().map(|x| x.rtt).max()
+            }
+            HandlerType::Server(ref s) => {
+                s.0.get(peer)
+                    .and_then(|peer| peer.conn.path_stats().map(|x| x.rtt).max())
+            }
+        }
+    }
+
     pub fn get_peers(&self, include_connecting: bool) -> Vec<NetNodesConnectionId> {
         match self.handler {
             HandlerType::Client(ref c) => {

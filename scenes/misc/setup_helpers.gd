@@ -81,8 +81,17 @@ static func setup_avatar(root:Node, player:Player) -> void:
 	
 	player.position.y -= (player.collider.shape as CapsuleShape3D).height / 2
 	
-	(player.collider.shape as CapsuleShape3D).radius = maxf(combined_aabb.size.x, combined_aabb.size.z)
-	(player.collider.shape as CapsuleShape3D).height = combined_aabb.size.y
+	player.collider.shape = CapsuleShape3D.new()
+	
+	# godot dosent let us create invalid capsule shapes even temporarily so we need to modify in the correct order
+	# there is also no way to construct a capsule shape in one go
+	if maxf(combined_aabb.size.x, combined_aabb.size.z) > (player.collider.shape as CapsuleShape3D).height / 2:
+		(player.collider.shape as CapsuleShape3D).height = combined_aabb.size.y
+		(player.collider.shape as CapsuleShape3D).radius = maxf(combined_aabb.size.x, combined_aabb.size.z)
+	else:
+		(player.collider.shape as CapsuleShape3D).radius = maxf(combined_aabb.size.x, combined_aabb.size.z)
+		(player.collider.shape as CapsuleShape3D).height = combined_aabb.size.y
+	
 	player.collider.position = combined_aabb.position
 	
 	player.position.y += (player.collider.shape as CapsuleShape3D).height / 2

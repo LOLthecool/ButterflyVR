@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://bayuo5pqfter5"]
+[gd_scene format=3 uid="uid://bayuo5pqfter5"]
 
 [ext_resource type="PackedScene" uid="uid://de6hhgtdqpb24" path="res://scenes/player/camera.tscn" id="1_76yq6"]
 [ext_resource type="Script" uid="uid://f1qkre3h8u0i" path="res://scenes/player/player_access.gd" id="1_yag7k"]
@@ -6,29 +6,32 @@
 [ext_resource type="PackedScene" uid="uid://dv5d7diocohlq" path="res://scenes/player/ui/ui_root.tscn" id="2_t54nr"]
 [ext_resource type="PackedScene" uid="uid://cxa5mj38qp8iu" path="res://scenes/player/audio_handler.tscn" id="3_oaug5"]
 [ext_resource type="PackedScene" uid="uid://cyw6fgjshkt2r" path="res://scenes/player/raycaster.tscn" id="3_yag7k"]
+[ext_resource type="Script" uid="uid://s42t3os7024c" path="res://scenes/player/server_reconciler.gd" id="7_t54nr"]
 
-[node name="LocalPlayerDesktop" type="Node3D" groups=["LocalPlayer"]]
+[node name="LocalPlayerDesktop" type="Node3D" unique_id=910968081 groups=["LocalPlayer"]]
 script = ExtResource("1_yag7k")
 
-[node name="Node3D" type="Node3D" parent="."]
+[node name="Node3D" type="Node3D" parent="." unique_id=1033631845]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 
-[node name="Camera3D" parent="Node3D" node_paths=PackedStringArray("player_access", "raycaster", "movement_handler", "rotation_center") instance=ExtResource("1_76yq6")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+[node name="Camera3D" parent="Node3D" unique_id=958796167 node_paths=PackedStringArray("player_access", "raycaster", "movement_handler", "rotation_center") instance=ExtResource("1_76yq6")]
 current = true
 player_access = NodePath("../..")
 raycaster = NodePath("Raycaster")
 movement_handler = NodePath("../../MovementHandler")
 rotation_center = NodePath("..")
 
-[node name="UIRoot" parent="Node3D/Camera3D" instance=ExtResource("2_t54nr")]
+[node name="UIRoot" parent="Node3D/Camera3D" unique_id=1738243895 instance=ExtResource("2_t54nr")]
 
-[node name="Raycaster" parent="Node3D/Camera3D" instance=ExtResource("3_yag7k")]
+[node name="Raycaster" parent="Node3D/Camera3D" unique_id=57031967 instance=ExtResource("3_yag7k")]
 script = null
 
-[node name="MovementHandler" type="Node" parent="." node_paths=PackedStringArray("player_access", "camera_rotation_origin")]
+[node name="MovementHandler" type="Node" parent="." unique_id=2052051645 node_paths=PackedStringArray("player_access", "camera_rotation_origin")]
 script = ExtResource("2_4c4oc")
 player_access = NodePath("..")
 camera_rotation_origin = NodePath("../Node3D")
 
-[node name="AudioHandler" parent="." instance=ExtResource("3_oaug5")]
+[node name="AudioHandler" parent="." unique_id=1873193131 instance=ExtResource("3_oaug5")]
+
+[node name="ServerReconciler" type="Node" parent="." unique_id=1803701866]
+script = ExtResource("7_t54nr")

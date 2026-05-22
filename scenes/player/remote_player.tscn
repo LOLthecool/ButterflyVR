@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://f1qkre3h8u0i" path="res://scenes/player/player_access.gd" id="1_rmxnb"]
 [ext_resource type="Script" uid="uid://by7wacrsb7mud" path="res://scenes/player/remote_grabber.gd" id="2_2ms3h"]
 [ext_resource type="Script" uid="uid://d287rq0d3v2ec" path="res://scenes/player/pivot_center.gd" id="2_840kl"]
+[ext_resource type="Script" uid="uid://wkh6f4t2had6" path="res://scenes/player/player_updater.gd" id="5_8dfyr"]
 [ext_resource type="PackedScene" uid="uid://fqt8aa660pk8" path="res://scenes/player/name_plate.tscn" id="5_qn18y"]
 
 [node name="RemotePlayer" type="Node3D" unique_id=528957332]
@@ -20,3 +21,6 @@ player_access = NodePath("../..")
 [node name="NamePlate" parent="." unique_id=107630917 node_paths=PackedStringArray("player_access") instance=ExtResource("5_qn18y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 player_access = NodePath("..")
+
+[node name="PlayerUpdater" type="Node" parent="." unique_id=1746628805]
+script = ExtResource("5_8dfyr")

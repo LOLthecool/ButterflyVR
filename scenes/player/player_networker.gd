@@ -35,9 +35,9 @@ func _get_networked_values() -> Array:
 	return values
 
 func _set_networked_values(values: Array) -> void:
-	target.position = values[0]
-	target.rotation = values[1]
-	target.velocity = values[2]
+	target.server_position = values[0]
+	target.server_rotation = values[1]
+	target.server_velocity = values[2]
 	#target.head_ik_target.position = values[3]
 	#target.head_ik_target.rotation = values[4]
 	#target.left_arm_ik_target.position = values[5]

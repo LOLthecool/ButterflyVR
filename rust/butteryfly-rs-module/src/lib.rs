@@ -42,6 +42,7 @@ mod server;
 use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::str::FromStr;
+use std::time::Duration;
 
 use crate::client::NetNodeClient;
 use crate::message_manager::MessageManager;
@@ -193,6 +194,23 @@ impl NetNodeManager {
                 Array::new()
             }
         }
+    }
+
+    #[func]
+    fn get_highest_rtt_millis(&self) -> i32 {
+        match self.inner {
+            Inner::Client(ref client) => client
+                .get_connection_rtt()
+                .map(|x| Duration::as_secs(&x) as i32),
+            Inner::Server(ref server) => server
+                .get_highest_connection_rtt()
+                .map(|x| Duration::as_secs(&x) as i32),
+            Inner::None => {
+                godot_error!("called get_highest_rtt_millis but no client or server is running");
+                None
+            }
+        }
+        .unwrap_or(-1)
     }
 
     #[func]

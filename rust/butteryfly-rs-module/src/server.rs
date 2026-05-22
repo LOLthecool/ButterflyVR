@@ -12,6 +12,7 @@ use quiche::ConnectionId;
 use rand::distr::weighted::Weight;
 use rand::{RngExt, SeedableRng};
 use std::collections::{BTreeMap, HashSet, VecDeque};
+use std::time::Duration;
 use std::{cmp, collections::HashMap};
 use std::{mem, thread};
 
@@ -452,6 +453,14 @@ impl NetNodeServer {
             ClientState::AwaitingUuid(x) => Some(x),
             _ => None,
         })
+    }
+
+    pub fn get_highest_connection_rtt(&self) -> Option<Duration> {
+        self.clients
+            .keys()
+            .map(|x| self.networker.get_connection_rtt(x))
+            .max()
+            .flatten()
     }
 
     pub fn verify_client(&mut self, identifier: [u8; 8], uuid: [u8; 16]) {
