@@ -11,10 +11,10 @@ unsafe impl ExtensionLibrary for GodotRustQueueExtension {}
 /// Provides O(1) push/pop at both ends and O(1) indexed access.
 /// May provide a PackedArray deque implementation in the future.
 #[derive(GodotClass)]
-#[class(init, base = Node)]
+#[class(init, base = RefCounted)]
 struct Queue {
     inner: VecDeque<Variant>,
-    base: Base<Node>,
+    base: Base<RefCounted>,
 }
 
 #[godot_api]
@@ -147,7 +147,7 @@ impl Queue {
 
     #[func]
     fn from_array(array: Array<Variant>) -> Gd<Self> {
-        let mut queue = Self::new_alloc();
+        let mut queue = Self::new_gd();
         queue.bind_mut().inner.clear();
         queue.bind_mut().inner.reserve(array.len());
         for i in 0..array.len() {

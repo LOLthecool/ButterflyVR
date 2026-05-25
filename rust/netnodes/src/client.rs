@@ -296,6 +296,10 @@ impl NetNodeClient {
         if let Err(e) = self.send_packets() {
             godot_error!("error while sending packets: {e:?}");
         }
+
+        if let Err(e) = self.networker.update() {
+            godot_error!("failed to update client networker: {e:?}");
+        }
     }
 }
 

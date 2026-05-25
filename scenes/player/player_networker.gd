@@ -1,13 +1,6 @@
 extends NetworkedNode
 class_name PlayerNetworker
 
-# todo: get max latency from netnodes, maintain buffer of previous data (pos, rot, vel, inputs) for that long,
-# if server sends a position that cant be matched within threshold, change closest match to server value and resimulate
-# resim uses deltas between buffer items + inputs to estimate the correct position
-# should be able to move_and_slide/collide for collision detection? otherwise might need to get fancy
-# if multiple desyncs in a row: snap to server position
-# some of this logic probably going in player_desktop
-
 @export var target:Player
 
 func _ready() -> void:
