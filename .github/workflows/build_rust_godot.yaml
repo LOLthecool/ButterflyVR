@@ -17,10 +17,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache
         with:
           path: |
             ~/.cargo/registry
@@ -30,14 +30,14 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-debug-
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain
         with:
           toolchain: stable
           profile: minimal
           override: true
 
       - name: Install protobuf
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -46,7 +46,7 @@ jobs:
         run: cargo build
 
       - name: Upload Rust artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact
         with:
           name: rust-${{ matrix.os }}-debug
           path: rust/target/debug/*.*
@@ -57,18 +57,18 @@ jobs:
     container:
       image: barichello/godot-ci:4.6.3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout
         with:
           lfs: true
 
       - name: Download Linux Rust artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact
         with:
           name: rust-ubuntu-latest-debug
           path: rust/target/debug
 
       - name: Download Windows Rust artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact
         with:
           name: rust-windows-latest-debug
           path: rust/target/debug
@@ -93,13 +93,13 @@ jobs:
           godot --headless --verbose --export-debug "Windows Desktop" "$EXPORT_DIR/${EXPORT_NAME}.exe"
 
       - name: Upload Godot Linux artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact
         with:
           name: godot-linux-debug
           path: build/linux
 
       - name: Upload Godot Windows artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact
         with:
           name: godot-windows-debug
           path: build/windows
