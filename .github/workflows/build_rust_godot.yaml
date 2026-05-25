@@ -36,6 +36,11 @@ jobs:
           profile: minimal
           override: true
 
+      - name: Install protobuf
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Rust module (debug)
         working-directory: rust
         run: cargo build
