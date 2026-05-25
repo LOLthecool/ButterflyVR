@@ -83,41 +83,36 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 
 # do not call directly, call load_world instead
 func join_instance(instance:UUID) -> void:
-	for i:int in range(0, MAX_CONNECT_RETRYS):
-		var response:Array[Variant] = await GlobalAPIHandler.make_request(
-				HTTPClient.METHOD_GET, 
-				INSTANCE_JOIN_ENDPOINT % instance.to_string(), 
-				PackedStringArray([GlobalAccountHandler.get_token_header()]))
-		
-		@warning_ignore("unsafe_call_argument")
-		var result:Array[Variant] = GlobalAPIHandler.handle_response(
-				response[0], response[2], [200], ["ip", "port", "token"])
-		
-		if !result[0]:
-			if result[1] == 202 and i + 1 < MAX_CONNECT_RETRYS:
-				push_warning("no connect token available, retrying")
-				await get_tree().create_timer(3).timeout
-				continue
-			
-			push_error("error while joining an online instance")
-			if result[1] != -1:
-				push_error("server response: %s" % result[1])
-			if result[2] != "":
-				push_error("error code: %s" % result[2])
-			if result[3] != "":
-				push_error("error message: %s" % result[3])
-			return
-		
-		var ip:String = result[4]["ip"]
-		var port:int = result[4]["port"]
-		@warning_ignore("unsafe_cast")
-		var identifier:PackedByteArray = PackedByteArray(result[4]["identifier"] as Array)
-		
-		assert(identifier.size() == 8)
+	var response:Array[Variant] = await GlobalAPIHandler.make_request(
+			HTTPClient.METHOD_GET, 
+			INSTANCE_JOIN_ENDPOINT % instance.to_string(), 
+			PackedStringArray([GlobalAccountHandler.get_token_header()]))
 	
-		NetworkManager.start_client(
-			ip, 
-			port, 
-			(await GlobalAccountHandler.get_uuid()).backing_storage, 
-			identifier, )
-		break
+	@warning_ignore("unsafe_call_argument")
+	var result:Array[Variant] = GlobalAPIHandler.handle_response(
+			response[0], response[2], [200], ["ip", "port", "identifier"])
+	
+	if !result[0]:
+		push_error("error while joining an online instance")
+		if result[1] != -1:
+			push_error("server response: %s" % result[1])
+		if result[2] != "":
+			push_error("error code: %s" % result[2])
+		if result[3] != "":
+			push_error("error message: %s" % result[3])
+		return
+	
+	var ip:String = result[4]["ip"]
+	var port:int = result[4]["port"]
+	@warning_ignore("unsafe_cast")
+	var identifier:PackedByteArray = PackedByteArray(result[4]["identifier"] as Array)
+	
+	assert(ip.is_valid_ip_address())
+	assert(port > 0 and port < 65_535)
+	assert(identifier.size() == 8)
+
+	NetworkManager.start_client(
+		ip, 
+		port, 
+		(await GlobalAccountHandler.get_uuid()).backing_storage, 
+		identifier, )

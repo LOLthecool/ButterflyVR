@@ -3,6 +3,7 @@ class_name ServerHandler
 
 const LOCAL_SERVER_KEY_LOCATION:String = "user://local_key.tmp"
 const CLOSE_INSTANCE_ENDPOINT:String = "/api/v0/internal/close_instance"
+const IDENTIFIER_VERIFY_ENDPOINT:String = "/api/v0/internal/verify_identifier/%s"
 
 # seconds after all players leave before exiting
 const INACTIVITY_KILL_THRESHOLD:float = 15.0
@@ -24,8 +25,29 @@ func _physics_process(delta: float) -> void:
 				# works because our token is the same as the user for a local server
 				NetworkManager.verify_client(client_id, (await GlobalAccountHandler.get_uuid()).backing_storage)
 			else:
-				# todo: get uuid
-				pass
+				var response:Array[Variant] = await GlobalAPIHandler.make_request(
+						HTTPClient.METHOD_GET, 
+						IDENTIFIER_VERIFY_ENDPOINT % UUID.from_bytes(client_id).to_string(), 
+						PackedStringArray([GlobalAccountHandler.get_token_header()]))
+				@warning_ignore("unsafe_call_argument")
+				var result:Array[Variant] = GlobalAPIHandler.handle_response(
+						response[0], response[2], [200], ["client_uuid"])
+				if result[0]:
+					@warning_ignore("unsafe_cast")
+					NetworkManager.verify_client(client_id, result[4]["client_uuid"] as PackedByteArray)
+				else:
+					push_warning("rejecting client: invalid identifier")
+					NetworkManager.reject_client(client_id)
+					if result[1] != 404:
+						push_error("error while getting a client identifier")
+						if result[1] != -1:
+							push_error("server response: %s" % result[1])
+						else:
+							push_error("server did not respond")
+						if result[2] != "":
+							push_error("error code: %s" % result[2])
+						if result[3] != "":
+							push_error("error message: %s" % result[3])
 		
 		if NetworkManager.get_player_count() == 0:
 			inactivity += delta
@@ -69,7 +91,7 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 		
 		# since we are inside cluster we need to target internal ip + port
 		GlobalAPIHandler.target_port = 80
-		GlobalAPIHandler.target_host = "butterfly-api.butterfly-api"#.svc.cluster.local"
+		GlobalAPIHandler.target_host = "butterfly-api.butterfly-api"
 		GlobalAPIHandler.restart_requested = true
 		
 		agones_sdk = AgonesSDK.new()
@@ -79,11 +101,12 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 		add_child(timer)
 		timer.start(3)
 		
+		print("waiting for allocation...")
+		
 		var agones_response:Dictionary
+		
 		while true:
-			print("waiting for allocation...")
 			agones_response = agones_sdk.get_gameserver_status()
-			
 			@warning_ignore("unsafe_cast")
 			if "world" in (agones_response["labels"] as Dictionary).keys():
 				break
@@ -92,9 +115,12 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 				continue
 		
 		print("got allocation")
+		
 		var port:int = agones_response["ports"]["default"]
+		
 		@warning_ignore("unsafe_cast")
 		var world:UUID = UUID.from_String(agones_response["labels"]["world"] as String)
+		
 		@warning_ignore("unsafe_cast")
 		var instance_token:PackedByteArray = (
 				agones_response["annotations"]["token"] as String
