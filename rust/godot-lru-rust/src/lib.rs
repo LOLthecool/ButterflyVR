@@ -12,12 +12,19 @@ struct MyExtension;
 #[gdextension]
 unsafe impl ExtensionLibrary for MyExtension {}
 
+/// Metadata for a cache entry.
 #[derive(Copy, Clone)]
 struct Pack {
     cache_time_utc: i32,
     size_kb: i32,
 }
 
+/// LRU cache used internally by ButterflyVR for pack caching.
+/// A pack is a single .epck (encrypted godot pck file) representing user uploaded content.
+/// The cache automatically handles eviction once the cache reaches a specified size.
+/// Several Callables are used to control the cache's behavior when saving, loading, or when a cache entry is evicted.
+/// Saving and loading is not handles automatically. To save or load, call the save() and load() methods respectively.
+/// Do not call the save_call or load_call Callables directly.
 #[derive(GodotClass)]
 #[class(no_init, base=Node)]
 struct LruCache {
@@ -33,6 +40,7 @@ struct LruCache {
 
 #[godot_api]
 impl LruCache {
+    /// Configures a new cache with the specified values.
     #[func]
     fn new_cache(
         size_kb: u64,

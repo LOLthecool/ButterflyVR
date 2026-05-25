@@ -30,6 +30,8 @@ unsafe impl ExtensionLibrary for MyExtension {
     }
 }
 
+/// godot wrapper around an Argon2 hasher.
+/// Available as a global scope singleton.
 #[derive(GodotClass)]
 #[class(init, base=Object)]
 struct Argon2Hasher {
@@ -37,6 +39,7 @@ struct Argon2Hasher {
 }
 #[godot_api]
 impl Argon2Hasher {
+    /// hashes the given input using Argon2id
     #[func]
     fn hash(
         &mut self,

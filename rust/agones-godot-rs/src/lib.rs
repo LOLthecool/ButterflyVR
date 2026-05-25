@@ -12,6 +12,10 @@ struct MyExtension;
 #[gdextension]
 unsafe impl ExtensionLibrary for MyExtension {}
 
+/// Godot wrapper around the Agones rust SDK.
+/// Provides an interface over the lifecycle management functions of the Agones SDK.
+/// Handles health checks automatically.
+/// This is not a complete implementation and only provides the functionality required for ButterflyVR.
 #[derive(GodotClass)]
 #[class(base=Node)]
 struct AgonesSDK {
