@@ -1,5 +1,5 @@
 [package]
-name = "butteryfly-rs-module"
+name = "netnodes"
 version = "0.1.0"
 edition = "2024"
 
@@ -14,13 +14,3 @@ godot = { version = "0.5.2", features = ["register-docs"] }
 quiche = { version = "0.28.0", features = ["boringssl-boring-crate", "qlog"], default-features = false }
 rand = "0.10.1"
 ring = "0.17.14"
-
-
-[profile.dev]
-debug = "line-tables-only"
-lto = "off"
-
-[profile.release]
-strip = "debuginfo"
-lto = "thin"
-codegen-units = 4

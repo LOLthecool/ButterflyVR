@@ -5,12 +5,12 @@ on:
   pull_request:
 
 env:
-  GODOT_VERSION: 4.5.1
+  GODOT_VERSION: 4.6.3
   EXPORT_NAME: ButterflyVR
   PROJECT_PATH: .
 
 jobs:
-  rust-netnodes:
+  rust:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -25,9 +25,9 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            rust/butteryfly-rs-module/target
-          key: ${{ runner.os }}-cargo-netnodes-debug-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-netnodes-debug-
+            rust/target
+          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-debug-
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -37,131 +37,18 @@ jobs:
           override: true
 
       - name: Build Rust module (debug)
-        working-directory: rust/butteryfly-rs-module
+        working-directory: rust
         run: cargo build
 
       - name: Upload Rust artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rust-netnodes-${{ matrix.os }}-debug
-          path: rust/butteryfly-rs-module/target/debug/*.*
+          name: rust-${{ matrix.os }}-debug
+          path: rust/target/debug/*.*
 
-  rust-godotpass:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            rust/godot-pass/target
-          key: ${{ runner.os }}-cargo-godotpass-release-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-godotpass-release-
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-
-      - name: Build Rust module (release)
-        working-directory: rust/godot-pass
-        run: cargo build --release
-
-      - name: Upload Rust artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rust-godotpass-${{ matrix.os }}-release
-          path: rust/godot-pass/target/release/*.*
-
-  rust-agones-rs:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            rust/agones-godot-rs/target
-          key: ${{ runner.os }}-cargo-agones-godot-rs-debug-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-agones-godot-rs-debug-
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-
-      - name: Install protobuf
-        uses: arduino/setup-protoc@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Rust module (debug)
-        working-directory: rust/agones-godot-rs
-        run: cargo build
-
-      - name: Upload Rust artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rust-agones-godot-rs-${{ matrix.os }}-debug
-          path: rust/agones-godot-rs/target/debug/*.*
-
-  rust-lru-cache:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            rust/godot-lru-rust/target
-          key: ${{ runner.os }}-cargo-godot-lru-rust-debug-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-godot-lru-rust-debug-
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-
-      - name: Build Rust module (debug)
-        working-directory: rust/godot-lru-rust
-        run: cargo build
-
-      - name: Upload Rust artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rust-godot-lru-${{ matrix.os }}-debug
-          path: rust/godot-lru-rust/target/debug/*.*
-
-  godot-linux:
+  godot:
     runs-on: ubuntu-22.04
-    needs: [rust-netnodes, rust-godotpass, rust-agones-rs, rust-lru-cache]
+    needs: [rust]
     container:
       image: barichello/godot-ci:4.5.1
     steps:
@@ -169,29 +56,17 @@ jobs:
         with:
           lfs: true
 
-      - name: Download Linux Rust-netnodes artifact
+      - name: Download Linux Rust artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-netnodes-ubuntu-latest-debug
-          path: rust/butteryfly-rs-module/target/debug
-          
-      - name: Download Linux Rust-godotpass artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-godotpass-ubuntu-latest-release
-          path: rust/godot-pass/target/release
+          name: rust-ubuntu-latest-debug
+          path: rust/target/debug
 
-      - name: Download Linux Rust-agones-godot-rs artifact
+      - name: Download Windows Rust artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-agones-godot-rs-ubuntu-latest-debug
-          path: rust/agones-godot-rs/target/debug
-
-      - name: Download Linux Rust-lru-cache artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-godot-lru-ubuntu-latest-debug
-          path: rust/godot-lru-rust/target/debug
+          name: rust-windows-latest-debug
+          path: rust/target/debug
 
       - name: Setup Godot templates
         run: |
@@ -205,82 +80,18 @@ jobs:
           cd $PROJECT_PATH
           godot --headless --verbose --export-debug "Linux" "$EXPORT_DIR/${EXPORT_NAME}.x86_64"
 
-      - name: Upload Godot Linux artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: godot-linux-debug
-          path: build/linux
-
-  godot-windows:
-    runs-on: ubuntu-22.04
-    needs: [rust-netnodes, rust-godotpass, rust-agones-rs, rust-lru-cache]
-    container:
-      image: barichello/godot-ci:4.5.1
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Download Linux Rust-netnodes artifact to silence useless errors
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-netnodes-ubuntu-latest-debug
-          path: rust/butteryfly-rs-module/target/debug
-
-      - name: Download Linux Rust-godotpass artifact to silence useless errors
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-godotpass-ubuntu-latest-release
-          path: rust/godot-pass/target/release
-
-      - name: Download Linux Rust-agones-godot-rs artifact to silence useless errors
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-agones-godot-rs-ubuntu-latest-debug
-          path: rust/agones-godot-rs/target/debug
-
-      - name: Download Linux Rust-lru-cache artifact to silence useless errors
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-godot-lru-ubuntu-latest-debug
-          path: rust/godot-lru-rust/target/debug
-
-
-      - name: Download Windows Rust artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-netnodes-windows-latest-debug
-          path: rust/butteryfly-rs-module/target/debug
-          
-      - name: Download Windows Rust-godotpass artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-godotpass-windows-latest-release
-          path: rust/godot-pass/target/release
-
-      - name: Download Windows Rust-agones-godot-rs artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-agones-godot-rs-windows-latest-debug
-          path: rust/agones-godot-rs/target/debug
-
-      - name: Download Windows Rust-lru-cache artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-godot-lru-windows-latest-debug
-          path: rust/godot-lru-rust/target/debug
-
-      - name: Setup Godot templates
-        run: |
-          mkdir -p ~/.local/share/godot/export_templates/
-          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-
       - name: Export Windows (debug)
         run: |
           mkdir -p build/windows
           EXPORT_DIR="$(readlink -f build/windows)"
           cd $PROJECT_PATH
           godot --headless --verbose --export-debug "Windows Desktop" "$EXPORT_DIR/${EXPORT_NAME}.exe"
+
+      - name: Upload Godot Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-linux-debug
+          path: build/linux
 
       - name: Upload Godot Windows artifact
         uses: actions/upload-artifact@v4

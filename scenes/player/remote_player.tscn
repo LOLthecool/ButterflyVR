@@ -22,5 +22,6 @@ player_access = NodePath("../..")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 player_access = NodePath("..")
 
-[node name="PlayerUpdater" type="Node" parent="." unique_id=1746628805]
+[node name="PlayerUpdater" type="Node" parent="." unique_id=1746628805 node_paths=PackedStringArray("player_access")]
 script = ExtResource("5_8dfyr")
+player_access = NodePath("..")

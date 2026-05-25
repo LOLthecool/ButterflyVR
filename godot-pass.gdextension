@@ -4,7 +4,7 @@ compatibility_minimum = 4.6
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 =     "res://rust/godot-pass/target/release/libgodot_pass.so"
-linux.release.x86_64 =   "res://rust/godot-pass/target/release/libgodot_pass.so"
-windows.debug.x86_64 =   "res://rust/godot-pass/target/release/godot_pass.dll"
-windows.release.x86_64 = "res://rust/godot-pass/target/release/godot_pass.dll"
+linux.debug.x86_64 =     "res://rust/target/release/libgodot_pass.so"
+linux.release.x86_64 =   "res://rust/target/release/libgodot_pass.so"
+windows.debug.x86_64 =   "res://rust/target/release/godot_pass.dll"
+windows.release.x86_64 = "res://rust/target/release/godot_pass.dll"

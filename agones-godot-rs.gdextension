@@ -4,7 +4,7 @@ compatibility_minimum = 4.6
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 =     "res://rust/agones-godot-rs/target/debug/libagones_godot_rs.so"
-linux.release.x86_64 =   "res://rust/agones-godot-rs/target/release/libagones_godot_rs.so"
-windows.debug.x86_64 =   "res://rust/agones-godot-rs/target/debug/agones_godot_rs.dll"
-windows.release.x86_64 = "res://rust/agones-godot-rs/target/release/agones_godot_rs.dll"
+linux.debug.x86_64 =     "res://rust/target/debug/libagones_godot_rs.so"
+linux.release.x86_64 =   "res://rust/target/release/libagones_godot_rs.so"
+windows.debug.x86_64 =   "res://rust/target/debug/agones_godot_rs.dll"
+windows.release.x86_64 = "res://rust/target/release/agones_godot_rs.dll"

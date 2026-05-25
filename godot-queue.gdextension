@@ -4,7 +4,7 @@ compatibility_minimum = 4.6
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 =     "res://rust/godot-rust-queue/target/debug/libgodot_rust_queue.so"
-linux.release.x86_64 =   "res://rust/godot-rust-queue/target/release/libbutteryfly_rs_module.so"
-windows.debug.x86_64 =   "res://rust/godot-rust-queue/target/debug/godot_rust_queue.dll"
-windows.release.x86_64 = "res://rust/godot-rust-queue/target/release/godot_rust_queue.dll"
+linux.debug.x86_64 =     "res://rust/target/debug/libgodot_rust_queue.so"
+linux.release.x86_64 =   "res://rust/target/release/libbutteryfly_rs_module.so"
+windows.debug.x86_64 =   "res://rust/target/debug/godot_rust_queue.dll"
+windows.release.x86_64 = "res://rust/target/release/godot_rust_queue.dll"

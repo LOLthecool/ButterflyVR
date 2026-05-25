@@ -33,5 +33,6 @@ camera_rotation_origin = NodePath("../Node3D")
 
 [node name="AudioHandler" parent="." unique_id=1873193131 instance=ExtResource("3_oaug5")]
 
-[node name="ServerReconciler" type="Node" parent="." unique_id=1803701866]
+[node name="ServerReconciler" type="Node" parent="." unique_id=1803701866 node_paths=PackedStringArray("player_access")]
 script = ExtResource("7_t54nr")
+player_access = NodePath("..")
