@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://5jqv2xuenjp0"]
+
+[ext_resource type="Script" uid="uid://dv2b3euowniu" path="res://scenes/player/ui/page_chat/message.gd" id="1_des44"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_i5kxx"]
+size = Vector2(32, 32)
+
+[node name="Message" type="HBoxContainer" unique_id=1693493451]
+script = ExtResource("1_des44")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=585946261]
+layout_mode = 2
+texture = SubResource("PlaceholderTexture2D_i5kxx")
+stretch_mode = 3
+
+[node name="Label" type="Label" parent="." unique_id=379883543]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "UNNAMED: "
+
+[node name="Label2" type="Label" parent="." unique_id=1654698478]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "UNNAMED"
+autowrap_mode = 3

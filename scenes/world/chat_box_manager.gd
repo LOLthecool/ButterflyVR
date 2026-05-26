@@ -10,9 +10,9 @@ class Message:
 	var text:String
 
 
-func send_message(message:String) -> void:
+func send_message(message_text:String) -> void:
 	var player:PackedByteArray = (await GlobalAccountHandler.get_uuid()).backing_storage
-	send_message_final([player, message], [_get_value_type(null, 0), _get_value_type(player, 1)])
+	send_message_final([player, message_text], [_get_value_type(null, 0), _get_value_type(player, 1)])
 
 func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.NetworkedValueTypes:
 	match idx:
@@ -26,5 +26,6 @@ func _process_message(values: Array) -> void:
 	var message:Message = Message.new()
 	message.player = values[0]
 	message.text = values[1]
+	print("processed")
 	new_message_sent.emit(message)
 	messages.append(message)

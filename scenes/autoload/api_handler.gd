@@ -1,5 +1,6 @@
 extends Node
 class_name APIHandler
+# todo: cache requests using cache control headers
 
 const RECONNECT_DELAY_TIME:float = 3
 
