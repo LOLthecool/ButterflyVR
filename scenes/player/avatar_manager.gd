@@ -15,7 +15,7 @@ func _ready() -> void:
 	@warning_ignore("unsafe_property_access")
 	owner_id = networker.owner_id
 	GlobalWorldHandler.current_world.avatar_change_handler.avatar_changed.connect(change_avatar)
-	if owner_id == (await GlobalAccountHandler.get_uuid()).backing_storage:
+	if owner_id == (await GlobalAccountHandler.get_uuid()).backing_storage and !NetworkManager.is_server():
 		var response:Array[Variant] = await GlobalAPIHandler.make_request(
 				HTTPClient.METHOD_GET, 
 				USER_INFO_ENDPOINT % await GlobalAccountHandler.get_uuid(), 

@@ -11,9 +11,9 @@ use godot::prelude::*;
 use quiche::ConnectionId;
 use rand::distr::weighted::Weight;
 use rand::{RngExt, SeedableRng};
+use std::collections::HashMap;
 use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::time::Duration;
-use std::{cmp, collections::HashMap};
 use std::{mem, thread};
 
 #[derive(Debug)]
@@ -188,14 +188,14 @@ impl NetNodeServer {
                 ClientState::AwaitingIdentifier(ref mut data) => {
                     if let Ok(new_data) =
                         self.networker
-                            .recv_stream_bytes(client_id, 0, 16 - data.len())
+                            .recv_stream_bytes(client_id, 0, 18 - data.len())
                     {
                         data.extend(new_data);
 
-                        if data.len() == 16 {
-                            // need to skip the length prefix
+                        if data.len() == 18 {
+                            // need to skip the length prefix + message id
                             client.state =
-                                ClientState::AwaitingUuid(data[8..16].try_into().unwrap());
+                                ClientState::AwaitingUuid(data[10..18].try_into().unwrap());
                         }
                     }
                 }
@@ -298,11 +298,14 @@ impl NetNodeServer {
 
                 let mut remaining_bandwidth = client.bandwidth_budget_per_tick;
 
+                let mut capacity_reached: bool = false;
+
                 // channel 3 (messages)
                 while self.message_buffer.len() > client.message_buffer_position {
                     let (message, stream) = &self.message_buffer[client.message_buffer_position];
 
                     if remaining_bandwidth.checked_sub(message.len()).is_none() {
+                        capacity_reached = true;
                         break;
                     }
                     remaining_bandwidth -= message.len();
@@ -349,9 +352,11 @@ impl NetNodeServer {
                                 break;
                             }
 
-                            if tmp.len() + packet.len()
-                                > cmp::min(remaining_bandwidth, max_dgram_size)
-                            {
+                            if tmp.len() + packet.len() > max_dgram_size {
+                                break;
+                            }
+                            if tmp.len() + packet.len() > remaining_bandwidth {
+                                capacity_reached = true;
                                 break;
                             }
 
@@ -367,10 +372,6 @@ impl NetNodeServer {
                         if packet.len() > DGRAM_HEADER_SIZE {
                             remaining_bandwidth -= packet.len();
                             self.networker.send_datagram(conn, packet)?;
-                        } else {
-                            godot_error!(
-                                "tried to send empty dgram in ObjectSync. this is probably because a synced node tries to sync more data than can fit in a single packet"
-                            );
                         }
                     } else {
                         // iterate in reverse because the btree is sorted ascendingly
@@ -386,9 +387,12 @@ impl NetNodeServer {
                                     let tmp =
                                         node.get_byte_data(&node.get_networked_values_types());
 
-                                    if tmp.len() + packet.len() + BYTES2
-                                        > cmp::min(remaining_bandwidth, max_dgram_size)
-                                    {
+                                    if tmp.len() + packet.len() + BYTES2 > max_dgram_size {
+                                        drop(node);
+                                        return value;
+                                    }
+                                    if tmp.len() + packet.len() + BYTES2 > remaining_bandwidth {
+                                        capacity_reached = true;
                                         drop(node);
                                         return value;
                                     }
@@ -409,7 +413,7 @@ impl NetNodeServer {
                         break;
                     }
                 }
-                if remaining_bandwidth <= PACKET_MAX_SIZE_THRESHOLD {
+                if capacity_reached {
                     client.bandwidth_budget_per_tick += client.bandwidth_budget_per_tick / 10;
                 }
             }

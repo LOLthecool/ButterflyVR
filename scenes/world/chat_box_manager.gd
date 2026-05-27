@@ -26,6 +26,5 @@ func _process_message(values: Array) -> void:
 	var message:Message = Message.new()
 	message.player = values[0]
 	message.text = values[1]
-	print("processed")
 	new_message_sent.emit(message)
 	messages.append(message)

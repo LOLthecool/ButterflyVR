@@ -7,5 +7,5 @@ class_name ChatMessage
 
 func configure(player:String, message:String, icon:Texture2D) -> void:
 	image.texture = icon
-	player_label.text = player
+	player_label.text = player + ":"
 	message_label.text = message

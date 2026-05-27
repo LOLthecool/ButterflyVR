@@ -30,7 +30,7 @@ size_flags_horizontal = 3
 [node name="Button" type="Button" parent="PanelContainer/ChatList" unique_id=606717911]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "Local Chat"
+text = "Instance Chat"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/ChatList" unique_id=1511789962]
 layout_mode = 2
@@ -68,6 +68,9 @@ text = " + "
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="VSeparator" type="VSeparator" parent="." unique_id=1077614408]
+layout_mode = 2
+
 [node name="PanelContainer2" type="PanelContainer" parent="." unique_id=972179467]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -83,7 +86,7 @@ layout_mode = 2
 [node name="Label" type="Label" parent="PanelContainer2/Messager/Panel" unique_id=46279106]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "Local Chat"
+text = "Instance Chat"
 horizontal_alignment = 1
 
 [node name="Messages" type="ScrollContainer" parent="PanelContainer2/Messager" unique_id=1719543718 node_paths=PackedStringArray("message_container")]

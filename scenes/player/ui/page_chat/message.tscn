@@ -5,8 +5,11 @@
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_i5kxx"]
 size = Vector2(32, 32)
 
-[node name="Message" type="HBoxContainer" unique_id=1693493451]
+[node name="Message" type="HBoxContainer" unique_id=1693493451 node_paths=PackedStringArray("image", "player_label", "message_label")]
 script = ExtResource("1_des44")
+image = NodePath("TextureRect")
+player_label = NodePath("Label")
+message_label = NodePath("Label2")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=585946261]
 layout_mode = 2

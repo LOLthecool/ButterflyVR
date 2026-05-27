@@ -9,11 +9,11 @@ use crate::serializer::NetworkedValueTypes;
 use bitvec::prelude::*;
 use godot::prelude::*;
 use rand::SeedableRng;
+use std::collections::HashMap;
 use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
 use std::thread;
 use std::time::Duration;
-use std::{cmp, collections::HashMap};
 
 #[derive(Debug)]
 pub struct NetNodeClient {
@@ -197,10 +197,13 @@ impl NetNodeClient {
 
         let mut remaining_bandwidth = self.bandwidth_budget_per_tick;
 
+        let mut capacity_reached: bool = false;
+
         // channel 3 (messages)
         while let Some((message, stream)) = self.message_buffer.pop_front() {
             if remaining_bandwidth.checked_sub(message.len()).is_none() {
                 self.message_buffer.push_front((message, stream));
+                capacity_reached = true;
                 break;
             }
             remaining_bandwidth -= message.len();
@@ -230,7 +233,11 @@ impl NetNodeClient {
 
                     drop(node);
 
-                    if tmp.len() + packet.len() > cmp::min(remaining_bandwidth, max_dgram_size) {
+                    if tmp.len() + packet.len() > max_dgram_size {
+                        break;
+                    }
+                    if tmp.len() + packet.len() > remaining_bandwidth {
+                        capacity_reached = true;
                         break;
                     }
 
@@ -247,7 +254,7 @@ impl NetNodeClient {
 
             break;
         }
-        if remaining_bandwidth <= PACKET_MAX_SIZE_THRESHOLD {
+        if capacity_reached {
             self.bandwidth_budget_per_tick += self.bandwidth_budget_per_tick / 10;
         }
         Ok(())

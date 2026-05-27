@@ -681,10 +681,13 @@ impl ConnectionHandler {
     ) -> std::result::Result<(), NetNodesError> {
         data.set_uninitialized(false);
 
+        let data_len = data.len().next_multiple_of(8) / 8;
+
         let data: Vec<u8> = data
             .into_vec()
             .into_iter()
             .flat_map(u64::to_le_bytes)
+            .take(data_len)
             .collect();
 
         match self.handler {

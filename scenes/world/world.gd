@@ -15,7 +15,7 @@ func _ready() -> void:
 		chat_box_manager.new_message_sent.connect(log_chat_to_console)
 
 func log_chat_to_console(message:ChatBoxManager.Message) -> void:
-	print("Player " + str(message.player) + ": " + message.text)
+	print(await APIHelper.get_username(UUID.from_bytes(message.player)) + ": " + message.text)
 
 static func setup(spawn_point:Node3D) -> WorldController:
 	var world:WorldController = preload("res://scenes/world/world_controller.tscn").instantiate()

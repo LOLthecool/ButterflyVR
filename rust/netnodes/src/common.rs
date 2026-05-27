@@ -65,7 +65,11 @@ pub fn handle_stream(
 
     loop {
         if previous_length_bytes.is_none() {
-            data.extend_from_bitslice(&networker.recv_stream(peer, stream, 8 - data.len())?);
+            data.extend_from_bitslice(&networker.recv_stream(
+                peer,
+                stream,
+                8 - (data.len() / BYTE),
+            )?);
             if data.len() == BYTES8 {
                 *previous_length_bytes = Some(data.load_le::<usize>());
                 data.clear();
