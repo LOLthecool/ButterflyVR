@@ -8,7 +8,7 @@ const TOKEN_RENEWAL_THRESHOLD:int = 60 * 60 * 24 * 7 # 1 week
 # and the check rate determines how often we check our token expiry time
 const TOKEN_RENEWAL_CHECK_RATE:int = 1800 # 30 minutes
 
-const TOKEN_RENEW_ENDPOINT:String = "/api/v0/token/"
+const TOKEN_RENEW_ENDPOINT:String = "/api/v0/token"
 const TOKEN_VERIFY_ENDPOINT:String = "/api/v0/token/validate"
 const TOKEN_USER_ENDPOINT:String = "/api/v0/token/user"
 
@@ -122,12 +122,14 @@ func check_renew() -> void:
 
 func on_token_request(response_code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
 	if response_code != HTTPClient.RESPONSE_OK:
-		push_warning("server error when renewing token. code: ", response_code)
+		push_error("server error when renewing token. code: ", response_code)
+		return
 	var body_json:Dictionary = JSON.parse_string(body)
 	@warning_ignore("unsafe_cast")
-	var response_token:Array[int] = (body_json["token"] as String).hex_decode() as Array[int]
+	var response_token:Array[int] = []
+	response_token.assign(body_json["token"] as Array)
 	if response_token.size() == 0:
 		push_error("tried to renew token but server did not reply with one")
 		return
 	@warning_ignore("unsafe_cast")
-	set_token(response_token, body_json["token_expiry_utc"] as int, true)
+	set_token(response_token, body_json["token_expiry"] as int, true)
