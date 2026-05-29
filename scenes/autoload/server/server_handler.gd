@@ -31,10 +31,10 @@ func _physics_process(delta: float) -> void:
 						PackedStringArray([GlobalAccountHandler.get_token_header()]))
 				@warning_ignore("unsafe_call_argument")
 				var result:Array[Variant] = GlobalAPIHandler.handle_response(
-						response[0], response[2], [200], ["client_uuid"])
+						response[0], response[2], [200], ["uuid"])
 				if result[0]:
 					@warning_ignore("unsafe_cast")
-					NetworkManager.verify_client(client_id, result[4]["client_uuid"] as PackedByteArray)
+					NetworkManager.verify_client(client_id, result[4]["uuid"] as PackedByteArray)
 				else:
 					push_warning("rejecting client: invalid identifier")
 					NetworkManager.reject_client(client_id)
