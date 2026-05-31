@@ -100,6 +100,7 @@ func join_instance(instance:UUID) -> void:
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
+		GlobalWorldHandler.load_fallback_world()
 		return
 	
 	var ip:String = result[4]["ip"]

@@ -23,9 +23,9 @@ const PRIVACYPOLICYLOCATION:String = "res://scenes/startup/PrivacyPolicy.txt"
 # this salt is not ideal so we should never store the client side hashed password
 const PASSWORD_SALT_CONST_HALF:String = "6uplNKoY38xV81Cl"
 # argon2 parameters
-const MEMORY:int = 64
-const ITERATIONS:int = 10
-const PARALLELISM:int = 1
+const MEMORY:int = 512
+const ITERATIONS:int = 1
+const PARALLELISM:int = 4
 const OUTPUT_LENGTH:int = 64
 #endregion
 

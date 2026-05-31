@@ -48,8 +48,7 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	
 	if !SetupHelpers.check_safe(world.get_state()):
 		push_error("tried to load unsafe world, aborting")
-		push_error("no error handling here, exiting")
-		get_tree().quit()
+		load_fallback_world()
 		return
 	
 	get_tree().current_scene.queue_free()
@@ -65,6 +64,8 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	var root:Node = SetupHelpers.setup_world(world.instantiate())
 	
 	await get_tree().physics_frame
+	
+	NetworkManager.kill()
 	
 	if instance_id:
 		await GlobalInstanceHandler.join_instance(instance_id)

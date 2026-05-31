@@ -127,6 +127,7 @@ func on_token_request(response_code:HTTPClient.ResponseCode, _headers:PackedStri
 	var body_json:Dictionary = JSON.parse_string(body)
 	@warning_ignore("unsafe_cast")
 	var response_token:Array[int] = []
+	@warning_ignore("unsafe_cast")
 	response_token.assign(body_json["token"] as Array)
 	if response_token.size() == 0:
 		push_error("tried to renew token but server did not reply with one")
