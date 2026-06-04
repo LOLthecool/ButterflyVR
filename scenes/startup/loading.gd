@@ -71,12 +71,11 @@ func _ready() -> void:
 # must have a valid token by this point
 func start() -> void:
 	tab_container.current_tab = LOADING_TAB
+	loading_text.text = "Loading homeworld..."
 	await get_tree().create_timer(1).timeout # give user a chance to cancel load
 	if load_cancelled:
 		tab_container.current_tab = last_screen
 		return
-	loading_text.text = "Loading homeworld..."
-	await get_tree().physics_frame
 	GlobalWorldHandler.load_homeworld()
 
 func _on_register_selected() -> void:
@@ -147,7 +146,7 @@ func on_register_response(code:HTTPClient.ResponseCode, _headers:PackedStringArr
 		var error_message:String = result[3]
 		var message:String = "Failed to create account."
 		if response_code != -1:
-			push_error("server response: %s" % response_code)
+			message += "\nserver response: %s" % response_code
 		if error_code != "":
 			message += "\nError code: %s" % (error_code)
 		if error_message != "":
@@ -167,7 +166,6 @@ func _on_login() -> void:
 	tab_container.current_tab = LOADING_TAB
 	
 	loading_text.text = "Hashing password..."
-	await get_tree().physics_frame
 	
 	var email:String = signin_email.text
 	var password:String = signin_password.text
@@ -175,18 +173,25 @@ func _on_login() -> void:
 	
 	## WARNING: changing this code could prevent users from logging in
 	var client_salt:String = PASSWORD_SALT_CONST_HALF + email
-	var password_hash:PackedByteArray = Argon2Hasher.hash(MEMORY, ITERATIONS, PARALLELISM, password, client_salt, OUTPUT_LENGTH)
+	
+	var thread:Thread = Thread.new()
+	thread.start(Argon2Hasher.hash.bind(MEMORY, ITERATIONS, PARALLELISM, password, client_salt, OUTPUT_LENGTH))
+	
+	while thread.is_alive():
+		await get_tree().physics_frame
+	var password_hash:PackedByteArray = thread.wait_to_finish()
 	
 	loading_text.text = "Contacting server..."
-	await get_tree().physics_frame
 	
 	var body:String = JSON.stringify({"email": email, "password_hash": password_hash as Array[int], "allow_renew": remember})
+	print("making request")
 	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, SIGNIN_ENDPOINT, PackedStringArray(), body).connect(on_login_response)
 
 func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
+	print("request done")
 	var result:Array = GlobalAPIHandler.handle_response(code, body, [HTTPClient.RESPONSE_OK], [
 			"token",
-			"token_expiry",
+			"token_expires",
 			"renewable"
 			])
 	if result[0]:
@@ -197,7 +202,7 @@ func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray,
 		@warning_ignore("unsafe_cast")
 		GlobalAccountHandler.set_token(
 				token,
-				data["token_expiry"] as int,
+				data["token_expires"] as int,
 				data["renewable"] as bool
 				)
 		start()
@@ -206,17 +211,16 @@ func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray,
 		var error_code:String = result[2]
 		var error_message:String = result[3]
 		var message:String = "Failed to log in."
-		if response_code != HTTPClient.RESPONSE_OK:
-			if response_code == -1:
-				message += "\nServer did not send a response."
-			else:
-				message += "\nResponse code: %s" % (response_code)
-			if error_code != "":
-				message += "\nError code: %s" % (error_code)
-			if error_message != "":
-				message += "\nError message: \n%s" % (error_message)
-			await show_popup(message, true)
-			return
+		if response_code == -1:
+			message += "\nServer did not send a response."
+		else:
+			message += "\nResponse code: %s" % (response_code)
+		if error_code != "":
+			message += "\nError code: %s" % (error_code)
+		if error_message != "":
+			message += "\nError message: \n%s" % (error_message)
+		await show_popup(message, true)
+		return
 
 func _on_back_button_pressed() -> void:
 	tab_container.current_tab = last_screen

@@ -133,4 +133,4 @@ func on_token_request(response_code:HTTPClient.ResponseCode, _headers:PackedStri
 		push_error("tried to renew token but server did not reply with one")
 		return
 	@warning_ignore("unsafe_cast")
-	set_token(response_token, body_json["token_expiry"] as int, true)
+	set_token(response_token, body_json["token_expires"] as int, true)

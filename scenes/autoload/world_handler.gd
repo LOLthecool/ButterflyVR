@@ -23,10 +23,10 @@ func load_homeworld() -> void:
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
-		await load_world(UUID.new())
+		await load_fallback_world()
 		return
 	
-	# todo: get default instance type, if offline load_world(uuid, null), 
+	# todo: get default instance type, if offline load_world(uuid), 
 	# otherwise create instance then load
 	@warning_ignore("unsafe_cast")
 	await load_world(UUID.from_String(values["homeworld"] as String))
