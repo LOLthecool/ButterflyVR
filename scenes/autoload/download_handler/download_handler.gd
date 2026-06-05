@@ -131,7 +131,7 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 				GlobalAPIHandler.target_host + ":" + str(GlobalAPIHandler.target_port)
 				 + url, PackedStringArray([GlobalAccountHandler.get_token_header()]))
 	
-	print(await downloader.request_completed)
+	await downloader.request_completed
 	
 	downloader.queue_free()
 
@@ -144,9 +144,11 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	
 	var decrypted_buffer:PackedByteArray = PackedByteArray()
 	
-	while object.get_position() < object.get_length():
-		# encrypted files should always be a multiple of 16 bytes long
-		decrypted_buffer += aes.update(object.get_buffer(16))
+	while object.get_position() + (1024 * 1024) < object.get_length():
+		decrypted_buffer += aes.update(object.get_buffer(1024 * 1024))
+	
+	# encrypted files should always be a multiple of 16 bytes long
+	decrypted_buffer += aes.update(object.get_buffer(object.get_length() - object.get_position()))
 	
 	object.close()
 	aes.finish()
@@ -178,7 +180,7 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	# since overwiting is forbidden (cant have then overwriting internal files) if that object is later loaded
 	# it will use the malicious files. 
 	# it will still need to follow the safety checks 
-	# but this could allow bypassing a hypothetical permission system for creators
+	# but this could allow bypassing a hypothetical future permission system for creators
 	
 	if !ProjectSettings.load_resource_pack(new_object.get_path(), false):
 		push_error("failed to load object pck from %s" % new_object.get_path())

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["agones-godot-rs", "netnodes", "godot-lru-rust", "godot-pass", "godot-rust-queue"]
+members = ["agones-godot-rs", "netnodes", "godot-lru-rust", "godot-pass", "godot-rust-queue", "godot-rust-zstd"]
 
 [profile.dev]
 debug = "line-tables-only"
