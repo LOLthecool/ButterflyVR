@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://bw1xhp1qer3a"]
+[gd_scene format=3 uid="uid://bw1xhp1qer3a"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_nfh3x"]
 [ext_resource type="Script" uid="uid://byxidffb2k4ao" path="res://scenes/player/ui/page_avatars/owned_filter.gd" id="2_ju76t"]
@@ -17,7 +17,7 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pyqlh"]
 
-[node name="WorldPage" type="VBoxContainer"]
+[node name="WorldPage" type="VBoxContainer" unique_id=1736928700]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -28,105 +28,105 @@ size_flags_vertical = 3
 script = ExtResource("1_nfh3x")
 page_name = "Worlds"
 
-[node name="TabContainer" type="TabContainer" parent="."]
+[node name="TabContainer" type="TabContainer" parent="." unique_id=708975225]
 layout_mode = 2
 size_flags_vertical = 3
 current_tab = 0
 tabs_visible = false
 
-[node name="VBoxContainer2" type="HBoxContainer" parent="TabContainer"]
+[node name="VBoxContainer2" type="HBoxContainer" parent="TabContainer" unique_id=630075559]
 layout_mode = 2
 size_flags_vertical = 3
 metadata/_tab_index = 0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/VBoxContainer2"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/VBoxContainer2" unique_id=132192898]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="FixedCatagories" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer"]
+[node name="FixedCatagories" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer" unique_id=1649654664]
 layout_mode = 2
 
-[node name="VBoxContainer2" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories"]
+[node name="VBoxContainer2" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories" unique_id=813146912]
 layout_mode = 2
 
-[node name="PanelContainer5" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer5" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1699996524]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer5" unique_id=1837837978]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Featured"
 
-[node name="PanelContainer2" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer2" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=453683674]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2" node_paths=PackedStringArray("world_list")]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2" unique_id=1841271541 node_paths=PackedStringArray("world_list")]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Owned"
 script = ExtResource("2_ju76t")
 world_list = NodePath("../../../../../WorldList")
 
-[node name="PanelContainer3" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer3" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=309951790]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer3" unique_id=763248083]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Shared"
 
-[node name="PanelContainer" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1764823835]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer" unique_id=525342387]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Favourites"
 
-[node name="PanelContainer4" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer4" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=222143017]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4" unique_id=988363721]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "Popular"
 
-[node name="PanelContainer6" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2"]
+[node name="PanelContainer6" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1102219564]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6"]
+[node name="Button" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6" unique_id=1879012943]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "New"
 
-[node name="Customs" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer"]
+[node name="Customs" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer" unique_id=230825948]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs" unique_id=1686734456]
 layout_mode = 2
 
-[node name="Catagories" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
+[node name="Catagories" type="VBoxContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer" unique_id=1377851083]
 layout_mode = 2
 
-[node name="Adder" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer"]
+[node name="Adder" type="PanelContainer" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer" unique_id=1395261847]
 layout_mode = 2
 
-[node name="Label" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder"]
+[node name="Label" type="Button" parent="TabContainer/VBoxContainer2/VBoxContainer/Customs/VBoxContainer/Adder" unique_id=1660061285]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = " + "
 
-[node name="WorldList" type="HFlowContainer" parent="TabContainer/VBoxContainer2" node_paths=PackedStringArray("instance_page")]
+[node name="WorldList" type="HFlowContainer" parent="TabContainer/VBoxContainer2" unique_id=1107037653 node_paths=PackedStringArray("instance_page")]
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("3_0bqws")
 instance_page = NodePath("../../InstancePage")
 
-[node name="InstancePage" type="VBoxContainer" parent="TabContainer" node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_tags", "instances_list", "instance_creator")]
+[node name="InstancePage" type="VBoxContainer" parent="TabContainer" unique_id=786950314 node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_tags", "details_world_image", "instances_list", "instance_creator")]
 visible = false
 layout_mode = 2
 script = ExtResource("4_0bqws")
@@ -135,11 +135,12 @@ details_description = NodePath("TabContainer/Details/VBoxContainer/PanelContaine
 details_creation_time = NodePath("TabContainer/Details/VBoxContainer/HBoxContainer2/Label2")
 details_update_time = NodePath("TabContainer/Details/VBoxContainer/HBoxContainer3/Label2")
 details_tags = NodePath("TabContainer/Details/VBoxContainer/HFlowContainer")
+details_world_image = NodePath("TabContainer/Details/TextureRect")
 instances_list = NodePath("TabContainer/Instances/InstancesUI/ScrollContainer")
 instance_creator = NodePath("TabContainer/Instances/InstanceCreator")
 metadata/_tab_index = 1
 
-[node name="TabContainer" type="TabContainer" parent="TabContainer/InstancePage"]
+[node name="TabContainer" type="TabContainer" parent="TabContainer/InstancePage" unique_id=1066051956]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -148,11 +149,11 @@ tab_alignment = 1
 current_tab = 0
 clip_tabs = false
 
-[node name="Instances" type="Control" parent="TabContainer/InstancePage/TabContainer"]
+[node name="Instances" type="Control" parent="TabContainer/InstancePage/TabContainer" unique_id=1988351215]
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="InstancesUI" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances"]
+[node name="InstancesUI" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances" unique_id=563556130]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -160,43 +161,43 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI" unique_id=33488649]
 layout_mode = 2
 alignment = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer" unique_id=963427894]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer/HBoxContainer" unique_id=802160798]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "new instance"
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer"]
+[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer" unique_id=1258475306]
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 2
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer/HBoxContainer2"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/HBoxContainer/HBoxContainer2" unique_id=1740318571]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 disabled = true
 text = "filters"
 
-[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI" node_paths=PackedStringArray("instances_container")]
+[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI" unique_id=520478468 node_paths=PackedStringArray("instances_container")]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 script = ExtResource("5_1vkh6")
 instances_container = NodePath("VBoxContainer")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/ScrollContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstancesUI/ScrollContainer" unique_id=1103556347]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Filters" type="Control" parent="TabContainer/InstancePage/TabContainer/Instances"]
+[node name="Filters" type="Control" parent="TabContainer/InstancePage/TabContainer/Instances" unique_id=1390282712]
 visible = false
 layout_mode = 1
 anchor_left = 0.30677083
@@ -207,7 +208,7 @@ grow_horizontal = 2
 grow_vertical = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Instances/Filters"]
+[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Instances/Filters" unique_id=97605702]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -215,7 +216,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="InstanceCreator" type="Control" parent="TabContainer/InstancePage/TabContainer/Instances" node_paths=PackedStringArray("name_entry", "max_players", "publicity", "anyone_can_invite", "is_gameserver")]
+[node name="InstanceCreator" type="Control" parent="TabContainer/InstancePage/TabContainer/Instances" unique_id=716954327 node_paths=PackedStringArray("name_entry", "max_players", "publicity", "anyone_can_invite", "is_gameserver")]
 visible = false
 layout_mode = 1
 anchor_left = 0.30677083
@@ -232,7 +233,7 @@ anyone_can_invite = NodePath("Panel/VBoxContainer/VBoxContainer/CheckBox")
 is_gameserver = NodePath("Panel/VBoxContainer/VBoxContainer/CheckBox2")
 metadata/_edit_use_anchors_ = true
 
-[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator"]
+[node name="Panel" type="Panel" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator" unique_id=1693897699]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -240,7 +241,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel" unique_id=1569161652]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -249,34 +250,34 @@ grow_horizontal = 2
 grow_vertical = 2
 alignment = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer" unique_id=128657220]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Label" type="LineEdit" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="Label" type="LineEdit" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=956550997]
 layout_mode = 2
 placeholder_text = "instance name (optional)"
 max_length = 32
 
-[node name="HSeparator2" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=1435530912]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_2rbbj")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=749065434]
 layout_mode = 2
 
-[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1831944160]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "max players"
 
-[node name="Label3" type="Label" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer/HBoxContainer" node_paths=PackedStringArray("max_player_slider")]
+[node name="Label3" type="Label" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1202212716 node_paths=PackedStringArray("max_player_slider")]
 layout_mode = 2
 text = "-1"
 script = ExtResource("7_35llq")
 max_player_slider = NodePath("../../HSlider")
 
-[node name="HSlider" type="HSlider" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HSlider" type="HSlider" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=570277525]
 layout_mode = 2
 max_value = 64.0
 value = 20.0
@@ -284,179 +285,179 @@ tick_count = 32
 ticks_on_borders = true
 ticks_position = 3
 
-[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=726543975]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_2rbbj")
 
-[node name="OptionButton" type="OptionButton" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="OptionButton" type="OptionButton" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=1653326296]
 layout_mode = 2
 selected = 0
 item_count = 4
 popup/item_0/text = "Invite Only"
 popup/item_0/id = 0
-popup/item_1/text = "Group"
+popup/item_1/text = "Friends"
 popup/item_1/id = 1
-popup/item_2/text = "Friends"
+popup/item_2/text = "Friends Of Friends"
 popup/item_2/id = 2
 popup/item_3/text = "Public"
 popup/item_3/id = 3
 
-[node name="HSeparator3" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="HSeparator3" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=6708162]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_2rbbj")
 
-[node name="CheckBox" type="CheckBox" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="CheckBox" type="CheckBox" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=1542252463]
 layout_mode = 2
 text = "anyone can invite"
 
-[node name="CheckBox2" type="CheckBox" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer"]
+[node name="CheckBox2" type="CheckBox" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer" unique_id=1980670203]
 layout_mode = 2
 disabled = true
 button_pressed = true
 text = "create gameserver"
 
-[node name="VBoxContainer2" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer"]
+[node name="VBoxContainer2" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer" unique_id=1239230114]
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2" unique_id=1455239313]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer" unique_id=693080405]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 28
 text = "create and join"
 
-[node name="Button2" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer"]
+[node name="Button2" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2/HBoxContainer" unique_id=438446084]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 28
 disabled = true
 text = "create and drop portal"
 
-[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
+[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2" unique_id=813617230]
 layout_mode = 2
 theme_override_constants/separation = 16
 theme_override_styles/separator = SubResource("StyleBoxEmpty_w7yhl")
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/TabContainer/Instances/InstanceCreator/Panel/VBoxContainer/VBoxContainer2" unique_id=470367907]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "close"
 
-[node name="Details" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer"]
+[node name="Details" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer" unique_id=1483791793]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 
-[node name="TextureRect" type="TextureRect" parent="TabContainer/InstancePage/TabContainer/Details"]
+[node name="TextureRect" type="TextureRect" parent="TabContainer/InstancePage/TabContainer/Details" unique_id=1274363330]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.5
 expand_mode = 1
 stretch_mode = 4
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details" unique_id=664291973]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=1889403309]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "UNNAMED"
 
-[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=1089766928]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_1vkh6")
 
-[node name="PanelContainer" type="PanelContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="PanelContainer" type="PanelContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=1954610763]
 layout_mode = 2
 size_flags_horizontal = 0
 
-[node name="MarginContainer" type="MarginContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/PanelContainer" unique_id=516603937]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/PanelContainer/MarginContainer"]
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/PanelContainer/MarginContainer" unique_id=263310105]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 
-[node name="HSeparator3" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="HSeparator3" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=1107829172]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_pyqlh")
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=1826020474]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer2"]
+[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer2" unique_id=2105742564]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "created on:"
 
-[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer2"]
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer2" unique_id=1774884397]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 
-[node name="HBoxContainer3" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="HBoxContainer3" type="HBoxContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=620976715]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer3"]
+[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer3" unique_id=1385370295]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "updated on:"
 
-[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer3"]
+[node name="Label2" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer/HBoxContainer3" unique_id=62545897]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 
-[node name="HSeparator2" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=1132163224]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxEmpty_pyqlh")
 
-[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="Label" type="Label" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=9157011]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "tags:"
 
-[node name="HFlowContainer" type="HFlowContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer"]
+[node name="HFlowContainer" type="HFlowContainer" parent="TabContainer/InstancePage/TabContainer/Details/VBoxContainer" unique_id=1648644220]
 layout_mode = 2
 script = ExtResource("6_pyqlh")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage"]
+[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/InstancePage" unique_id=2113694526]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+[node name="Button" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=1063539301]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Favourite"
 
-[node name="Button2" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+[node name="Button2" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=780510258]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 text = "Make Home"
 
-[node name="Button3" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+[node name="Button3" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=1204607590]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 text = "Preload"
 
-[node name="Button4" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+[node name="Button4" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=1025277281]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 disabled = true
 text = "View Components"
 
-[node name="Button5" type="Button" parent="TabContainer/InstancePage/HBoxContainer"]
+[node name="Button5" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=572621317]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32

@@ -20,13 +20,13 @@ func create_and_join_instance() -> void:
 	
 	match publicity.get_selected_id():
 		0:
-			join_permissions = InstanceHandler.InstanceJoinPermission.invite
+			join_permissions = InstanceHandler.InstanceJoinPermission.InviteOnly
 		1:
-			join_permissions = InstanceHandler.InstanceJoinPermission.group
+			join_permissions = InstanceHandler.InstanceJoinPermission.Friends
 		2:
-			join_permissions = InstanceHandler.InstanceJoinPermission.friends
+			join_permissions = InstanceHandler.InstanceJoinPermission.FriendsOfFriends
 		3:
-			join_permissions = InstanceHandler.InstanceJoinPermission.public
+			join_permissions = InstanceHandler.InstanceJoinPermission.Public
 	
 	var instance_uuid:UUID = await GlobalInstanceHandler.create_online_instance(
 					world,

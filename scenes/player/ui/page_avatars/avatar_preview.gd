@@ -37,8 +37,10 @@ func preview_avatar(avatar:Dictionary[String, Variant]) -> void:
 	@warning_ignore("unsafe_cast")
 	previewer.create_preview(UUID.from_String(avatar["id"] as String))
 	avatar_name.text = avatar["name"]
-	avatar_publicity.text = "publicity: %s" % avatar["publicity"]
-	avatar_author.text = "created by: %s" % avatar["creator"]
+	@warning_ignore("unsafe_cast")
+	avatar_publicity.text = "publicity: %s" % StringifyHelper.stringify_object_publicity(avatar["publicity"] as int)
+	@warning_ignore("unsafe_cast")
+	avatar_author.text = "created by: %s" % await APIHelper.get_username(UUID.from_String(avatar["creator"] as String))
 	@warning_ignore("unsafe_cast")
 	flag_list.create_list(avatar["flags"] as Array)
 

@@ -23,6 +23,9 @@ background_mode = 1
 background_color = Color(0, 0, 0, 0)
 ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.5
+ssao_enabled = true
+glow_enabled = true
 
 [node name="AvatarPage" type="VBoxContainer" unique_id=291399223]
 anchors_preset = 15
@@ -147,6 +150,7 @@ equip_button = NodePath("Button2")
 [node name="TextureRect" type="TextureRect" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=1054683923]
 custom_minimum_size = Vector2(256, 256)
 layout_mode = 2
+size_flags_vertical = 3
 texture = SubResource("ViewportTexture_m82ti")
 expand_mode = 1
 stretch_mode = 5
@@ -154,9 +158,11 @@ stretch_mode = 5
 [node name="SubViewport" type="SubViewport" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect" unique_id=1325922295]
 world_3d = SubResource("World3D_b27c1")
 transparent_bg = true
+msaa_3d = 2
+size = Vector2i(512, 1024)
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" unique_id=374216070 node_paths=PackedStringArray("viewport", "camera")]
-transform = Transform3D(0.8993819, 0, 0.43716365, 0, 1, 0, -0.43716365, 0, 0.8993819, 0, 0, 0)
+transform = Transform3D(-0.5651312, 0, 0.82500094, 0, 1, 0, -0.82500094, 0, -0.5651312, 0, 0, 0)
 script = ExtResource("4_j5nty")
 viewport = NodePath("..")
 camera = NodePath("../Camera3D")
@@ -164,7 +170,9 @@ camera = NodePath("../Camera3D")
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport/Node3D" unique_id=97176829]
 
 [node name="Camera3D" type="Camera3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" unique_id=553553929]
+keep_aspect = 0
 environment = SubResource("Environment_m82ti")
+fov = 30.0
 
 [node name="Label" type="Label" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=78319080]
 layout_mode = 2
@@ -186,7 +194,6 @@ autowrap_mode = 3
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=743969736]
 layout_mode = 2
-size_flags_vertical = 3
 
 [node name="HFlowContainer" type="HFlowContainer" parent="Control/VBoxContainer2/VBoxContainer3/ScrollContainer" unique_id=96456450]
 layout_mode = 2

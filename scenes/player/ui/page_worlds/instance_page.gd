@@ -8,6 +8,7 @@ const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 @export var details_creation_time:Label
 @export var details_update_time:Label
 @export var details_tags:tags_list
+@export var details_world_image:TextureRect
 @export var instances_list:InstanceList
 @export var instance_creator:InstanceCreator
 
@@ -38,9 +39,12 @@ func show_details(short_world:Dictionary) -> void:
 	
 	details_name.text = world["name"]
 	details_description.text = world["description"]
-	details_creation_time.text = str(world["created_at"])
-	details_update_time.text = str(world["updated_at"])
-	# todo: load world image here
+	@warning_ignore("unsafe_cast")
+	details_creation_time.text = Time.get_datetime_string_from_unix_time(world["created_at"] as int, true).split(" ")[0]
+	@warning_ignore("unsafe_cast")
+	details_update_time.text = Time.get_datetime_string_from_unix_time(world["updated_at"] as int, true).split(" ")[0]
+	@warning_ignore("unsafe_cast")
+	details_world_image.texture = ImageTexture.create_from_image(await GlobalImageDownloadHandler.get_object(UUID.from_String(world["id"] as String), LRUCache.ObjectType.world))
 	
 	details_tags.show_world_tags(world)
 	

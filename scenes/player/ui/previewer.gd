@@ -25,21 +25,21 @@ func create_preview(uuid:UUID) -> void:
 	var avatar:Node = avatar_scene.instantiate()
 	add_child(avatar)
 	
-	const FOV:float = 75.0
 	var aabb:AABB = AABB()
 	for child:Node in SetupHelpers.get_node_and_children_recursive(avatar):
 		if child is VisualInstance3D:
 			(child as VisualInstance3D).layers = 4096 # layer 13
 			aabb = aabb.merge((child as VisualInstance3D).get_aabb())
 	var pos:Vector3 = aabb.position + (aabb.size / 2)
-	# todo: something is broken here.
-	# this should place the camera as close as possible to the object,
-	# while leaving everything visible.
-	# right now it places the camers way too far away and i have no idea why
-	# the idea was to treat the camera positioning like a right angle triangle 
-	# with fov / 2 being the angle and aabb.size.y / 2 being the opposite side
-	# solving for the adjacent side should give us the camera distance but it dosent
-	pos.z += (maxf(aabb.size.x, aabb.size.y) / 2) / abs(tan(FOV / 2)) * 1.1
+	
+	var candidate1:float = (
+			(aabb.size.x / 2) / absf(tan(deg_to_rad(camera.get_camera_projection().get_fov() / 2)))) * 1.1
+	var fovy:float = Projection.get_fovy(
+			camera.get_camera_projection().get_fov() / 2, 
+			1 / camera.get_camera_projection().get_aspect())
+	var candidate2:float = ((aabb.size.y / 2) / absf(tan(deg_to_rad(fovy / 2)))) * 1.1
+	
+	pos.z += maxf(candidate1, candidate2)
 	
 	camera.position = pos
 

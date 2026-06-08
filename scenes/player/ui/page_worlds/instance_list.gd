@@ -45,20 +45,8 @@ func show_instances(world:Dictionary) -> void:
 		var instance_name:String = instance["name"]
 		var player_count:int = 0 # todo
 		var max_players:int = instance["max_players"]
-		var publicity:int = instance["publicity"]
-		
-		var publicity_string:String = ""
-		match publicity:
-			0:
-				publicity_string = "Private"
-			1:
-				publicity_string = "Unlisted"
-			2:
-				publicity_string = "Friends"
-			3:
-				publicity_string = "Public"
-			_:
-				publicity_string = "INVALID"
+		@warning_ignore("unsafe_cast")
+		var publicity:String = StringifyHelper.stringify_instance_publicity(instance["publicity"] as int)
 		
 		var player_count_string:String = "%s/%s" % [player_count, max_players]
 		
@@ -66,7 +54,7 @@ func show_instances(world:Dictionary) -> void:
 				"res://scenes/player/ui/page_worlds/instance_listing.tscn").instantiate()
 		
 		listing.instance_name.text = instance_name
-		listing.publicity.text = publicity_string
+		listing.publicity.text = publicity
 		listing.player_count.text = player_count_string
 		listing.join_button.pressed.connect(on_join_button_pressed.bind(id))
 

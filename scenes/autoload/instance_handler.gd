@@ -9,10 +9,10 @@ const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--
 const MAX_CONNECT_RETRYS:int = 10
 
 enum InstanceJoinPermission{
-	public,
-	group,
-	friends,
-	invite
+	InviteOnly,
+	Friends,
+	FriendsOfFriends,
+	Public
 }
 
 const STATUS_REFRESH_RATE:int = 30
