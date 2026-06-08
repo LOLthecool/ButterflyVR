@@ -153,7 +153,7 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	object.close()
 	aes.finish()
 	
-	var new_object:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true)
+	var new_object:String = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true).get_path()
 	
 	# trim pading bytes
 	# padding bytes are 255 followed by 0s
@@ -170,11 +170,12 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	# remove all padding including 255
 	decrypted_buffer.resize(decrypted_buffer.size() - (zero_bytes + 1))
 	
-	# todo: include uncompressed size when uploading
-	decrypted_buffer = decrypted_buffer.decompress_dynamic(GIGABYTE * 4, FileAccess.COMPRESSION_GZIP)
+	var decrypted:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true)
+	decrypted.store_buffer(decrypted_buffer)
+	var decrypted_path:String = decrypted.get_path()
+	decrypted.close()
 	
-	new_object.store_buffer(decrypted_buffer)
-	new_object.flush()
+	ZSTDCompressor.decompress_file_to_file(decrypted_path, new_object)
 	
 	# todo: a malicious object could contain files in _loaded_content/_/_ for another object uuid
 	# since overwiting is forbidden (cant have then overwriting internal files) if that object is later loaded
@@ -182,10 +183,8 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	# it will still need to follow the safety checks 
 	# but this could allow bypassing a hypothetical future permission system for creators
 	
-	if !ProjectSettings.load_resource_pack(new_object.get_path(), false):
-		push_error("failed to load object pck from %s" % new_object.get_path())
-	
-	new_object.close()
+	if !ProjectSettings.load_resource_pack(new_object, false):
+		push_error("failed to load object pck from %s" % new_object)
 	
 	return ResourceLoader.load("res://_loaded_content/%s/%s.tscn" % [object_type, uuid], 
 			"PackedScene", ResourceLoader.CACHE_MODE_IGNORE_DEEP) as PackedScene

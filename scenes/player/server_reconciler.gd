@@ -5,7 +5,7 @@ const MAX_SERVER_DISAGREE_SQUARED:float = MAX_SERVER_DISAGREE * MAX_SERVER_DISAG
 const MAX_RECOVERY_SPEED:float = 50
 const max_VERTICAL_RECOVERY_SPEED:float = 25
 # todo: try and reduce latency this is really bad
-const BASE_LATENCY:int = 7
+const BASE_LATENCY:int = 8
 
 @export var player_access:PlayerAccess
 
@@ -47,7 +47,7 @@ func _physics_process(delta: float) -> void:
 	if closest_match_index == -1:
 		return
 	
-	# couldnt find a close enough match, must reconcil
+	# no reconcil behavior yet so we just log
 	push_warning(
 			"player position disagree. 
 			server pos: %s, 
