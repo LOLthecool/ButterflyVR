@@ -368,6 +368,7 @@ impl ConnectionHandler {
                 Self::update_client(data, &self.listener)?;
             }
         }
+
         if let Some(error) = send_error {
             return Err(error);
         }
