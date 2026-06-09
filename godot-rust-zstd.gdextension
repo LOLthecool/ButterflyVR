@@ -6,5 +6,5 @@ reloadable = true
 [libraries]
 linux.debug.x86_64 =     "res://rust/target/debug/libgodot_rust_zstd.so"
 linux.release.x86_64 =   "res://rust/target/release/libgodot_rust_zstd.so"
-windows.debug.x86_64 =   "res://rust/target/debug/godot_rust_zstd.dll"
-windows.release.x86_64 = "res://rust/target/release/godot_rust_zstd.dll"
+windows.debug.x86_64 =   "res://rust/target/x86_64-pc-windows-gnu/debug/godot_rust_zstd.dll"
+windows.release.x86_64 = "res://rust/target/x86_64-pc-windows-gnu/release/godot_rust_zstd.dll"

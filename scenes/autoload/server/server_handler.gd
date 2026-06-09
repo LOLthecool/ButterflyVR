@@ -55,21 +55,23 @@ func _physics_process(delta: float) -> void:
 		if NetworkManager.get_player_count() == 0:
 			inactivity += delta
 			
-			if inactivity > INACTIVITY_KILL_THRESHOLD:
+			if inactivity > INACTIVITY_KILL_THRESHOLD or (!agones_sdk and inactivity > 5):
 				inactivity = 0 # avoid spam since shutdown takes multiple frames
 				push_warning("too long with 0 players: exiting")
 				
 				if agones_sdk:
-					await GlobalAPIHandler.make_request(
-							HTTPClient.METHOD_GET, 
-							CLOSE_INSTANCE_ENDPOINT, 
-							PackedStringArray([GlobalAccountHandler.get_token_header()]))
-							
 					agones_sdk.shutdown()
 				else:
 					get_tree().quit()
 		else:
 			inactivity = 0
+
+func _exit_tree() -> void:
+	if finished_starting and agones_sdk:
+		await GlobalAPIHandler.make_request(
+				HTTPClient.METHOD_GET, 
+				CLOSE_INSTANCE_ENDPOINT, 
+				PackedStringArray([GlobalAccountHandler.get_token_header()]))
 
 # this class should do nothing until this function is done
 func start(api_token:PackedByteArray, is_local:bool, local_world:UUID, 

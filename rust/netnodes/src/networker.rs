@@ -283,11 +283,13 @@ impl UDPListener {
             ) {
                 Ok(packet_info) => packet_info,
                 Err(RecvTimeoutError::Timeout) => continue,
-                Err(_) => return Err(NetNodesError::Disconnected),
+                Err(_) => return Err(NetNodesError::ThreadPanic),
             };
 
             if info.at <= now {
-                socket.send_to(&packet, info.to).unwrap();
+                socket
+                    .send_to(&packet, info.to)
+                    .map_err(NetNodesError::SocketError)?;
             } else if delayed_packets.len() > PACKET_QUEUE_CAPACITY
                 || info.at.saturating_duration_since(now) > MAX_PACING_DELAY
             {
@@ -351,14 +353,10 @@ pub struct ConnectionHandler {
 
 impl ConnectionHandler {
     pub fn update(&mut self) -> Result<(), NetNodesError> {
+        let (mut send_error, mut recv_error) = (None, None);
+
         if !self.listener.is_running() {
-            let (send_error, recv_error) = self.listener.get_errors_and_reset();
-            if let Some(error) = send_error {
-                return Err(error);
-            }
-            if let Some(error) = recv_error {
-                return Err(error);
-            }
+            (send_error, recv_error) = self.listener.get_errors_and_reset();
         }
 
         match self.handler {
@@ -369,6 +367,12 @@ impl ConnectionHandler {
             HandlerType::Client(ref mut data) => {
                 Self::update_client(data, &self.listener)?;
             }
+        }
+        if let Some(error) = send_error {
+            return Err(error);
+        }
+        if let Some(error) = recv_error {
+            return Err(error);
         }
         Ok(())
     }
@@ -565,7 +569,9 @@ impl ConnectionHandler {
                 Ok((length, info)) => {
                     out.truncate(length);
                     let out = Bytes::from(out);
-                    sender.send((out, info)).unwrap();
+                    sender
+                        .send((out, info))
+                        .map_err(|_| NetNodesError::ThreadPanic)?;
                 }
                 Err(quiche::Error::Done) => {
                     return Ok(());

@@ -4,7 +4,6 @@ const MAX_SERVER_DISAGREE:float = 0.02 # todo: tune this
 const MAX_SERVER_DISAGREE_SQUARED:float = MAX_SERVER_DISAGREE * MAX_SERVER_DISAGREE # compare squared lengths
 const MAX_RECOVERY_SPEED:float = 50
 const max_VERTICAL_RECOVERY_SPEED:float = 25
-# todo: try and reduce latency this is really bad
 const BASE_LATENCY:int = 8
 
 @export var player_access:PlayerAccess

@@ -126,7 +126,7 @@ impl AgonesSDK {
 impl INode for AgonesSDK {
     fn init(base: Base<Node>) -> Self {
         Self {
-            runtime: Builder::new_current_thread().enable_all().build().unwrap(),
+            runtime: Builder::new_multi_thread().enable_all().build().unwrap(),
             sdk: OnceCell::new(),
             health_check_interval: 5.0,
             health_check_timer: 0.0,

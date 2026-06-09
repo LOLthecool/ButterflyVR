@@ -75,7 +75,6 @@ func get_uuid(use_cached_value:bool = true) -> UUID:
 		return GlobalServerHandler.instance_id
 	if use_cached_value and user_id != UUID.new():
 		return user_id
-	print(Engine.capture_script_backtraces())
 	var token_header:PackedStringArray = PackedStringArray([get_token_header()])
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, TOKEN_USER_ENDPOINT, token_header)
 	@warning_ignore("unsafe_call_argument")
