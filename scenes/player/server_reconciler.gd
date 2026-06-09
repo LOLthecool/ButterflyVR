@@ -21,6 +21,9 @@ func _physics_process(delta: float) -> void:
 	if player.server_position == Vector3.ZERO:
 		return
 	
+	if !NetworkManager.is_running():
+		return
+	
 	var rtt_ticks:int = ceilf(NetworkManager.get_highest_rtt_millis() / (delta * 1000)) as int
 	while position_history.size() > (rtt_ticks * 2) + BASE_LATENCY:
 		position_history.pop_front()

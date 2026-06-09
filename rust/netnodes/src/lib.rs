@@ -110,6 +110,11 @@ impl NetNodeManager {
         }
     }
 
+    #[func]
+    fn is_running(&self) -> bool {
+        matches!(self.inner, Inner::Server(_) | Inner::Client(_))
+    }
+
     /// Gets the next client that has connected to the server, but has not yet been verified.
     /// This is intended to connect the identifier used by this client to a user account on another server.
     /// To use this, you should keep track of which user received an identifier on the other server,

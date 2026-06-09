@@ -1,6 +1,7 @@
 extends Node
+class_name ServerLoader
 
-func _ready() -> void:
+static func start() -> void:
 	print("server starting up")
 	
 	var key:Array[int] = []
@@ -50,4 +51,3 @@ func _ready() -> void:
 					push_error("expected a world UUID but got \"%s\"" % argument_value)
 	
 	GlobalServerHandler.start(api_token, is_local, world, bind_port)
-	queue_free()

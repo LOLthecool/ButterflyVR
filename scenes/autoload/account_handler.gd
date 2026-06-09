@@ -71,8 +71,11 @@ func get_token_header() -> String:
 	return "token: %s" % session_token.hex_encode()
 
 func get_uuid(use_cached_value:bool = true) -> UUID:
+	if GlobalServerHandler.is_gameserver:
+		return GlobalServerHandler.instance_id
 	if use_cached_value and user_id != UUID.new():
 		return user_id
+	print(Engine.capture_script_backtraces())
 	var token_header:PackedStringArray = PackedStringArray([get_token_header()])
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(HTTPClient.METHOD_GET, TOKEN_USER_ENDPOINT, token_header)
 	@warning_ignore("unsafe_call_argument")
@@ -91,6 +94,8 @@ func get_uuid(use_cached_value:bool = true) -> UUID:
 	return UUID.from_String(values["id"] as String)
 
 func is_token_valid(token:PackedByteArray, expiry_utc:int) -> bool:
+	if GlobalServerHandler.is_gameserver:
+		return true
 	if token == PackedByteArray():
 		return false
 	if expiry_utc != -1 and Time.get_unix_time_from_system() > expiry_utc:

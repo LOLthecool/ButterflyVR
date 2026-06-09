@@ -136,6 +136,7 @@ func _ready() -> void:
 			push_error("error in api connection: expected body or ready connection, got: ", client.get_status())
 			await tree.create_timer(3).timeout
 			push_warning("retrying connection...")
+			waiting_requests.push_back(request)
 			_ready.call_deferred()
 			return
 		if !client.has_response():

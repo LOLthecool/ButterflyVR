@@ -926,6 +926,7 @@ impl ConnectionHandler {
                         Self::update_blocked_connection(s.1.entry(peer.peer_addr));
                     }
                     let _ = peer.conn.close(true, err_code, reason.as_bytes());
+                    peer.state = PeerState::Disconnected;
                 }
             }
         }

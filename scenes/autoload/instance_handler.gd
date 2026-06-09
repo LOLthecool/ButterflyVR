@@ -108,12 +108,12 @@ func join_instance(instance:UUID) -> void:
 	@warning_ignore("unsafe_cast")
 	var identifier:PackedByteArray = PackedByteArray(result[4]["identifier"] as Array)
 	
-	assert(ip.is_valid_ip_address())
+	assert(ip.split("/")[0].is_valid_ip_address())
 	assert(port > 0 and port < 65_535)
 	assert(identifier.size() == 8)
 
 	NetworkManager.start_client(
-		ip, 
+		ip.split("/")[0], 
 		port, 
 		(await GlobalAccountHandler.get_uuid()).backing_storage, 
 		identifier, )

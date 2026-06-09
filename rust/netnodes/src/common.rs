@@ -177,12 +177,12 @@ pub fn handle_datagrams(
     // if no packets will be processed soon we can skip ahead without the user noticing too much
     // can happen if network latency decreases since we get future packets sooner
     if (!got_soon_packet) && total_packets > 0 && late_packets == 0 {
-        *tick_number += 1;
+        *tick_number = tick_number.wrapping_add(1);
     }
 
     // 25 is not the percentage, this triggers when late packets > 4%
     if late_packets * 25 > total_packets {
-        *tick_number -= 1;
+        *tick_number = tick_number.wrapping_sub(1);
     }
 }
 

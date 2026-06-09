@@ -4,15 +4,18 @@ class_name ServerHandler
 const LOCAL_SERVER_KEY_LOCATION:String = "user://local_key.tmp"
 const CLOSE_INSTANCE_ENDPOINT:String = "/api/v0/internal/close_instance"
 const IDENTIFIER_VERIFY_ENDPOINT:String = "/api/v0/internal/verify_identifier/%s"
+const IDENTIFIER_ID_ENDPOINT:String = "/api/v0/internal/instance_id"
 
 # seconds after all players leave before exiting
-const INACTIVITY_KILL_THRESHOLD:float = 15.0
+const INACTIVITY_KILL_THRESHOLD:float = 30.0
 
 var started:bool = false
 var finished_starting:bool = false
 var agones_sdk:AgonesSDK = null
 var api_token:PackedByteArray
+var instance_id:UUID
 var inactivity:float
+var is_gameserver:bool = false
 
 func _physics_process(delta: float) -> void:
 	if finished_starting:
@@ -22,19 +25,19 @@ func _physics_process(delta: float) -> void:
 				break
 			print("player joined")
 			if !agones_sdk:
-				# works because our token is the same as the user for a local server
+				# our token is the same as the user for a local server
 				NetworkManager.verify_client(client_id, (await GlobalAccountHandler.get_uuid()).backing_storage)
 			else:
 				var response:Array[Variant] = await GlobalAPIHandler.make_request(
 						HTTPClient.METHOD_GET, 
-						IDENTIFIER_VERIFY_ENDPOINT % UUID.from_bytes(client_id).to_string(), 
+						IDENTIFIER_VERIFY_ENDPOINT % client_id.hex_encode(), 
 						PackedStringArray([GlobalAccountHandler.get_token_header()]))
 				@warning_ignore("unsafe_call_argument")
 				var result:Array[Variant] = GlobalAPIHandler.handle_response(
-						response[0], response[2], [200], ["uuid"])
+						response[0], response[2], [200], ["user_id"])
 				if result[0]:
 					@warning_ignore("unsafe_cast")
-					NetworkManager.verify_client(client_id, result[4]["uuid"] as PackedByteArray)
+					NetworkManager.verify_client(client_id, UUID.from_String(result[4]["user_id"] as String).backing_storage)
 				else:
 					push_warning("rejecting client: invalid identifier")
 					NetworkManager.reject_client(client_id)
@@ -84,10 +87,13 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 		GlobalAccountHandler.token_expiry_utc = -1
 		GlobalAccountHandler.token_renewable = false
 		
+		instance_id = UUID.new()
+		
 		await GlobalWorldHandler.load_world_server(local_world, local_bind_port)
 	else:
 		# game server instance
 		print("starting remote server")
+		is_gameserver = true
 		
 		# since we are inside cluster we need to target internal ip + port
 		GlobalAPIHandler.target_port = 80
@@ -97,9 +103,12 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 		agones_sdk = AgonesSDK.new()
 		add_child(agones_sdk)
 		
+		await ready
+		await get_tree().physics_frame
+		
 		var timer:Timer = Timer.new()
 		add_child(timer)
-		timer.start(3)
+		timer.start(1)
 		
 		print("waiting for allocation...")
 		
@@ -131,6 +140,28 @@ func start(api_token:PackedByteArray, is_local:bool, local_world:UUID,
 		print("instancetoken:", instance_token)
 		
 		await GlobalAccountHandler.set_token(instance_token, -1, false)
+		
+		var response:Array[Variant] = await GlobalAPIHandler.make_request(
+				HTTPClient.METHOD_GET, 
+				IDENTIFIER_ID_ENDPOINT, 
+				PackedStringArray([GlobalAccountHandler.get_token_header()]))
+		@warning_ignore("unsafe_call_argument")
+		var result:Array[Variant] = GlobalAPIHandler.handle_response(
+				response[0], response[2], [200], ["id"])
+		if result[0]:
+			@warning_ignore("unsafe_cast")
+			instance_id = UUID.from_String(result[4]["id"] as String)
+		else:
+			push_error("error while getting instance id")
+			if result[1] != -1:
+				push_error("server response: %s" % result[1])
+			else:
+				push_error("server did not respond")
+			if result[2] != "":
+				push_error("error code: %s" % result[2])
+			if result[3] != "":
+				push_error("error message: %s" % result[3])
+			get_tree().quit()
 		
 		await GlobalWorldHandler.load_world_server(world, port)
 		
