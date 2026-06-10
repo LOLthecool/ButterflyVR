@@ -57,6 +57,7 @@ func show_instances(world:Dictionary) -> void:
 		listing.publicity.text = publicity
 		listing.player_count.text = player_count_string
 		listing.join_button.pressed.connect(on_join_button_pressed.bind(id))
+		instances_container.add_child(listing)
 
 func on_join_button_pressed(instance:UUID) -> void:
 	GlobalWorldHandler.load_world(UUID.from_String(world_id), instance)
