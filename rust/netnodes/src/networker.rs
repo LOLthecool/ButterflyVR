@@ -27,6 +27,7 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::collections::hash_map::Entry;
 use std::fmt::Debug;
+use std::io::ErrorKind;
 use std::mem;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::Arc;
@@ -242,9 +243,17 @@ impl UDPListener {
     ) -> Result<(), NetNodesError> {
         loop {
             let mut buffer = BytesMut::zeroed(MAX_DATAGRAM_SIZE);
-            let (len, from) = socket
-                .recv_from(&mut buffer)
-                .map_err(NetNodesError::SocketError)?;
+            let (len, from) = match socket.recv_from(&mut buffer) {
+                Ok(result) => result,
+                Err(err) => {
+                    if err.kind() == ErrorKind::ConnectionRefused
+                        || err.kind() == ErrorKind::ConnectionReset
+                    {
+                        continue;
+                    }
+                    return Err(NetNodesError::SocketError(err));
+                }
+            };
             buffer.truncate(len);
             let packet = buffer.freeze();
             outgoing.send((packet, from)).unwrap();
@@ -267,10 +276,41 @@ impl UDPListener {
             let now = Instant::now();
 
             while delayed_packets.front().is_some_and(|x| x.1.at <= now) {
-                let (packet, info) = delayed_packets.pop_front().unwrap();
-                socket
-                    .send_to(&packet, info.to)
-                    .map_err(NetNodesError::SocketError)?;
+                let (packet, info) = delayed_packets.front().unwrap();
+                // windows rejects send_to on connected sockets, use send instead
+                if socket.peer_addr().is_ok() {
+                    match socket.send(&packet) {
+                        Ok(result) => {
+                            delayed_packets.pop_front();
+                            result
+                        }
+                        Err(err) => {
+                            if err.kind() == ErrorKind::ConnectionRefused
+                                || err.kind() == ErrorKind::ConnectionReset
+                            {
+                                thread::sleep(Duration::from_millis(10));
+                                continue;
+                            }
+                            return Err(NetNodesError::SocketError(err));
+                        }
+                    };
+                } else {
+                    match socket.send_to(&packet, info.to) {
+                        Ok(result) => {
+                            delayed_packets.pop_front();
+                            result
+                        }
+                        Err(err) => {
+                            if err.kind() == ErrorKind::ConnectionRefused
+                                || err.kind() == ErrorKind::ConnectionReset
+                            {
+                                thread::sleep(Duration::from_millis(10));
+                                continue;
+                            }
+                            return Err(NetNodesError::SocketError(err));
+                        }
+                    };
+                }
             }
 
             let (packet, info) = match incoming.recv_timeout(
@@ -287,9 +327,34 @@ impl UDPListener {
             };
 
             if info.at <= now {
-                socket
-                    .send_to(&packet, info.to)
-                    .map_err(NetNodesError::SocketError)?;
+                // windows rejects send_to on connected sockets, use send instead
+                if socket.peer_addr().is_ok() {
+                    match socket.send(&packet) {
+                        Ok(result) => result,
+                        Err(err) => {
+                            if err.kind() == ErrorKind::ConnectionRefused
+                                || err.kind() == ErrorKind::ConnectionReset
+                            {
+                                thread::sleep(Duration::from_millis(10));
+                                continue;
+                            }
+                            return Err(NetNodesError::SocketError(err));
+                        }
+                    };
+                } else {
+                    match socket.send_to(&packet, info.to) {
+                        Ok(result) => result,
+                        Err(err) => {
+                            if err.kind() == ErrorKind::ConnectionRefused
+                                || err.kind() == ErrorKind::ConnectionReset
+                            {
+                                thread::sleep(Duration::from_millis(10));
+                                continue;
+                            }
+                            return Err(NetNodesError::SocketError(err));
+                        }
+                    };
+                }
             } else if delayed_packets.len() > PACKET_QUEUE_CAPACITY
                 || info.at.saturating_duration_since(now) > MAX_PACING_DELAY
             {
@@ -393,7 +458,12 @@ impl ConnectionHandler {
                 }
             };
 
-            let dcid = ConnectionId::from_ref(hdr.dcid.clone().first_chunk::<16>().unwrap()).into();
+            let Some(dcid_chunk) = hdr.dcid.first_chunk::<16>() else {
+                godot_error!("Failed to parse header: invalid dcid length");
+                continue;
+            };
+
+            let dcid = ConnectionId::from_ref(dcid_chunk).into();
 
             let length = data.0.len();
 
@@ -533,17 +603,26 @@ impl ConnectionHandler {
             &mut Self::get_config_server(),
         )?;
 
+        #[cfg(target_os = "windows")]
+        let qlog_path = format!(
+            "C:\\Users\\{}\\AppData\\Local\\Temp\\butterfly-server-{scid:?}.qlog",
+            std::env::var("USERNAME").unwrap_or_default()
+        );
+
+        #[cfg(target_os = "linux")]
+        let qlog_path = format!("/tmp/butterfly-server-{scid:?}.qlog");
+
         #[cfg(debug_assertions)]
         match std::fs::OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
-            .open(format!("/tmp/butterfly-server-{scid:?}.qlog"))
+            .open(&qlog_path)
         {
             Ok(file) => {
                 conn.set_qlog(
                     Box::new(file),
-                    "butteryfly-rs client connection".to_string(),
+                    "butterfly-rs client connection".to_string(),
                     format!("cid={scid:?}"),
                 );
             }
@@ -949,17 +1028,26 @@ impl ConnectionHandler {
         let mut conn =
             quiche::connect(None, &id, listener.bind_addr, server_addr, &mut config).unwrap();
 
+        #[cfg(target_os = "windows")]
+        let qlog_path = format!(
+            "C:\\Users\\{}\\AppData\\Local\\Temp\\butterfly-client.qlog",
+            std::env::var("USERNAME").unwrap_or_default()
+        );
+
+        #[cfg(target_os = "linux")]
+        let qlog_path = format!("/tmp/butterfly-client.qlog");
+
         match std::fs::OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
-            .open("/tmp/butterfly.qlog")
+            .open(&qlog_path)
         {
             Ok(file) => {
                 #[cfg(debug_assertions)]
                 conn.set_qlog(
                     Box::new(file),
-                    "butteryfly-rs client connection".to_string(),
+                    "butterfly-rs client connection".to_string(),
                     format!("cid={id:?}"),
                 );
             }
