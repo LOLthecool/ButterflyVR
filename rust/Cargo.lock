@@ -766,7 +766,6 @@ version = "0.1.0"
 dependencies = [
  "godot 0.4.5",
  "moka",
- "serde",
  "uuid",
 ]
 
@@ -802,7 +801,6 @@ version = "0.1.0"
 dependencies = [
  "argon2",
  "godot 0.4.5",
- "password-hash",
 ]
 
 [[package]]
