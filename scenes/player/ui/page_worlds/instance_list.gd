@@ -18,6 +18,8 @@ func show_instances(world:Dictionary) -> void:
 	
 	world_id = world["id"]
 	filters["world"] = world_id
+	filters["is_empty"] = false
+	filters["is_full"] = false
 	
 	var body:String = JSON.stringify(filters)
 	
@@ -43,7 +45,7 @@ func show_instances(world:Dictionary) -> void:
 		@warning_ignore("unsafe_cast")
 		var id:UUID = UUID.from_String(instance["id"] as String)
 		var instance_name:String = instance["name"]
-		var player_count:int = 0 # todo
+		var player_count:int = instance["current_players"]
 		var max_players:int = instance["max_players"]
 		@warning_ignore("unsafe_cast")
 		var publicity:String = StringifyHelper.stringify_instance_publicity(instance["publicity"] as int)
