@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::{Read, Write};
 
-use godot::classes::Engine;
 use godot::prelude::*;
 use zstd::{Decoder, Encoder};
 
@@ -10,32 +9,10 @@ const CHUNK_SIZE: usize = 1024 * 1024;
 struct MyExtension;
 
 #[gdextension]
-unsafe impl ExtensionLibrary for MyExtension {
-    fn on_level_init(level: InitLevel) {
-        if level == InitLevel::Scene {
-            Engine::singleton().register_singleton(
-                &ZSTDCompressor::class_id().to_string_name(),
-                &ZSTDCompressor::new_alloc(),
-            );
-        }
-    }
-
-    fn on_level_deinit(level: InitLevel) {
-        if level == InitLevel::Scene {
-            let mut engine = Engine::singleton();
-            let singleton_name = &ZSTDCompressor::class_id().to_string_name();
-            if let Some(my_singleton) = engine.get_singleton(singleton_name) {
-                engine.unregister_singleton(singleton_name);
-                my_singleton.free();
-            } else {
-                godot_error!("Failed to get singleton");
-            }
-        }
-    }
-}
+unsafe impl ExtensionLibrary for MyExtension {}
 
 #[derive(GodotClass)]
-#[class(init, base=Object)]
+#[class(init, singleton)]
 struct ZSTDCompressor {
     base: Base<Object>,
 }

@@ -43,7 +43,7 @@ impl LruCache {
     /// Configures a new cache with the specified values.
     #[func]
     fn new_cache(
-        size_kb: u64,
+        size_kb: i64,
         save_call: Callable,
         load_call: Callable,
         on_destroy_call: Callable,
@@ -51,7 +51,7 @@ impl LruCache {
         let queue = Arc::new(Mutex::new(VecDeque::new()));
         let queue2 = queue.clone();
         let cache: Cache<Uuid, Pack> = Cache::builder()
-            .max_capacity(size_kb)
+            .max_capacity(size_kb as u64)
             .initial_capacity(size_kb as usize / 1024)
             .weigher(|_, v: &Pack| v.size_kb as u32)
             .eviction_policy(EvictionPolicy::lru())
@@ -92,8 +92,8 @@ impl LruCache {
         };
         if let Some(pack) = self.cache.get(&key) {
             let mut result = VarDictionary::new();
-            result.set("cache_time_utc".to_variant(), pack.cache_time_utc);
-            result.set("size_kb".to_variant(), pack.size_kb);
+            result.set("cache_time_utc", pack.cache_time_utc);
+            result.set("size_kb", pack.size_kb);
             result
         } else {
             VarDictionary::new()
@@ -116,7 +116,7 @@ impl LruCache {
             let mut sub: VarDictionary = VarDictionary::new();
             sub.set("cache_time_utc", value.cache_time_utc);
             sub.set("size_kb", value.size_kb);
-            data.set(key.to_string(), sub);
+            data.set(key.to_string(), &sub);
         }
         self.save_call.call(&[data.to_variant()]);
     }

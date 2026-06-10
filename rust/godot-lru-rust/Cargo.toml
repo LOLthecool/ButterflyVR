@@ -7,6 +7,6 @@ edition = "2024"
 crate-type = ["cdylib"]  # Compile this crate to a dynamic C library.
 
 [dependencies]
-godot = "0.4.5"
+godot = "0.5.3"
 moka = { version = "0.12.15", features = ["sync"] }
-uuid = "1.23.1"
+uuid = "1.23.3"

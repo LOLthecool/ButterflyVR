@@ -8,4 +8,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 argon2 = "0.5.3"
-godot = { version = "0.4.5", features = ["experimental-threads"] }
+godot = { version = "0.5.3", features = ["experimental-threads"] }

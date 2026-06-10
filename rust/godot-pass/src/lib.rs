@@ -1,39 +1,16 @@
 use argon2::Argon2;
 use argon2::Params;
-use godot::classes::Engine;
 use godot::prelude::*;
 
 struct MyExtension;
 
 #[gdextension]
-unsafe impl ExtensionLibrary for MyExtension {
-    fn on_level_init(level: InitLevel) {
-        if level == InitLevel::Scene {
-            Engine::singleton().register_singleton(
-                &Argon2Hasher::class_id().to_string_name(),
-                &Argon2Hasher::new_alloc(),
-            );
-        }
-    }
-
-    fn on_level_deinit(level: InitLevel) {
-        if level == InitLevel::Scene {
-            let mut engine = Engine::singleton();
-            let singleton_name = &Argon2Hasher::class_id().to_string_name();
-            if let Some(my_singleton) = engine.get_singleton(singleton_name) {
-                engine.unregister_singleton(singleton_name);
-                my_singleton.free();
-            } else {
-                godot_error!("Failed to get singleton");
-            }
-        }
-    }
-}
+unsafe impl ExtensionLibrary for MyExtension {}
 
 /// godot wrapper around an Argon2 hasher.
 /// Available as a global scope singleton.
 #[derive(GodotClass)]
-#[class(init, base=Object)]
+#[class(init, singleton)]
 struct Argon2Hasher {
     base: Base<Object>,
 }

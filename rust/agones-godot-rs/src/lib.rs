@@ -76,7 +76,7 @@ impl AgonesSDK {
                 map
             })
             .collect();
-        let ports = VarDictionary::from(ports.iter());
+        let ports = VarDictionary::from_iter(ports.into_iter().map(|x| (x.0.to_variant(), x.1)));
         internal_dict.insert("ports".to_string(), ports.to_variant());
 
         let labels = &gameserver
@@ -86,7 +86,12 @@ impl AgonesSDK {
             .labels;
         internal_dict.insert(
             "labels".to_string(),
-            VarDictionary::from(labels.iter()).to_variant(),
+            VarDictionary::from_iter(
+                labels
+                    .into_iter()
+                    .map(|x| (x.0.to_variant(), x.1.to_godot().to_variant())),
+            )
+            .to_variant(),
         );
 
         let annotations = &gameserver
@@ -96,10 +101,19 @@ impl AgonesSDK {
             .annotations;
         internal_dict.insert(
             "annotations".to_string(),
-            VarDictionary::from(annotations.iter()).to_variant(),
+            VarDictionary::from_iter(
+                annotations
+                    .into_iter()
+                    .map(|x| (x.0.to_variant(), x.1.to_godot().to_variant())),
+            )
+            .to_variant(),
         );
 
-        VarDictionary::from(internal_dict.iter())
+        VarDictionary::from_iter(
+            internal_dict
+                .into_iter()
+                .map(|x| (x.0.to_godot().to_variant(), x.1)),
+        )
     }
     async fn init_sdk() -> Sdk {
         let mut sdk = agones::Sdk::new(None, None)
