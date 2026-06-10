@@ -49,6 +49,10 @@ jobs:
         working-directory: rust
         run: sudo apt install mingw-w64
 
+      - name: Add nasm
+        working-directory: rust
+        run: sudo apt install nasm
+
       - name: Build Rust module linux
         working-directory: rust
         run: cargo build
