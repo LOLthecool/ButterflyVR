@@ -44,7 +44,7 @@ impl AgonesSDK {
     }
     // does not actually get the full gameserver status, but if we need more info we can just implement it later
     #[func]
-    fn get_gameserver_status(&mut self) -> VarDictionary {
+    fn get_gameserver_status(&mut self) -> AnyDictionary {
         self.runtime.block_on(async {
             self.sdk.get_or_init(AgonesSDK::init_sdk).await;
             self.sdk
@@ -55,11 +55,11 @@ impl AgonesSDK {
                 .map(AgonesSDK::status_to_dict)
                 .unwrap_or_else(|_| {
                     godot_warn!("Failed to unwrap gameserver status");
-                    VarDictionary::new()
+                    VarDictionary::new().upcast_any_dictionary()
                 })
         })
     }
-    fn status_to_dict(gameserver: GameServer) -> VarDictionary {
+    fn status_to_dict(gameserver: GameServer) -> AnyDictionary {
         let mut internal_dict: HashMap<String, Variant> = HashMap::new();
 
         let status = gameserver.status.expect("gameserver didnt have status");
@@ -114,6 +114,7 @@ impl AgonesSDK {
                 .into_iter()
                 .map(|x| (x.0.to_godot().to_variant(), x.1)),
         )
+        .upcast_any_dictionary()
     }
     async fn init_sdk() -> Sdk {
         let mut sdk = agones::Sdk::new(None, None)

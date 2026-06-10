@@ -85,18 +85,18 @@ impl LruCache {
     }
 
     #[func]
-    fn get(&mut self, uuid: String) -> VarDictionary {
+    fn get(&mut self, uuid: String) -> AnyDictionary {
         let Ok(key) = Uuid::try_parse(&uuid) else {
             godot_error!("uuid was not a valid UUID");
-            return VarDictionary::new();
+            return VarDictionary::new().upcast_any_dictionary();
         };
         if let Some(pack) = self.cache.get(&key) {
             let mut result = VarDictionary::new();
             result.set("cache_time_utc", pack.cache_time_utc);
             result.set("size_kb", pack.size_kb);
-            result
+            result.upcast_any_dictionary()
         } else {
-            VarDictionary::new()
+            VarDictionary::new().upcast_any_dictionary()
         }
     }
 
@@ -125,7 +125,7 @@ impl LruCache {
     fn load(&self) {
         let data = self.load_call.call(&[]);
 
-        let Ok(data) = VarDictionary::try_from_variant(&data) else {
+        let Ok(data) = AnyDictionary::try_from_variant(&data) else {
             godot_error!("load_call callable did not return dictionary");
             return;
         };
@@ -140,7 +140,7 @@ impl LruCache {
                 return;
             };
 
-            let Ok(sub) = VarDictionary::try_from_variant(&sub) else {
+            let Ok(sub) = AnyDictionary::try_from_variant(&sub) else {
                 godot_error!("value was not a dictionary");
                 return;
             };
