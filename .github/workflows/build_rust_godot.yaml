@@ -41,6 +41,10 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Add rustup target
+        working-directory: rust
+        run: rustup target add x86_64-pc-windows-gnu
+
       - name: Build Rust module linux
         working-directory: rust
         run: cargo build
