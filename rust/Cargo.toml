@@ -10,12 +10,3 @@ lto = "off"
 strip = "debuginfo"
 lto = "thin"
 codegen-units = 1
-
-[profile.ci]
-inherits = "release"
-opt-level = "z"
-strip = "symbols"
-lto = false
-panic = "abort"
-incremental = true
-codegen-units = 256

@@ -53,23 +53,23 @@ jobs:
 
       - name: Build Rust module linux
         working-directory: rust
-        run: cargo build --profile ci
+        run: cargo build
 
       - name: Build Rust module windows
         working-directory: rust
-        run: cargo build --target x86_64-pc-windows-gnu --profile ci
+        run: cargo build --target x86_64-pc-windows-gnu
 
       - name: Upload Rust artifact linux
         uses: actions/upload-artifact@v4
         with:
-          name: rust-ubuntu-latest-ci
-          path: rust/target/ci/*.*
+          name: rust-ubuntu-latest-debug
+          path: rust/target/debug/*.*
 
       - name: Upload Rust artifact windows
         uses: actions/upload-artifact@v4
         with:
-          name: rust-windows-latest-ci
-          path: rust/target/x86_64-pc-windows-gnu/ci/*.*
+          name: rust-windows-latest-debug
+          path: rust/target/x86_64-pc-windows-gnu/debug/*.*
 
   godot:
     runs-on: ubuntu-22.04
@@ -84,14 +84,14 @@ jobs:
       - name: Download Linux Rust artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-ubuntu-latest-ci
-          path: rust/target/ci
+          name: rust-ubuntu-latest-debug
+          path: rust/target/debug
 
       - name: Download Windows Rust artifact
         uses: actions/download-artifact@v4
         with:
-          name: rust-windows-latest-ci
-          path: rust/target/x86_64-pc-windows-gnu/ci
+          name: rust-windows-latest-debug
+          path: rust/target/x86_64-pc-windows-gnu/debug
 
       - name: Setup Godot templates
         run: |
