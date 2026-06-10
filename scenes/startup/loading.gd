@@ -101,15 +101,21 @@ func show_popup(text:String, go_last_screen:bool = false) -> void:
 
 func _on_register() -> void:
 	if register_username.text.length() < 3:
-		await show_popup("Invalid username")
+		await show_popup("Username must be at least 3 characters")
+		return
+	if register_username.text.length() > 32:
+		await show_popup("Username must be 32 characters or shorter")
 		return
 	# matches "1 or more characters, '@', 1 or more characters, '.', 1 or more characters"
 	# email is properly verified server side
 	if !register_email.text.match("?*@?*.?*"):
 		await show_popup("Invalid email")
 		return
+	if !register_email.text.length() > 128:
+		await show_popup("email is too long")
+		return
 	if register_password.text.length() < 6:
-		await show_popup("Invalid password")
+		await show_popup("Password must be longer than 6 characters")
 		return
 	if !register_tos.button_pressed:
 		await show_popup("Please agree to the terms of service and privacy policy")
@@ -123,6 +129,7 @@ func _on_register() -> void:
 	
 	loading_text.text = "Hashing password..."
 	await get_tree().physics_frame
+	await get_tree().physics_frame
 	
 	var username:String = register_username.text
 	var email:String = register_email.text
@@ -133,7 +140,6 @@ func _on_register() -> void:
 	var password_hash:PackedByteArray = Argon2Hasher.hash(MEMORY, ITERATIONS, PARALLELISM, password, client_salt, OUTPUT_LENGTH)
 	
 	loading_text.text = "Contacting server..."
-	await get_tree().physics_frame
 	
 	var body:String = JSON.stringify({"username": username, "email": email, "password_hash": password_hash as Array[int]})
 	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, REGISTER_ENDPOINT, PackedStringArray(), body).connect(on_register_response)
