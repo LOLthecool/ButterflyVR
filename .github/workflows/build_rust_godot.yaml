@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache cargo linux
+      - name: Cache cargo
         uses: actions/cache@v4
         with:
           path: |
@@ -26,16 +26,6 @@ jobs:
             rust/target
           key: ubuntu-latest-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ubuntu-latest-cargo-debug-
-
-      - name: Cache cargo windows
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            rust/target/x86_64-pc-windows-gnu
-          key: windows-latest-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: windows-latest-cargo-debug-
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
