@@ -14,20 +14,28 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: true
-      matrix:
-        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache cargo
+      - name: Cache cargo linux
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             rust/target
-          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-debug-
+          key: ubuntu-latest-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ubuntu-latest-cargo-debug-
+
+      - name: Cache cargo windows
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: windows-latest-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: windows-latest-cargo-debug-
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -75,7 +83,7 @@ jobs:
 
   godot:
     runs-on: ubuntu-22.04
-    needs: [rust]
+    needs: rust
     container:
       image: barichello/godot-ci:4.6.3
     steps:
