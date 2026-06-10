@@ -33,7 +33,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            rust/target
+            rust/target/x86_64-pc-windows-gnu
           key: windows-latest-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: windows-latest-cargo-debug-
 
