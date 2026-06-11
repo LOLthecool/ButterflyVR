@@ -4,7 +4,7 @@ extends Button
 @export var popup_text:Label
 @export var confirm_button:Button
 @export var cancel_button:Button
-@export var popup_dialogue:String = "Are you sure?"
+@export var popup_dialogue:String
 
 func _pressed() -> void:
 	if popup.visible:

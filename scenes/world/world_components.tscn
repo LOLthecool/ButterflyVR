@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://d0c6k6kj0oe0k"]
+[gd_scene format=3 uid="uid://d0c6k6kj0oe0k"]
 
 [ext_resource type="Script" uid="uid://b45wfvomqpb3k" path="res://scenes/world/avatar_change_handler.gd" id="1_vjewv"]
 [ext_resource type="Script" uid="uid://8iyqbbtl2uko" path="res://scenes/world/chat_box_manager.gd" id="2_levu4"]
@@ -7,28 +7,22 @@
 [ext_resource type="Script" uid="uid://opmbdqhu8sw6" path="res://scenes/world/player_handler.gd" id="5_oo133"]
 [ext_resource type="Script" uid="uid://by3rlfc24r7up" path="res://scenes/world/interactable_message_handler.gd" id="6_levu4"]
 
-[node name="WorldComponents" type="Node"]
+[node name="WorldComponents" type="Node" unique_id=290112906]
 
-[node name="AvatarChangeHandler" type="MessageHandler" parent="."]
-message_type = 1
+[node name="AvatarChangeHandler" type="MessageHandler" parent="." unique_id=277209788]
 script = ExtResource("1_vjewv")
 
-[node name="ChatBoxManager" type="MessageHandler" parent="."]
-message_type = 2
+[node name="ChatBoxManager" type="MessageHandler" parent="." unique_id=1334011638]
 script = ExtResource("2_levu4")
 
-[node name="PlayerDisconnectHandler" type="MessageHandler" parent="."]
-message_type = 3
+[node name="PlayerDisconnectHandler" type="MessageHandler" parent="." unique_id=965894272]
 script = ExtResource("3_ryc84")
 
-[node name="PlayerGrabHandler" type="MessageHandler" parent="."]
-message_type = 4
+[node name="PlayerGrabHandler" type="MessageHandler" parent="." unique_id=1603133610]
 script = ExtResource("4_s7y6v")
 
-[node name="PlayerJoinHandler" type="MessageHandler" parent="."]
-message_type = 5
+[node name="PlayerJoinHandler" type="MessageHandler" parent="." unique_id=1584807009]
 script = ExtResource("5_oo133")
 
-[node name="InteractableMessageHandler" type="MessageHandler" parent="."]
-message_type = 6
+[node name="InteractableMessageHandler" type="MessageHandler" parent="." unique_id=16434051]
 script = ExtResource("6_levu4")

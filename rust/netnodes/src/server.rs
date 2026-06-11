@@ -87,7 +87,7 @@ impl NetNodeServer {
     pub fn get_next_object_id(&mut self) -> u16 {
         // todo: should probably try to reuse object ids from removed nodes
         // if we manage to actually have no free ids, panicing is fine
-        self.last_netnode_id = self.last_netnode_id.checked_add(1).unwrap();
+        self.last_netnode_id.checked_add_assign(&1).unwrap();
         self.last_netnode_id
     }
 

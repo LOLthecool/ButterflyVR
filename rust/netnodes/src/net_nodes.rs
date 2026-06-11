@@ -77,7 +77,7 @@ impl NetworkedNode {
     /// Called when the owner disconnects from the server.
     /// Default implementation does nothing, but can be overridden to handle cleanup.
     /// An example is the player's character, which deletes itself when the owner disconnects.
-    #[func]
+    #[func(virtual)]
     pub fn on_owner_dc(&mut self) {}
 
     /// Generates a packet chunk containing the values from `get_networked_values`, encoding each value using the network value types.
