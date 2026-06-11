@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://do1488h54fo8r"]
+[gd_scene format=3 uid="uid://do1488h54fo8r"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_lxlqj"]
 
-[node name="SettingsPage" type="VBoxContainer"]
+[node name="SettingsPage" type="VBoxContainer" unique_id=606468144]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -13,6 +13,6 @@ size_flags_vertical = 3
 script = ExtResource("1_lxlqj")
 page_name = "Settings"
 
-[node name="Label" type="Label" parent="."]
+[node name="Label" type="Label" parent="." unique_id=601736820]
 layout_mode = 2
 text = "coming soon: settings"

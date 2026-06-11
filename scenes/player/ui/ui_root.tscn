@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://dv5d7diocohlq"]
+[gd_scene format=3 uid="uid://dv5d7diocohlq"]
 
 [ext_resource type="Script" uid="uid://bqbnorj2ewbsm" path="res://scenes/player/ui/page_handler.gd" id="1_ab8o1"]
 [ext_resource type="Script" uid="uid://benj7caxeip7f" path="res://scenes/player/ui/main_menu.gd" id="1_gfrqc"]
@@ -21,9 +21,9 @@ thickness = 4
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_ab8o1"]
 size = Vector2(64, 64)
 
-[node name="UIRoot" type="CanvasLayer"]
+[node name="UIRoot" type="CanvasLayer" unique_id=1781355510]
 
-[node name="menuRoot" type="VBoxContainer" parent="."]
+[node name="menuRoot" type="VBoxContainer" parent="." unique_id=2034167860]
 anchors_preset = -1
 anchor_left = 0.15
 anchor_top = 0.1
@@ -34,55 +34,55 @@ grow_vertical = 2
 script = ExtResource("1_gfrqc")
 metadata/_edit_use_anchors_ = true
 
-[node name="PanelContainer" type="PanelContainer" parent="menuRoot"]
+[node name="PanelContainer" type="PanelContainer" parent="menuRoot" unique_id=1075109949]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PageHandler" type="VBoxContainer" parent="menuRoot/PanelContainer" node_paths=PackedStringArray("page_root", "tab_container")]
+[node name="PageHandler" type="VBoxContainer" parent="menuRoot/PanelContainer" unique_id=1913614031 node_paths=PackedStringArray("page_root", "tab_container")]
 layout_mode = 2
 script = ExtResource("1_ab8o1")
 page_root = NodePath("PageRoot")
 tab_container = NodePath("ScrollContainer/PageNavigation/TabContainer")
 
-[node name="ScrollContainer" type="ScrollContainer" parent="menuRoot/PanelContainer/PageHandler"]
+[node name="ScrollContainer" type="ScrollContainer" parent="menuRoot/PanelContainer/PageHandler" unique_id=784820262]
 layout_mode = 2
 size_flags_horizontal = 3
 vertical_scroll_mode = 0
 
-[node name="PageNavigation" type="HBoxContainer" parent="menuRoot/PanelContainer/PageHandler/ScrollContainer"]
+[node name="PageNavigation" type="HBoxContainer" parent="menuRoot/PanelContainer/PageHandler/ScrollContainer" unique_id=409236684]
 layout_mode = 2
 
-[node name="TabContainer" type="HBoxContainer" parent="menuRoot/PanelContainer/PageHandler/ScrollContainer/PageNavigation"]
+[node name="TabContainer" type="HBoxContainer" parent="menuRoot/PanelContainer/PageHandler/ScrollContainer/PageNavigation" unique_id=1602086267]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="NewTab" type="Button" parent="menuRoot/PanelContainer/PageHandler/ScrollContainer/PageNavigation"]
+[node name="NewTab" type="Button" parent="menuRoot/PanelContainer/PageHandler/ScrollContainer/PageNavigation" unique_id=1826826657]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = " + "
 
-[node name="HSeparator" type="HSeparator" parent="menuRoot/PanelContainer/PageHandler"]
+[node name="HSeparator" type="HSeparator" parent="menuRoot/PanelContainer/PageHandler" unique_id=1764032078]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxLine_jhacy")
 
-[node name="PageRoot" type="ScrollContainer" parent="menuRoot/PanelContainer/PageHandler"]
+[node name="PageRoot" type="ScrollContainer" parent="menuRoot/PanelContainer/PageHandler" unique_id=2067562344]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 4
 
-[node name="HSeparator" type="HSeparator" parent="menuRoot"]
+[node name="HSeparator" type="HSeparator" parent="menuRoot" unique_id=1094811501]
 layout_mode = 2
 theme_override_constants/separation = 16
 theme_override_styles/separator = SubResource("StyleBoxEmpty_jhacy")
 
-[node name="QuickButtons" type="PanelContainer" parent="menuRoot"]
+[node name="QuickButtons" type="PanelContainer" parent="menuRoot" unique_id=1261081551]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="menuRoot/QuickButtons"]
+[node name="HBoxContainer" type="HBoxContainer" parent="menuRoot/QuickButtons" unique_id=197919763]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+[node name="Button" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=2117260325 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "home"
@@ -93,7 +93,7 @@ script = ExtResource("2_4flen")
 page = ExtResource("3_vskxc")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button2" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+[node name="Button2" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=787559579 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "worlds"
@@ -104,7 +104,7 @@ script = ExtResource("2_4flen")
 page = ExtResource("4_rd5lu")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button3" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+[node name="Button3" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=1414183698 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "avatars"
@@ -115,7 +115,7 @@ script = ExtResource("2_4flen")
 page = ExtResource("5_gfrqc")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button8" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+[node name="Button8" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=612691410 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "search"
@@ -126,7 +126,7 @@ script = ExtResource("2_4flen")
 page = ExtResource("6_rd5lu")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button4" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+[node name="Button4" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=872392838 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "chat"
@@ -137,7 +137,7 @@ script = ExtResource("2_4flen")
 page = ExtResource("6_3ikpl")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button5" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+[node name="Button5" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=2124773962 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "notifications"
@@ -148,7 +148,7 @@ script = ExtResource("2_4flen")
 page = ExtResource("7_jcrsv")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button6" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+[node name="Button6" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=1814619449 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "settings"
@@ -159,7 +159,7 @@ script = ExtResource("2_4flen")
 page = ExtResource("8_6roop")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="Button7" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" node_paths=PackedStringArray("page_handler")]
+[node name="Button7" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=1134496151 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "exit"
@@ -170,7 +170,7 @@ script = ExtResource("2_4flen")
 page = ExtResource("9_b1c3u")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
 
-[node name="HudRoot" type="Control" parent="."]
+[node name="HudRoot" type="Control" parent="." unique_id=1040830788]
 z_index = -1
 layout_mode = 3
 anchors_preset = 15

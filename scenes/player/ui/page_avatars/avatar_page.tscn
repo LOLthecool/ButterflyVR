@@ -162,7 +162,7 @@ msaa_3d = 2
 size = Vector2i(512, 1024)
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" unique_id=374216070 node_paths=PackedStringArray("viewport", "camera")]
-transform = Transform3D(-0.5913931, 0, -0.8063832, 0, 1, 0, 0.8063832, 0, -0.5913931, 0, 0, 0)
+transform = Transform3D(-0.5156521, 0, -0.8567978, 0, 1, 0, 0.8567978, 0, -0.5156521, 0, 0, 0)
 script = ExtResource("4_j5nty")
 viewport = NodePath("..")
 camera = NodePath("../Camera3D")

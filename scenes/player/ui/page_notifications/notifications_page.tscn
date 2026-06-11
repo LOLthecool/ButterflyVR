@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://opg2daisj1fm"]
+[gd_scene format=3 uid="uid://opg2daisj1fm"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_q1jxb"]
 
-[node name="NotificationsPage" type="VBoxContainer"]
+[node name="NotificationsPage" type="VBoxContainer" unique_id=980811700]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -13,6 +13,6 @@ size_flags_vertical = 3
 script = ExtResource("1_q1jxb")
 page_name = "Notifications"
 
-[node name="Label" type="Label" parent="."]
+[node name="Label" type="Label" parent="." unique_id=1313701773]
 layout_mode = 2
 text = "coming soon: notification menu"
