@@ -16,13 +16,14 @@ use godot::prelude::*;
 pub struct NetworkedNode {
     /// The unique object ID of this node. It is assigned by the server when the node is added to the scene tree,
     /// and synced to clients using the internal `MessageHandler`.
-    #[export]
+    #[cfg_attr(debug_assertions, export)]
     pub objectid: u16,
     /// The UUID of the owner of this node.
     /// In a game server, the owner will be able to update this node on the server's behalf; however, the server may subject given values to anti-cheat checks.
     /// In an instance server, the updates from the owner will be applied directly on other clients and
     /// applied immediately by the owner, effectively giving the owner 0 latency.
-    #[export]
+    #[cfg_attr(debug_assertions, export)]
+    #[cfg_attr(not(debug_assertions), var)]
     pub owner_id: PackedByteArray,
     base: Base<Node>,
 }

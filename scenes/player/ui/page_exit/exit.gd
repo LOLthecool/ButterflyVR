@@ -16,7 +16,7 @@ func _pressed() -> void:
 
 func on_confirm() -> void:
 	clean_popup()
-	GlobalWorldHandler.disconnect_from_world(false)
+	await GlobalWorldHandler.disconnect_from_world(false)
 	get_tree().quit()
 
 func on_cancel() -> void:

@@ -6,7 +6,7 @@ class_name AccountHandler
 # the renewal threshold determines the minimum time remaining before renewing
 const TOKEN_RENEWAL_THRESHOLD:int = 60 * 60 * 24 * 7 # 1 week
 # and the check rate determines how often we check our token expiry time
-const TOKEN_RENEWAL_CHECK_RATE:int = 1800 # 30 minutes
+const TOKEN_RENEWAL_CHECK_RATE:int = 60 * 60 # 1 hour
 
 const TOKEN_RENEW_ENDPOINT:String = "/api/v0/token"
 const TOKEN_VERIFY_ENDPOINT:String = "/api/v0/token/validate"

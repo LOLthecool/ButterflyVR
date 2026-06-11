@@ -19,8 +19,9 @@ use godot::prelude::*;
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct MessageHandler {
+    #[cfg_attr(debug_assertions, export)]
     pub message_id: u16,
-    #[export]
+    #[cfg_attr(debug_assertions, export)]
     stream: i32,
     network_manager: Option<Gd<NetNodeManager>>,
     base: Base<Node>,

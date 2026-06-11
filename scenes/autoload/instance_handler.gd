@@ -6,16 +6,12 @@ const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
 
 const OFFLINE_INSTANCE_CMD_ARGUMENTS:Array[String] = ["--server", "--local", "--headless", "--log-file", "user://logs/server.log"]
 
-const MAX_CONNECT_RETRYS:int = 10
-
 enum InstanceJoinPermission{
 	InviteOnly,
 	Friends,
 	FriendsOfFriends,
 	Public
 }
-
-const STATUS_REFRESH_RATE:int = 30
 
 var current_instance:UUID
 
@@ -82,7 +78,7 @@ func create_and_join_offline_instance(world_uuid:UUID) -> void:
 			(await GlobalAccountHandler.get_uuid()).backing_storage.slice(0, 8))
 
 # do not call directly, call load_world instead
-func join_instance(instance:UUID) -> void:
+func join_instance(instance:UUID) -> bool:
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, 
 			INSTANCE_JOIN_ENDPOINT % instance.to_string(), 
@@ -100,8 +96,7 @@ func join_instance(instance:UUID) -> void:
 			push_error("error code: %s" % result[2])
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
-		GlobalWorldHandler.load_fallback_world()
-		return
+		return false
 	
 	var ip:String = result[4]["ip"]
 	var port:int = result[4]["port"]
@@ -113,7 +108,8 @@ func join_instance(instance:UUID) -> void:
 	assert(identifier.size() == 8)
 
 	NetworkManager.start_client(
-		ip.split("/")[0], 
-		port, 
-		(await GlobalAccountHandler.get_uuid()).backing_storage, 
-		identifier, )
+			ip.split("/")[0], 
+			port, 
+			(await GlobalAccountHandler.get_uuid()).backing_storage, 
+			identifier, )
+	return true

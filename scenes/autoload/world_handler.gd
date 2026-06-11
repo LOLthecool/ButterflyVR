@@ -55,7 +55,7 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	
 	await get_tree().physics_frame
 	
-	disconnect_from_world(false)
+	await disconnect_from_world(false)
 	
 	# initialization order MUST be:
 	# 1. world instantaited and setup (to connect signals in _init())
@@ -68,7 +68,9 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	NetworkManager.kill()
 	
 	if instance_id:
-		await GlobalInstanceHandler.join_instance(instance_id)
+		if !await GlobalInstanceHandler.join_instance(instance_id):
+			load_fallback_world()
+			return
 	else:
 		await GlobalInstanceHandler.create_and_join_offline_instance(world_id)
 	
@@ -103,7 +105,10 @@ func load_world_server(world_id:UUID, bind_port:int) -> void:
 	current_world = root
 
 func disconnect_from_world(go_home:bool = true) -> void:
-	if current_world != null:
-		NetworkManager.stop()
+	NetworkManager.stop()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	NetworkManager.kill()
+	await get_tree().physics_frame
 	if go_home:
 		load_homeworld()

@@ -16,7 +16,7 @@ func _pressed() -> void:
 
 func on_confirm() -> void:
 	clean_popup()
-	GlobalWorldHandler.disconnect_from_world()
+	await GlobalWorldHandler.disconnect_from_world()
 
 func on_cancel() -> void:
 	clean_popup()

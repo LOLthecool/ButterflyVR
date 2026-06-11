@@ -33,6 +33,7 @@ struct LruCache {
     save_call: Callable,
     #[var]
     load_call: Callable,
+    #[var]
     on_destroy_call: Callable,
     destructor_queue: Arc<Mutex<VecDeque<Uuid>>>,
     base: Base<Node>,
