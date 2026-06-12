@@ -42,11 +42,11 @@ enum ConnectionStatus {
 }
 
 impl NetNodeClient {
-    pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &NetworkedNode) {
+    pub fn register_node(&mut self, new_node: &NetworkedNode) {
         if new_node.owner_id == self.uuid.to_vec().to_godot().to_packed_array() {
-            self.owned_nodes.push((new_node_ref.clone(), 0));
+            self.owned_nodes.push((new_node.to_gd().clone(), 0));
         }
-        self.networked_nodes.push(new_node_ref);
+        self.networked_nodes.push(new_node.to_gd());
     }
     pub fn unregister_node(&mut self, removed_node_ref: &Gd<NetworkedNode>) {
         if let Some(pos) = self

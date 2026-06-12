@@ -16,6 +16,6 @@ func _process_message(values: Array) -> void:
 	var player_owner:PackedByteArray = PackedByteArray(values[0] as Array)
 	var world:WorldController = GlobalWorldHandler.current_world
 	var player:Player = preload("res://scenes/player/player.tscn").instantiate()
-	player.set_meta("owner_id", player_owner)
+	player.networker.owner_id = player_owner
 	world.add_child(player)
 	player.global_transform = world.spawn_point.global_transform

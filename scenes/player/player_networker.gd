@@ -4,9 +4,6 @@ class_name PlayerNetworker
 @export var target:Player
 
 func _ready() -> void:
-	if get_parent():
-		if get_parent().has_meta("owner_id"):
-			owner_id = get_parent().get_meta("owner_id", PackedByteArray())
 	if owner_id == (await GlobalAccountHandler.get_uuid()).backing_storage and !NetworkManager.is_server():
 		target.init_local()
 	else:

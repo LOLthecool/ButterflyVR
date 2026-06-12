@@ -13,9 +13,6 @@ func update_filters(_filters:Dictionary) -> void:
 	pass
 
 func show_instances(world:Dictionary) -> void:
-	for child:Node in instances_container.get_children():
-		child.queue_free()
-	
 	world_id = world["id"]
 	filters["world"] = world_id
 	filters["is_empty"] = false
@@ -40,6 +37,10 @@ func show_instances(world:Dictionary) -> void:
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
 		return
+	
+	for child:Node in instances_container.get_children():
+		child.queue_free()
+	await get_tree().physics_frame
 	
 	for instance:Dictionary in result[4]["instances"]:
 		@warning_ignore("unsafe_cast")

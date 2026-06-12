@@ -16,14 +16,15 @@ var api_token:PackedByteArray
 var instance_id:UUID
 var inactivity:float
 var is_gameserver:bool = false
+var is_processing_client:bool = false
 
 func _physics_process(delta: float) -> void:
 	if finished_starting:
-		while true:
+		while true and !is_processing_client:
 			var client_id:PackedByteArray = NetworkManager.get_unverified_client()
 			if client_id == PackedByteArray():
 				break
-			print("player joined")
+			is_processing_client = true
 			if !agones_sdk:
 				# our token is the same as the user for a local server
 				NetworkManager.verify_client(client_id, (await GlobalAccountHandler.get_uuid()).backing_storage)
@@ -51,6 +52,7 @@ func _physics_process(delta: float) -> void:
 							push_error("error code: %s" % result[2])
 						if result[3] != "":
 							push_error("error message: %s" % result[3])
+			is_processing_client = false
 		
 		if NetworkManager.get_player_count() == 0:
 			inactivity += delta
@@ -60,20 +62,17 @@ func _physics_process(delta: float) -> void:
 				push_warning("too long with 0 players: exiting")
 				
 				if agones_sdk:
+					await GlobalAPIHandler.make_request(
+							HTTPClient.METHOD_GET, 
+							CLOSE_INSTANCE_ENDPOINT, 
+							PackedStringArray([GlobalAccountHandler.get_token_header()]))
 					agones_sdk.shutdown()
 				else:
 					get_tree().quit()
 		else:
 			inactivity = 0
 
-func _exit_tree() -> void:
-	if finished_starting and agones_sdk:
-		await GlobalAPIHandler.make_request(
-				HTTPClient.METHOD_GET, 
-				CLOSE_INSTANCE_ENDPOINT, 
-				PackedStringArray([GlobalAccountHandler.get_token_header()]))
-
-# this class should do nothing until this function is done
+# this autoload should do nothing until this function has run
 func start(api_token:PackedByteArray, is_local:bool, local_world:UUID, 
 		local_bind_port:int) -> void:
 	started = true

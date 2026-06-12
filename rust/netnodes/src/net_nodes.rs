@@ -1,5 +1,6 @@
 use crate::{
     NetNodeManager,
+    common::BYTES8,
     serializer::{self, NetworkedValueTypes},
 };
 
@@ -14,6 +15,7 @@ use godot::prelude::*;
 #[derive(GodotClass)]
 #[class(init, base=Node)]
 pub struct NetworkedNode {
+    /// only available to gdscript in debug mode!
     /// The unique object ID of this node. It is assigned by the server when the node is added to the scene tree,
     /// and synced to clients using the internal `MessageHandler`.
     #[cfg_attr(debug_assertions, export)]
@@ -82,7 +84,7 @@ impl NetworkedNode {
 
     /// Generates a packet chunk containing the values from `get_networked_values`, encoding each value using the network value types.
     pub fn get_byte_data(&self, types: &[NetworkedValueTypes]) -> BitVec {
-        const AVERAGE_OBJECT_SIZE: usize = 128; // estimated average size, prefers to overallocate than underallocate, probably a better way to do this
+        const AVERAGE_OBJECT_SIZE: usize = BYTES8; // estimated average size, prefers to overallocate than underallocate, probably a better way to do this
         let data: VarArray = self.get_networked_values();
         let mut byte_data: BitVec = BitVec::with_capacity(data.len() * AVERAGE_OBJECT_SIZE);
 
@@ -138,14 +140,11 @@ impl NetworkedNode {
 #[godot_api]
 impl INode for NetworkedNode {
     fn enter_tree(&mut self) {
-        // todo: clean this up
         let mut manager = self
             .base_mut()
             .get_node_as::<NetNodeManager>("/root/NetworkManager");
 
-        let mut self_ref = self.to_gd();
-
-        manager.run_deferred(move |this| this.register_node(self_ref.clone(), self_ref.bind_mut()));
+        manager.bind_mut().register_node(self);
     }
     fn exit_tree(&mut self) {
         let mut manager = self
@@ -154,6 +153,6 @@ impl INode for NetworkedNode {
 
         let self_ref = self.to_gd();
 
-        manager.run_deferred(move |this| this.unregister_node(&self_ref));
+        manager.bind_mut().unregister_node(&self_ref);
     }
 }

@@ -12,9 +12,6 @@ func get_and_show_worlds(search_string:String, filters_untyped:Dictionary) -> vo
 	var filters:Dictionary[String, String]
 	filters.assign(filters_untyped)
 	
-	for child:Node in get_children():
-		child.queue_free()
-	
 	filters["is"] = "world"
 	
 	var filter_string:String = ""
@@ -31,6 +28,11 @@ func get_and_show_worlds(search_string:String, filters_untyped:Dictionary) -> vo
 			HTTPClient.METHOD_GET, 
 			SEARCH_ENDPOINT % search, 
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
+	
+	for child:Node in get_children():
+		child.queue_free()
+	await get_tree().physics_frame
+	
 	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["worlds"])
 	if !result[0]:

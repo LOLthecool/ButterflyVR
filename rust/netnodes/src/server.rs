@@ -38,18 +38,18 @@ impl NetNodeServer {
         self.networker.get_peers(false).len()
     }
 
-    pub fn register_node(&mut self, new_node_ref: Gd<NetworkedNode>, new_node: &mut NetworkedNode) {
+    pub fn register_node(&mut self, new_node: &mut NetworkedNode) {
         new_node.objectid = self.get_next_object_id();
 
         let message = generate_internal_message(InternalMessage::NetNodeIdAssign((
             new_node.objectid,
-            new_node_ref.clone().upcast(),
+            new_node.to_gd().clone().upcast(),
         )));
         self.queue_message(message, 0);
 
         self.priorities_invalidated = true;
 
-        self.networked_nodes.push(new_node_ref);
+        self.networked_nodes.push(new_node.to_gd());
     }
 
     pub fn unregister_node(&mut self, removed_node_ref: &Gd<NetworkedNode>) {
@@ -243,6 +243,16 @@ impl NetNodeServer {
                         let next_obj: u16 = packet[pointer..pointer + OBJECT_HEADER_SIZE].load_le();
                         pointer += OBJECT_HEADER_SIZE;
 
+                        if next_obj == 0 {
+                            if !packet[pointer..].any() {
+                                // reached the padding
+                                break;
+                            }
+                            godot_error!("got object with invalid id 0");
+                            godot_warn!("skipping rest of the packet");
+                            break;
+                        }
+
                         if let Some(tmp) = self
                             .networked_nodes
                             .iter_mut()
@@ -386,14 +396,13 @@ impl NetNodeServer {
 
                                     let tmp =
                                         node.get_byte_data(&node.get_networked_values_types());
+                                    drop(node);
 
                                     if tmp.len() + packet.len() + BYTES2 > max_dgram_size {
-                                        drop(node);
                                         return value;
                                     }
                                     if tmp.len() + packet.len() + BYTES2 > remaining_bandwidth {
                                         capacity_reached = true;
-                                        drop(node);
                                         return value;
                                     }
 

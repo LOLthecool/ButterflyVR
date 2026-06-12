@@ -80,13 +80,13 @@ enum Inner {
 impl NetNodeManager {
     /// Not to be called directly; used by `NetworkedNode` internally.
     /// Registers a `NetworkedNode` with the inner client or server, allowing it to be synced across the network.
-    fn register_node(&mut self, node_ref: Gd<NetworkedNode>, mut node: GdMut<NetworkedNode>) {
+    fn register_node(&mut self, node: &mut NetworkedNode) {
         match self.inner {
             Inner::Server(ref mut server) => {
-                server.register_node(node_ref, &mut node);
+                server.register_node(node);
             }
             Inner::Client(ref mut client) => {
-                client.register_node(node_ref, &mut node);
+                client.register_node(node);
             }
             Inner::None => {
                 godot_warn!("called register_node but no client or server is running");
