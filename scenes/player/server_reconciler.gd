@@ -7,7 +7,7 @@ const BASE_LATENCY:int = 8
 @export var player_access:PlayerAccess
 
 var player:Player
-
+var ticks_without_update:int = 0
 var position_history:Queue = Queue.new()
 var velocity_history:Queue = Queue.new()
 
@@ -15,11 +15,16 @@ func _ready() -> void:
 	player = player_access.player
 
 func _physics_process(delta: float) -> void:
-	if player.server_position == Vector3.ZERO:
-		return
-	
 	if !NetworkManager.is_running():
 		return
+	
+	if player.server_position == Vector3.ZERO:
+		ticks_without_update += 1
+		if ticks_without_update > 60:
+			ticks_without_update = 0
+			push_warning("server is not sending sync data for our player, bug?")
+		return
+	ticks_without_update = 0
 	
 	var rtt_ticks:int = ceilf(NetworkManager.get_highest_rtt_millis() / (delta * 1000)) as int
 	while position_history.size() > (rtt_ticks * 2) + BASE_LATENCY:
