@@ -25,12 +25,6 @@ impl MessageManager {
                     unreachable!();
                 }
                 InternalMessage::NetNodeIdAssign((id, mut node)) => {
-                    godot_warn!(
-                        "assigned: {:?} {:?} {:?}",
-                        node.get_path(),
-                        id,
-                        node.bind().owner_id
-                    );
                     node.bind_mut().objectid = id;
                 }
                 InternalMessage::MessageHandlerIdAssign((id, handler)) => {

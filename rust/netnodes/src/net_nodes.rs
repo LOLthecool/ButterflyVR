@@ -87,7 +87,6 @@ impl NetworkedNode {
         const AVERAGE_OBJECT_SIZE: usize = BYTES8; // estimated average size, prefers to overallocate than underallocate, probably a better way to do this
         let data: VarArray = self.get_networked_values();
         let mut byte_data: BitVec = BitVec::with_capacity(data.len() * AVERAGE_OBJECT_SIZE);
-        godot_warn!("id: {:?}", self.objectid);
         byte_data.extend(self.objectid.view_bits::<Lsb0>());
         for (index, inner_value) in data.iter_shared().enumerate() {
             // network values and network value types must match

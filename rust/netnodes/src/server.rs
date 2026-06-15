@@ -40,12 +40,6 @@ impl NetNodeServer {
 
     pub fn register_node(&mut self, new_node: &mut NetworkedNode) {
         new_node.objectid = self.get_next_object_id();
-        godot_warn!(
-            "registered: {:?} {:?} {:?}",
-            new_node.base().get_path(),
-            new_node.objectid,
-            new_node.owner_id
-        );
 
         let message = generate_internal_message(InternalMessage::NetNodeIdAssign((
             new_node.objectid,
@@ -148,17 +142,31 @@ impl NetNodeServer {
         networked_nodes: &[Gd<NetworkedNode>],
         priorities_invalidated: &mut bool,
     ) {
+        let reset_priorities = *priorities_invalidated;
+        *priorities_invalidated = false;
+
         let mut random = rand::rngs::SmallRng::from_seed(rand::random());
+
         for (conn, client) in clients.iter_mut() {
             if let ClientState::Connected(ref mut client) = client.state {
                 // this should be true if any nodes have been added or removed
-                if *priorities_invalidated {
-                    *priorities_invalidated = false;
-                    client.priorities.clear();
+                if reset_priorities {
+                    let old_priorities = mem::take(&mut client.priorities)
+                        .into_iter()
+                        .collect::<Vec<_>>();
                     for node_ref in networked_nodes {
                         let mut r = [0; 16];
                         random.fill(&mut r);
-                        client.priorities.insert((0, r), node_ref.clone());
+                        client.priorities.insert(
+                            (
+                                old_priorities
+                                    .iter()
+                                    .find(|x| &x.1 == node_ref)
+                                    .map_or(0, |x| x.0.0),
+                                r,
+                            ),
+                            node_ref.clone(),
+                        );
                     }
                 }
                 let old_map = mem::take(&mut client.priorities);
