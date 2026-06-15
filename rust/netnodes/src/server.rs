@@ -40,6 +40,12 @@ impl NetNodeServer {
 
     pub fn register_node(&mut self, new_node: &mut NetworkedNode) {
         new_node.objectid = self.get_next_object_id();
+        godot_warn!(
+            "registered: {:?} {:?} {:?}",
+            new_node.base().get_path(),
+            new_node.objectid,
+            new_node.owner_id
+        );
 
         let message = generate_internal_message(InternalMessage::NetNodeIdAssign((
             new_node.objectid,
@@ -249,7 +255,6 @@ impl NetNodeServer {
                                 break;
                             }
                             godot_error!("got object with invalid id 0");
-                            godot_warn!("skipping rest of the packet");
                             break;
                         }
 

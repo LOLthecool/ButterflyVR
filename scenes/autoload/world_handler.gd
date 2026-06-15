@@ -105,10 +105,19 @@ func load_world_server(world_id:UUID, bind_port:int) -> void:
 	current_world = root
 
 func disconnect_from_world(go_home:bool = true) -> void:
+	if NetworkManager.is_running():
+		for node:NetworkedNode in NetworkManager.get_networked_nodes():
+			if node.owner_id != (await GlobalAccountHandler.get_uuid()).backing_storage and node.has_method("_on_owner_dc"):
+				node._on_owner_dc()
+	
 	NetworkManager.stop()
+	
 	await get_tree().physics_frame
 	await get_tree().physics_frame
+	
 	NetworkManager.kill()
+	
 	await get_tree().physics_frame
+	
 	if go_home:
 		load_homeworld()

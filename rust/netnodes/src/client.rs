@@ -43,6 +43,12 @@ enum ConnectionStatus {
 
 impl NetNodeClient {
     pub fn register_node(&mut self, new_node: &NetworkedNode) {
+        godot_warn!(
+            "registered: {:?} {:?} {:?}",
+            new_node.base().get_path(),
+            new_node.objectid,
+            new_node.owner_id
+        );
         if new_node.owner_id == self.uuid.to_vec().to_godot().to_packed_array() {
             self.owned_nodes.push((new_node.to_gd().clone(), 0));
         }
@@ -151,10 +157,31 @@ impl NetNodeClient {
     }
     fn update_network_nodes(&mut self) {
         while let Some((_, packet)) = self.unapplied_packets.pop_first() {
+            godot_warn!(
+                "packet {:?} : {:?} : {:?}",
+                packet.clone(),
+                packet.clone().into_vec(),
+                packet
+                    .clone()
+                    .into_vec()
+                    .into_iter()
+                    .flat_map(|x| x.to_le_bytes())
+                    .collect::<Vec<u8>>()
+            );
             let mut pointer: usize = DGRAM_HEADER_SIZE;
             while pointer + OBJECT_HEADER_SIZE <= packet.len() {
                 let next_obj: u16 = packet[pointer..pointer + OBJECT_HEADER_SIZE].load_le();
                 pointer += OBJECT_HEADER_SIZE;
+
+                if next_obj == 0 {
+                    if !packet[pointer..].any() {
+                        // reached the padding
+                        break;
+                    }
+                    godot_error!("got object with invalid id 0");
+                    break;
+                }
+
                 if let Some(tmp) = self
                     .networked_nodes
                     .iter_mut()
