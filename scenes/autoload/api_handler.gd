@@ -3,6 +3,8 @@ class_name APIHandler
 # todo: cache requests using cache control headers
 
 const RECONNECT_DELAY_TIME:float = 3
+const BASE_RECONNECT_DELAY:float = 0.1
+const RECONNECT_DELAY_RECOVERY_SECONDS:float = 5
 
 # contains the request information stored before processing a request
 class Request:
@@ -35,6 +37,7 @@ var target_host:String = "api.butterflyvr.net"
 var restart_requested:bool = false
 var client:HTTPClient
 var waiting_requests:Array[Request]
+var reconnect_delay:float = BASE_RECONNECT_DELAY
 @onready var tree:SceneTree = get_tree()
 
 # todo: make readonly once its available
@@ -102,7 +105,8 @@ func _ready() -> void:
 		err = client.connect_to_host(target_host, target_port)
 	if err != OK:
 		push_error("error while connecting to api: ", str(err))
-		await tree.create_timer(3).timeout
+		await tree.create_timer(reconnect_delay).timeout
+		reconnect_delay = reconnect_delay * 2
 		push_warning("retrying connection...")
 		_ready.call_deferred()
 		return
@@ -116,7 +120,8 @@ func _ready() -> void:
 				push_error("couldnt connect: server unavailable?")
 			else:
 				push_error("error in api connection: client state should be connected but was ", client.get_status())
-			await tree.create_timer(3).timeout
+			await tree.create_timer(reconnect_delay).timeout
+			reconnect_delay = reconnect_delay * 2
 			push_warning("retrying connection...")
 			_ready.call_deferred()
 			return
@@ -127,6 +132,9 @@ func _ready() -> void:
 				_ready.call_deferred()
 				return
 			await tree.physics_frame
+			reconnect_delay -= (
+					(reconnect_delay - BASE_RECONNECT_DELAY) * 
+					( 1.0 / Engine.physics_ticks_per_second)) / RECONNECT_DELAY_RECOVERY_SECONDS
 		var request:Request = waiting_requests.pop_back()
 		client.request(request.method, request.target, headers + request.additional_headers, request.body)
 		while client.get_status() == HTTPClient.STATUS_REQUESTING:
@@ -134,7 +142,8 @@ func _ready() -> void:
 			await tree.process_frame
 		if client.get_status() != HTTPClient.STATUS_BODY and client.get_status() != HTTPClient.STATUS_CONNECTED:
 			push_error("error in api connection: expected body or ready connection, got: ", client.get_status())
-			await tree.create_timer(3).timeout
+			await tree.create_timer(reconnect_delay).timeout
+			reconnect_delay = reconnect_delay * 2
 			push_warning("retrying connection...")
 			waiting_requests.push_back(request)
 			_ready.call_deferred()

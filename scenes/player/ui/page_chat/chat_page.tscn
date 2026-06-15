@@ -118,6 +118,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 48
 placeholder_text = "Type Here..."
+max_length = 2048
 
 [node name="Button2" type="Button" parent="PanelContainer2/Messager/HBoxContainer" unique_id=1052628279 node_paths=PackedStringArray("message_box")]
 layout_mode = 2

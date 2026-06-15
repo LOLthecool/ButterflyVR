@@ -28,3 +28,10 @@ func _process_message(values: Array) -> void:
 	message.text = values[1]
 	new_message_sent.emit(message)
 	messages.append(message)
+
+func _clean_message(values: Array) -> Array:
+	@warning_ignore("unsafe_cast")
+	if (values[1] as String).length() > 2048:
+		@warning_ignore("unsafe_cast")
+		values[1] = (values[1] as String).substr(0, 2048)
+	return values
