@@ -194,11 +194,10 @@ func _on_login() -> void:
 	loading_text.text = "Contacting server..."
 	
 	var body:String = JSON.stringify({"email": email, "password_hash": password_hash as Array[int], "allow_renew": remember})
-	print("making request")
+
 	GlobalAPIHandler.make_request(HTTPClient.METHOD_POST, SIGNIN_ENDPOINT, PackedStringArray(), body).connect(on_login_response)
 
 func on_login_response(code:HTTPClient.ResponseCode, _headers:PackedStringArray, body:String) -> void:
-	print("request done")
 	var result:Array = GlobalAPIHandler.handle_response(code, body, [HTTPClient.RESPONSE_OK], [
 			"token",
 			"token_expires",
