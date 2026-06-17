@@ -9,6 +9,8 @@ func _ready() -> void:
 	get_and_show_avatars("", {})
 
 func get_and_show_avatars(search_string:String, filters:Dictionary[String ,String]) -> void:
+	visible = true
+	
 	filters["is"] = "avatar"
 	
 	var filter_string:String = ""

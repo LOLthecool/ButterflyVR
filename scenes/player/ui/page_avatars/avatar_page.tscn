@@ -2,9 +2,17 @@
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_awhje"]
 [ext_resource type="Script" uid="uid://dpwxpwh8y3x10" path="res://scenes/player/ui/page_avatars/avatar_list.gd" id="2_2ou7c"]
+[ext_resource type="Script" uid="uid://c2d2iyuivjc8x" path="res://scenes/player/ui/page_avatars/owned_avatar_filter.gd" id="2_a3yon"]
+[ext_resource type="Script" uid="uid://bnhxoegmb208c" path="res://scenes/player/ui/page_worlds/world_tags_list.gd" id="3_5qthq"]
+[ext_resource type="Script" uid="uid://vwdpu68lc1i0" path="res://scenes/player/ui/page_avatars/avatar_details_page.gd" id="3_b27c1"]
 [ext_resource type="Script" uid="uid://c2mx38lc3cyb" path="res://scenes/player/ui/page_avatars/avatar_preview.gd" id="3_v5rxm"]
 [ext_resource type="Script" uid="uid://ksrjgkewkwkw" path="res://scenes/player/ui/previewer.gd" id="4_j5nty"]
 [ext_resource type="Script" uid="uid://cbfejau06v0jn" path="res://scenes/player/ui/page_avatars/flag_list.gd" id="5_m82ti"]
+[ext_resource type="Script" uid="uid://xdkkbmk0c8dk" path="res://scenes/player/ui/page_avatars/close_details.gd" id="5_moiu7"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_b27c1"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_moiu7"]
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_m82ti"]
 viewport_path = NodePath("Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport")
@@ -71,10 +79,12 @@ text = "Featured"
 [node name="PanelContainer2" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1067050047]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2" unique_id=634219211]
+[node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer2" unique_id=634219211 node_paths=PackedStringArray("avatar_list")]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "Owned"
+script = ExtResource("2_a3yon")
+avatar_list = NodePath("../../../../../TabContainer/AvatarList")
 
 [node name="PanelContainer3" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1965589277]
 layout_mode = 2
@@ -100,6 +110,7 @@ layout_mode = 2
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer4" unique_id=822388371]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
+disabled = true
 text = "Popular"
 
 [node name="PanelContainer6" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2" unique_id=1593982539]
@@ -108,6 +119,7 @@ layout_mode = 2
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer/FixedCatagories/VBoxContainer2/PanelContainer6" unique_id=118464029]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
+disabled = true
 text = "New"
 
 [node name="Customs" type="PanelContainer" parent="Control/VBoxContainer2/VBoxContainer" unique_id=1174728129]
@@ -128,13 +140,120 @@ theme_override_font_sizes/font_size = 32
 disabled = true
 text = " + "
 
-[node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2" unique_id=122960574 node_paths=PackedStringArray("avatar_previewer")]
+[node name="TabContainer" type="TabContainer" parent="Control/VBoxContainer2" unique_id=1202729836]
+layout_mode = 2
+size_flags_horizontal = 3
+current_tab = 0
+tabs_visible = false
+
+[node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2/TabContainer" unique_id=122960574 node_paths=PackedStringArray("avatar_previewer")]
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("2_2ou7c")
-avatar_previewer = NodePath("../VBoxContainer3")
+avatar_previewer = NodePath("../../VBoxContainer3")
+metadata/_tab_index = 0
 
-[node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2" unique_id=1335291196 node_paths=PackedStringArray("previewer", "avatar_name", "avatar_publicity", "avatar_author", "flag_list", "details_button", "equip_button")]
+[node name="AvatarDetails" type="VBoxContainer" parent="Control/VBoxContainer2/TabContainer" unique_id=458652802 node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_size", "details_tags")]
+visible = false
+layout_mode = 2
+script = ExtResource("3_b27c1")
+details_name = NodePath("VBoxContainer/Label2")
+details_description = NodePath("VBoxContainer/PanelContainer/MarginContainer/Label2")
+details_creation_time = NodePath("VBoxContainer/HBoxContainer2/Label2")
+details_update_time = NodePath("VBoxContainer/HBoxContainer3/Label2")
+details_size = NodePath("VBoxContainer/HBoxContainer4/Label2")
+details_tags = NodePath("VBoxContainer/HFlowContainer")
+metadata/_tab_index = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails" unique_id=1428489882]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label2" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=1648462688]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "UNNAMED"
+
+[node name="HSeparator" type="HSeparator" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=1348777415]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_b27c1")
+
+[node name="PanelContainer" type="PanelContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=250928320]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/PanelContainer" unique_id=2097442071]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Label2" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/PanelContainer/MarginContainer" unique_id=1247143246]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+
+[node name="HSeparator3" type="HSeparator" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=82178102]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_moiu7")
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=1810806890]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/HBoxContainer2" unique_id=183824029]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "created on:"
+
+[node name="Label2" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/HBoxContainer2" unique_id=1056682556]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=1207459867]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/HBoxContainer3" unique_id=2011048541]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "updated on:"
+
+[node name="Label2" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/HBoxContainer3" unique_id=82923791]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+
+[node name="HBoxContainer4" type="HBoxContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=1038347905]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/HBoxContainer4" unique_id=1820380004]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "size:"
+
+[node name="Label2" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/HBoxContainer4" unique_id=353559857]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+
+[node name="HSeparator2" type="HSeparator" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=736723104]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_moiu7")
+
+[node name="Label" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=1842472384]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "tags:"
+
+[node name="HFlowContainer" type="HFlowContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=1427845296]
+layout_mode = 2
+script = ExtResource("3_5qthq")
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/TabContainer/AvatarDetails" unique_id=2089056078 node_paths=PackedStringArray("details_page")]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "close"
+script = ExtResource("5_moiu7")
+details_page = NodePath("..")
+
+[node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2" unique_id=1335291196 node_paths=PackedStringArray("previewer", "avatar_name", "avatar_publicity", "avatar_author", "flag_list", "details_button", "equip_button", "details_page")]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.4
@@ -146,6 +265,7 @@ avatar_author = NodePath("Label3")
 flag_list = NodePath("ScrollContainer/HFlowContainer")
 details_button = NodePath("Button")
 equip_button = NodePath("Button2")
+details_page = NodePath("../TabContainer/AvatarDetails")
 
 [node name="TextureRect" type="TextureRect" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=1054683923]
 custom_minimum_size = Vector2(256, 256)
@@ -162,7 +282,7 @@ msaa_3d = 2
 size = Vector2i(512, 1024)
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" unique_id=374216070 node_paths=PackedStringArray("viewport", "camera")]
-transform = Transform3D(-0.5156521, 0, -0.8567978, 0, 1, 0, 0.8567978, 0, -0.5156521, 0, 0, 0)
+transform = Transform3D(0.72002196, 0, -0.6939509, 0, 1, 0, 0.6939509, 0, 0.72002196, 0, 0, 0)
 script = ExtResource("4_j5nty")
 viewport = NodePath("..")
 camera = NodePath("../Camera3D")
@@ -211,7 +331,6 @@ text = "favourite"
 [node name="Button" type="Button" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=258551172]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-disabled = true
 text = "details"
 
 [node name="Button2" type="Button" parent="Control/VBoxContainer2/VBoxContainer3" unique_id=808160002]
@@ -219,4 +338,5 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "equip"
 
+[connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer3/Button" to="Control/VBoxContainer2/VBoxContainer3" method="on_avatar_details"]
 [connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer3/Button2" to="Control/VBoxContainer2/VBoxContainer3" method="on_avatar_equip"]

@@ -26,3 +26,14 @@ static func stringify_instance_publicity(publicity:int) -> String:
 			return "Public"
 		_:
 			return "UNNAMED"
+
+static func stringify_size_kb(size:int) -> String:
+	const KILOBYTE:int = 1024
+	const MEGABYTE:int = KILOBYTE * 1024
+	const GIGABYTE:int = MEGABYTE * 1024
+	if size > GIGABYTE:
+		return "%.2f GB" % ((size as float) / GIGABYTE)
+	elif size > MEGABYTE:
+		return "%.2f MB" % ((size as float) / MEGABYTE)
+	else:
+		return "%.2f KB" % ((size as float) / KILOBYTE)

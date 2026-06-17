@@ -10,6 +10,7 @@ const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 @export var flag_list:FlagList
 @export var details_button:Button
 @export var equip_button:Button
+@export var details_page:AvatarDetailsPage
 
 var avatar:Dictionary[String, Variant]
 
@@ -45,8 +46,7 @@ func preview_avatar(avatar:Dictionary[String, Variant]) -> void:
 	flag_list.create_list(avatar["flags"] as Array)
 
 func on_avatar_details() -> void:
-	# todo: details page with extra info
-	pass
+	details_page.show_details(avatar)
 
 func on_avatar_equip() -> void:
 	var avatar_handler:AvatarChangeHandler = GlobalWorldHandler.current_world.avatar_change_handler
