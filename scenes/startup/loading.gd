@@ -111,7 +111,7 @@ func _on_register() -> void:
 	if !register_email.text.match("?*@?*.?*"):
 		await show_popup("Invalid email")
 		return
-	if !register_email.text.length() > 128:
+	if register_email.text.length() > 128:
 		await show_popup("email is too long")
 		return
 	if register_password.text.length() < 6:
@@ -148,6 +148,10 @@ func on_register_response(code:HTTPClient.ResponseCode, _headers:PackedStringArr
 	var result:Array = GlobalAPIHandler.handle_response(code, body, [HTTPClient.RESPONSE_OK], [])
 	if result[0]:
 		last_screen = SIGNIN_TAB
+		
+		signin_email.text = register_email.text
+		signin_password.text = register_password.text
+	
 		await show_popup("Account created. Click the verify link in your emails before signing in.", true)
 		last_screen = GREETER_TAB
 	else:
