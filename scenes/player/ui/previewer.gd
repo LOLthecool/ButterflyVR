@@ -40,8 +40,8 @@ func create_preview(uuid:UUID) -> void:
 	var candidate2:float = ((aabb.size.y / 2) / absf(tan(deg_to_rad(fovy / 2)))) * 1.1
 	
 	pos.z += maxf(candidate1, candidate2)
-	
+	pos.z = -pos.z
 	camera.position = pos
 
 func _process(delta: float) -> void:
-	rotation.y += 0.2 * delta
+	rotation.y += 0.4 * delta

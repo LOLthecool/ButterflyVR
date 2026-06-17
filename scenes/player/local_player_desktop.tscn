@@ -26,10 +26,11 @@ rotation_center = NodePath("..")
 [node name="Raycaster" parent="Node3D/Camera3D" unique_id=57031967 instance=ExtResource("3_yag7k")]
 script = null
 
-[node name="MovementHandler" type="Node" parent="." unique_id=2052051645 node_paths=PackedStringArray("player_access", "camera_rotation_origin")]
+[node name="MovementHandler" type="Node" parent="." unique_id=2052051645 node_paths=PackedStringArray("player_access", "camera_rotation_origin", "ui_access")]
 script = ExtResource("2_4c4oc")
 player_access = NodePath("..")
 camera_rotation_origin = NodePath("../Node3D")
+ui_access = NodePath("../Node3D/Camera3D/UIRoot")
 
 [node name="AudioHandler" parent="." unique_id=1873193131 instance=ExtResource("3_oaug5")]
 

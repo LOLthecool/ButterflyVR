@@ -17,13 +17,18 @@ const CROUCHED_CAMERA_HEIGHT_MULTIPLIER:float = 0.7
 
 @export var player_access:PlayerAccess
 @export var camera_rotation_origin:Node3D
+@export var ui_access:UiAccess
+
 var gravity:float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var should_jump:bool
 var player_state:Player_states = Player_states.NONE
+
 @onready var camera_height:float = camera_rotation_origin.position.y
 @onready var target:Player = player_access.player
 
 func _unhandled_input(event:InputEvent) -> void:
+	if ui_access.menu_opened:
+		return
 	if event.is_action_pressed("player_jump"):
 		should_jump = true
 	if event.is_action_released("player_jump"):
@@ -39,6 +44,10 @@ func _unhandled_input(event:InputEvent) -> void:
 		player_state = Player_states.NONE
 
 func _physics_process(delta: float) -> void:
+	if ui_access.menu_opened:
+		target.velocity = Vector3.ZERO
+		return
+	
 	var modified_speed:float = SPEED
 	var modified_max_speed:float = MAX_SPEED
 	var modified_jump_velocity:float = JUMP_VELOCITY

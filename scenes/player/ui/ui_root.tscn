@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://dv5d7diocohlq"]
 
+[ext_resource type="Script" uid="uid://slfwpcrumixu" path="res://scenes/player/ui/ui_access.gd" id="1_3ikpl"]
 [ext_resource type="Script" uid="uid://bqbnorj2ewbsm" path="res://scenes/player/ui/page_handler.gd" id="1_ab8o1"]
 [ext_resource type="Script" uid="uid://benj7caxeip7f" path="res://scenes/player/ui/main_menu.gd" id="1_gfrqc"]
 [ext_resource type="Script" uid="uid://c1bcblnqwgcuc" path="res://scenes/player/ui/quick_button.gd" id="2_4flen"]
@@ -22,8 +23,9 @@ thickness = 4
 size = Vector2(64, 64)
 
 [node name="UIRoot" type="CanvasLayer" unique_id=1781355510]
+script = ExtResource("1_3ikpl")
 
-[node name="menuRoot" type="VBoxContainer" parent="." unique_id=2034167860]
+[node name="menuRoot" type="VBoxContainer" parent="." unique_id=2034167860 node_paths=PackedStringArray("ui_access")]
 anchors_preset = -1
 anchor_left = 0.15
 anchor_top = 0.1
@@ -32,6 +34,7 @@ anchor_bottom = 0.9
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_gfrqc")
+ui_access = NodePath("..")
 metadata/_edit_use_anchors_ = true
 
 [node name="PanelContainer" type="PanelContainer" parent="menuRoot" unique_id=1075109949]
