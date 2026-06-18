@@ -2,9 +2,12 @@ extends Node
 class_name APIHandler
 # todo: cache requests using cache control headers
 
-const RECONNECT_DELAY_TIME:float = 3
+const MAX_RECONNECT_DELAY:float = 15.0
 const BASE_RECONNECT_DELAY:float = 0.1
 const RECONNECT_DELAY_RECOVERY_SECONDS:float = 5
+const REQUEST_TIMEOUT_SECONDS:float = 5
+# todo: make readonly once its available
+var headers:PackedStringArray = PackedStringArray(["User-Agent: Pirulo/1.0 (Godot)", "Accept: */*"])
 
 # contains the request information stored before processing a request
 class Request:
@@ -38,10 +41,8 @@ var restart_requested:bool = false
 var client:HTTPClient
 var waiting_requests:Array[Request]
 var reconnect_delay:float = BASE_RECONNECT_DELAY
+var timeout_progress:float = 0
 @onready var tree:SceneTree = get_tree()
-
-# todo: make readonly once its available
-var headers:PackedStringArray = PackedStringArray(["User-Agent: Pirulo/1.0 (Godot)", "Accept: */*"])
 
 # makes a request for the handler to process, requests are handled sequentially.
 # returns a signal that can be awaited to get the response (if it is received).
@@ -106,7 +107,8 @@ func _ready() -> void:
 	if err != OK:
 		push_error("error while connecting to api: ", str(err))
 		await tree.create_timer(reconnect_delay).timeout
-		reconnect_delay = reconnect_delay * 2
+		# randomize delay to stagger reconnection attempts after a server outage
+		reconnect_delay = minf(reconnect_delay * randf_range(1.5, 2.5), MAX_RECONNECT_DELAY)
 		push_warning("retrying connection...")
 		_ready.call_deferred()
 		return
@@ -118,10 +120,13 @@ func _ready() -> void:
 		if client.get_status() != HTTPClient.STATUS_CONNECTED:
 			if client.get_status() == 4:
 				push_error("couldnt connect: server unavailable?")
+			elif client.get_status() == 2:
+				push_error("couldnt resolve server address: are you connected to the internet?")
 			else:
 				push_error("error in api connection: client state should be connected but was ", client.get_status())
 			await tree.create_timer(reconnect_delay).timeout
-			reconnect_delay = reconnect_delay * 2
+			# randomize delay to stagger reconnection attempts after a server outage
+			reconnect_delay = minf(reconnect_delay * randf_range(1.5, 2.5), MAX_RECONNECT_DELAY)
 			push_warning("retrying connection...")
 			_ready.call_deferred()
 			return
@@ -135,15 +140,26 @@ func _ready() -> void:
 			reconnect_delay -= (
 					(reconnect_delay - BASE_RECONNECT_DELAY) * 
 					( 1.0 / Engine.physics_ticks_per_second)) / RECONNECT_DELAY_RECOVERY_SECONDS
+		timeout_progress = 0
 		var request:Request = waiting_requests.pop_back()
 		client.request(request.method, request.target, headers + request.additional_headers, request.body)
 		while client.get_status() == HTTPClient.STATUS_REQUESTING:
 			client.poll()
 			await tree.process_frame
+			timeout_progress += ( 1.0 / Engine.physics_ticks_per_second)
+			if timeout_progress > REQUEST_TIMEOUT_SECONDS:
+				push_error("timeout during request")
+				await tree.create_timer(reconnect_delay).timeout
+				# randomize delay to stagger reconnection attempts after a server outage
+				reconnect_delay = minf(reconnect_delay * randf_range(1.5, 2.5), MAX_RECONNECT_DELAY)
+				push_warning("retrying connection...")
+				_ready.call_deferred()
+				return
 		if client.get_status() != HTTPClient.STATUS_BODY and client.get_status() != HTTPClient.STATUS_CONNECTED:
 			push_error("error in api connection: expected body or ready connection, got: ", client.get_status())
 			await tree.create_timer(reconnect_delay).timeout
-			reconnect_delay = reconnect_delay * 2
+			# randomize delay to stagger reconnection attempts after a server outage
+			reconnect_delay = minf(reconnect_delay * randf_range(1.5, 2.5), MAX_RECONNECT_DELAY)
 			push_warning("retrying connection...")
 			waiting_requests.push_back(request)
 			_ready.call_deferred()
@@ -159,6 +175,15 @@ func _ready() -> void:
 				client.poll()
 				if chunk.size() == 0:
 					await tree.process_frame
+					timeout_progress += ( 1.0 / Engine.physics_ticks_per_second)
+					if timeout_progress > REQUEST_TIMEOUT_SECONDS:
+						push_error("timeout while retriving body")
+						await tree.create_timer(reconnect_delay).timeout
+						# randomize delay to stagger reconnection attempts after a server outage
+						reconnect_delay = minf(reconnect_delay * randf_range(1.5, 2.5), MAX_RECONNECT_DELAY)
+						push_warning("retrying connection...")
+						_ready.call_deferred()
+						return
 				else:
 					raw_body = raw_body + chunk
 			if raw_body.is_empty():
