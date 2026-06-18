@@ -1,4 +1,4 @@
-extends Node
+extends RefCounted
 # wrapper over the rust lru
 # todo: cut this out and just use the rust directly
 class_name LRUCache
@@ -24,6 +24,9 @@ const BASE_OBJECT_FILE_PATH:String = "user://%s/%s.epck"
 var cache_file:String
 var object_file_path:String
 var backing_cache:LruCache
+
+func process_destroy_queue() -> void:
+	backing_cache.process_destroy_queue()
 
 func on_save(cached_objects:Dictionary) -> void:
 	GlobalPersistanceHandler.clear_catagory(cache_file, "values")

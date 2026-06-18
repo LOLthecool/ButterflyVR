@@ -94,3 +94,6 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	await downloader.request_completed
 	
 	downloader.queue_free()
+
+func _physics_process(_delta: float) -> void:
+	cache.process_destroy_queue()

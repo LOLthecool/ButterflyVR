@@ -26,7 +26,7 @@ struct Pack {
 /// Saving and loading is not handles automatically. To save or load, call the save() and load() methods respectively.
 /// Do not call the save_call or load_call Callables directly.
 #[derive(GodotClass)]
-#[class(no_init, base=Node)]
+#[class(no_init, base=RefCounted)]
 struct LruCache {
     cache: Cache<Uuid, Pack>,
     #[var]
@@ -36,7 +36,7 @@ struct LruCache {
     #[var]
     on_destroy_call: Callable,
     destructor_queue: Arc<Mutex<VecDeque<Uuid>>>,
-    base: Base<Node>,
+    base: Base<RefCounted>,
 }
 
 #[godot_api]
@@ -68,6 +68,14 @@ impl LruCache {
             destructor_queue: queue,
             base,
         })
+    }
+
+    #[func]
+    fn process_destroy_queue(&mut self) {
+        while let Some(dropped) = self.destructor_queue.lock().unwrap().pop_front() {
+            self.on_destroy_call
+                .call(&[dropped.to_string().to_variant()]);
+        }
     }
 
     #[func]
@@ -171,16 +179,6 @@ impl LruCache {
                     size_kb: size_kb,
                 },
             );
-        }
-    }
-}
-
-#[godot_api]
-impl INode for LruCache {
-    fn physics_process(&mut self, _: f64) {
-        while let Some(dropped) = self.destructor_queue.lock().unwrap().pop_front() {
-            self.on_destroy_call
-                .call(&[dropped.to_string().to_variant()]);
         }
     }
 }
