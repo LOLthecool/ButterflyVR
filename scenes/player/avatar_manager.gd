@@ -8,8 +8,8 @@ signal avatar_loaded
 @export var player:Player
 
 var owner_id:PackedByteArray
-var equiped_avatar:Node3D
-var current_avatar:UUID
+var avatar_root:Node3D
+var avatar_uuid:UUID
 
 func _ready() -> void:
 	@warning_ignore("unsafe_property_access")
@@ -45,15 +45,15 @@ func change_avatar(target_player:PackedByteArray, avatar:UUID) -> void:
 	if target_player != owner_id:
 		return
 	
-	if equiped_avatar != null:
-		equiped_avatar.queue_free()
+	if avatar_root != null:
+		avatar_root.queue_free()
 	
 	var new_avatar:PackedScene
 	
 	new_avatar = preload("res://scenes/player/avatar/loading_avatar.tscn")
-	equiped_avatar = new_avatar.instantiate()
+	avatar_root = new_avatar.instantiate()
 	
-	get_parent().add_child(equiped_avatar)
+	get_parent().add_child(avatar_root)
 	
 	new_avatar = await GlobalDownloadHandler.get_object(avatar, LRUCache.ObjectType.avatar)
 	
@@ -67,15 +67,15 @@ func change_avatar(target_player:PackedByteArray, avatar:UUID) -> void:
 		push_error("tried to load unsafe world, aborting")
 		push_error("no error handling here, exiting")
 	
-	current_avatar = avatar
+	avatar_uuid = avatar
 	
-	if equiped_avatar:
-		equiped_avatar.queue_free()
+	if avatar_root:
+		avatar_root.queue_free()
 		await get_tree().physics_frame # dont have both avatars loaded at the same time
 	
-	equiped_avatar = new_avatar.instantiate()
-	SetupHelpers.setup_avatar(equiped_avatar, player)
+	avatar_root = new_avatar.instantiate()
+	SetupHelpers.setup_avatar(avatar_root, player)
 	
-	get_parent().add_child(equiped_avatar)
+	get_parent().add_child(avatar_root)
 	
 	player.avatar_changed.emit()
