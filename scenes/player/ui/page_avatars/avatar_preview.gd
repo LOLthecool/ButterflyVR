@@ -46,7 +46,10 @@ func preview_avatar(avatar:Dictionary[String, Variant]) -> void:
 	flag_list.create_list(avatar["flags"] as Array)
 
 func on_avatar_details() -> void:
-	details_page.show_details(avatar)
+	if !details_page.visible:
+		details_page.show_details(avatar)
+	else:
+		details_page.visible = false
 
 func on_avatar_equip() -> void:
 	var avatar_handler:AvatarChangeHandler = GlobalWorldHandler.current_world.avatar_change_handler

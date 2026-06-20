@@ -50,7 +50,7 @@ func change_avatar(target_player:PackedByteArray, avatar:UUID) -> void:
 	
 	var new_avatar:PackedScene
 	
-	new_avatar = preload("res://scenes/player/avatar/loading_avatar.tscn")
+	new_avatar = preload("res://scenes/player/loading_avatar.tscn")
 	avatar_root = new_avatar.instantiate()
 	
 	get_parent().add_child(avatar_root)
@@ -60,7 +60,7 @@ func change_avatar(target_player:PackedByteArray, avatar:UUID) -> void:
 	
 	if !new_avatar:
 		# todo: loading failed avatar
-		new_avatar = preload("res://scenes/player/avatar/loading_avatar.tscn")
+		new_avatar = preload("res://scenes/player/loading_avatar.tscn")
 	
 	# abort if source avatar is unsafe
 	if !SetupHelpers.check_safe(new_avatar.get_state()):

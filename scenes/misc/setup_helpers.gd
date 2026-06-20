@@ -1,6 +1,9 @@
 extends Node
 class_name SetupHelpers
 
+class SetupState:
+	var state:Dictionary
+
 # checks if the scene is capable of code execution, probably not foolproof
 static func check_safe(root:SceneState) -> bool:
 	# check for scripts
@@ -18,6 +21,19 @@ static func get_node_and_children_recursive(root:Node) -> Array[Node]:
 	for node:Node in root.get_children():
 		nodes.append_array(get_node_and_children_recursive(node))
 	return nodes
+
+static func get_cck_markers() -> Array[CCKMarker]:
+	var class_paths:Array[String] = []
+	for global_class:Dictionary in ProjectSettings.get_global_class_list():
+		if global_class["base"] == "CCKMarker":
+			class_paths.push_back(global_class["path"])
+	var classes:Array[CCKMarker] = []
+	classes.assign(class_paths.map(
+			func(path:String) -> CCKMarker: 
+				@warning_ignore("unsafe_cast")
+				return (load(path) as GDScript).new() as CCKMarker
+				))
+	return classes
 
 static func setup_world(root:Node) -> WorldController:
 	var spawnpoint:Node3D
