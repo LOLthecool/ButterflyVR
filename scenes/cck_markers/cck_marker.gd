@@ -6,13 +6,10 @@ class_name CCKMarker
 func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.SetupState) -> void
 
 @abstract
-func get_current_version_string() -> String
+func get_name() -> String
 
 @abstract
 func supports_multiple_copies() -> bool
 
 @abstract
 func is_allowed_on(object_type: LRUCache.ObjectType) -> bool
-
-@abstract
-func perform_migration(values:Dictionary[String, Variant]) -> Dictionary[String, Variant]

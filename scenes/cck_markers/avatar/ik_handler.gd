@@ -1,11 +1,11 @@
 extends CCKMarker
-class_name IKHandler
+class_name IKMarker
 
 func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.SetupState) -> void:
 	return
 
-func get_current_version_string() -> String:
-	return "1"
+func get_name() -> String:
+	return "IKMarker"
 
 func supports_multiple_copies() -> bool:
 	return false
@@ -14,6 +14,3 @@ func is_allowed_on(object_type: LRUCache.ObjectType) -> bool:
 	if object_type == LRUCache.ObjectType.avatar:
 		return true
 	return false
-
-func perform_migration(values:Dictionary[String, Variant]) -> Dictionary[String, Variant]:
-	return values
