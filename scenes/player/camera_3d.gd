@@ -24,6 +24,8 @@ func _ready() -> void:
 func on_avatar_changed() -> void:
 	if player_access.player.head_ik_target:
 		rotation_center.global_position = player_access.player.head_ik_target.global_position
+	else:
+		rotation_center.position.y = 1
 	position = player_access.player.head_view_offset
 	if movement_handler.player_state == MovementHandler.Player_states.CROUCHED:
 		movement_handler.player_state = MovementHandler.Player_states.NONE
@@ -44,5 +46,4 @@ func move_cam(xrot:float, yrot:float) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if head_target_ready and player_access.player.head_ik_target:
-		player_access.player.head_ik_target.global_position = rotation_center.global_position
-		player_access.player.head_ik_target.global_basis = rotation_center.global_basis
+		player_access.player.head_ik_target.rotation = rotation_center.rotation

@@ -15,6 +15,11 @@ func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.S
 	head_target.add_child(head_look_at_target)
 	
 	@warning_ignore("unsafe_cast")
+	head_target.position = (target as Skeleton3D).get_bone_pose_position(values["head_bone"] as int)
+	@warning_ignore("unsafe_cast")
+	head_target.quaternion = (target as Skeleton3D).get_bone_pose_rotation(values["head_bone"] as int)
+	head_look_at_target.position.z -= 1
+	@warning_ignore("unsafe_cast")
 	head_look_controller.bone = values["head_bone"] as int
 	head_look_controller.target_node = head_look_controller.get_path_to(head_look_at_target)
 	
