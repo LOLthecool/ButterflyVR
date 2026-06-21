@@ -110,6 +110,10 @@ static func setup_avatar(root:Node, player:Player) -> void:
 							node.get_meta(marker.get_name()) as Dictionary, 
 							node, state)
 	
+	if state.state.has("ik_values"):
+		player.head_ik_target = state.state["ik_values"]["head_target"]
+		player.head_view_offset = state.state["ik_values"]["head_view"]
+	
 	player.position.y -= (player.collider.shape as CapsuleShape3D).height / 2
 	
 	player.collider.shape = CapsuleShape3D.new()
