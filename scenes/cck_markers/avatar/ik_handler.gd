@@ -3,8 +3,12 @@ class_name IKMarker
 
 func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.SetupState) -> void:
 	# todo: check validity of values
-	if target is not Skeleton3D:
+	if target is not Skeleton3D or values["marker_version"] != "1":
 		return
+	
+	if state.state["is_local"]:
+		@warning_ignore("unsafe_cast")
+		(target as Skeleton3D).set_bone_pose_scale(values["head_bone"] as int, Vector3(0.001, 0.001, 0.001))
 	
 	var head_look_controller:LookAtModifier3D = LookAtModifier3D.new()
 	var head_target:Node3D = Node3D.new()
@@ -15,9 +19,11 @@ func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.S
 	head_target.add_child(head_look_at_target)
 	
 	@warning_ignore("unsafe_cast")
-	head_target.position = (target as Skeleton3D).get_bone_pose_position(values["head_bone"] as int)
+	head_target.position = (target as Skeleton3D).get_bone_global_pose(values["head_bone"] as int).origin
 	@warning_ignore("unsafe_cast")
-	head_target.quaternion = (target as Skeleton3D).get_bone_pose_rotation(values["head_bone"] as int)
+	head_target.quaternion = (
+			target as Skeleton3D).get_bone_global_pose(
+			values["head_bone"] as int).basis.get_rotation_quaternion()
 	head_look_at_target.position.z -= 1
 	@warning_ignore("unsafe_cast")
 	head_look_controller.bone = values["head_bone"] as int
@@ -33,15 +39,14 @@ func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.S
 	head_twist_propogater.set_end_bone(0, values["head_bone"] as int)
 	head_twist_propogater.set_extend_end_bone(0, true)
 	head_twist_propogater.set_disperse_mode(0, BoneTwistDisperser3D.DISPERSE_MODE_CUSTOM)
-	head_twist_propogater.set_joint_twist_amount(0, 0, 0.2)
-	head_twist_propogater.set_joint_twist_amount(0, 0, 1)
-	head_twist_propogater.set_joint_twist_amount(0, 0, 1)
+	head_twist_propogater.set_joint_twist_amount.call_deferred(0, 0, 0.2)
+	head_twist_propogater.set_joint_twist_amount.call_deferred(0, 1, 0.5)
 	
 	# todo: ik nodes for vr controls
 	
-	var state_values:Dictionary[String, Node] = {
+	var state_values:Dictionary[String, Variant] = {
 			"head_target":head_target,
-			"head_view": values["head_view"]
+			"head_view": values["head_view"] - head_target.position
 			}
 	
 	state.state["ik_values"] = state_values

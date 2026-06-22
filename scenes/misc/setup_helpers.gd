@@ -2,12 +2,15 @@ extends Node
 class_name SetupHelpers
 
 class SetupState:
-	var state:Dictionary
+	var state:Dictionary[String, Variant]
 
-# checks if the scene is capable of abritary code execution, probably not foolproof
+# checks if the scene is doing anything definetly bad
 static func check_safe(root:SceneState) -> bool:
-	# check for scripts
 	for idx:int in range(root.get_node_count()):
+		for group:String in root.get_node_groups(idx):
+			if !(group.begins_with("_") or group.begins_with("_cck")):
+				return false
+		# check for scripts
 		for property_idx:int in range(root.get_node_property_count(idx)):
 			if root.get_node_property_name(idx, property_idx) == "script":
 				if root.get_node_property_value(idx, property_idx) != null:
@@ -52,21 +55,23 @@ static func setup_world(root:Node) -> WorldController:
 			if marker.supports_multiple_copies():
 				for meta_item:StringName in node.get_meta_list():
 					if meta_item.split(":")[0] == marker.get_name():
+						var values:Dictionary[String, Variant] = {}
 						@warning_ignore("unsafe_cast")
-						marker.setup(
-								node.get_meta(meta_item) as Dictionary, 
-								node, state)
+						values.assign(node.get_meta(meta_item) as Dictionary)
+						@warning_ignore("unsafe_cast")
+						marker.setup(values, node, state)
 			else:
 				if node.has_meta(marker.get_name()):
+					var values:Dictionary[String, Variant] = {}
 					@warning_ignore("unsafe_cast")
-					marker.setup(
-							node.get_meta(marker.get_name()) as Dictionary, 
-							node, state)
+					values.assign(node.get_meta(marker.get_name()) as Dictionary)
+					@warning_ignore("unsafe_cast")
+					marker.setup(values, node, state)
 	
 	var world:WorldController
 	if state.state.has("spawnpoint"):
 		@warning_ignore("unsafe_cast")
-		world = WorldController.setup(state["spawnpoint"] as Node3D)
+		world = WorldController.setup(state.state["spawnpoint"] as Node3D)
 	else:
 		var spawn_node:Node3D = Node3D.new()
 		root.add_child(spawn_node)
@@ -82,6 +87,8 @@ static func setup_avatar(root:Node, player:Player) -> void:
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
 	var combined_aabb:AABB = AABB(Vector3(0, 0, 0), Vector3(0.1, 0.1, 0.1))
 	var nodes:Array[Node] = get_node_and_children_recursive(root)
+	
+	state.state["is_local"] = player.is_local
 	
 	for node:Node in nodes:
 		if node.get_class() in blacklisted_nodes:

@@ -14,7 +14,11 @@ func _get_networked_values() -> Array:
 	values.push_back(target.position)
 	values.push_back(target.rotation)
 	values.push_back(target.velocity)
-	values.push_back(target.head_ik_target)
+	if target.head_ik_target:
+		values.push_back(target.head_ik_target.rotation)
+	else:
+		push_warning("no target")
+		values.push_back(Vector3.ZERO)
 	return values
 
 func _set_networked_values(values: Array) -> void:

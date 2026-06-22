@@ -181,7 +181,8 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	# since overwiting is forbidden (cant have then overwriting internal files) if that object is later loaded
 	# it will use the malicious files. 
 	# it will still need to follow the safety checks 
-	# but this could allow bypassing a hypothetical future permission system for creators
+	# but this could allow bypassing a hypothetical future permission system for objects
+	# by 'injecting' into an object with more permissions
 	
 	if !ProjectSettings.load_resource_pack(new_object, false):
 		push_error("failed to load object pck from %s" % new_object)
