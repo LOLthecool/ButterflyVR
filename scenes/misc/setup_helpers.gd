@@ -7,6 +7,8 @@ class SetupState:
 # checks if the scene is doing anything definetly bad
 static func check_safe(root:SceneState) -> bool:
 	for idx:int in range(root.get_node_count()):
+		if root.get_node_type(idx).begins_with("Editor"):
+			return false
 		for group:String in root.get_node_groups(idx):
 			if !(group.begins_with("_") or group.begins_with("_cck")):
 				return false
@@ -39,13 +41,13 @@ static func get_cck_markers() -> Array[CCKMarker]:
 	return classes
 
 static func setup_world(root:Node) -> WorldController:
-	const blacklisted_nodes:Array[String] = []
+	var blacklisted_nodes:Array = [Window, EditorPlugin, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
 	
 	var state:SetupState = SetupState.new()
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
 	
 	for node:Node in get_node_and_children_recursive(root):
-		if node.get_class() in blacklisted_nodes:
+		if is_instance_of(node, blacklisted_nodes):
 			node.queue_free()
 			continue
 		
@@ -81,7 +83,7 @@ static func setup_world(root:Node) -> WorldController:
 	return world
 
 static func setup_avatar(root:Node, player:Player) -> void:
-	const blacklisted_nodes:Array[String] = []
+	var blacklisted_nodes:Array = [Window, EditorPlugin, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
 	
 	var state:SetupState = SetupState.new()
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
@@ -91,7 +93,7 @@ static func setup_avatar(root:Node, player:Player) -> void:
 	state.state["is_local"] = player.is_local
 	
 	for node:Node in nodes:
-		if node.get_class() in blacklisted_nodes:
+		if is_instance_of(node, blacklisted_nodes):
 			node.queue_free()
 			continue
 		
