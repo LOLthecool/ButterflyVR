@@ -1,4 +1,5 @@
 extends Node3D
+class_name NamePlate
 
 @export var player_access:PlayerAccess
 var id:PackedByteArray
