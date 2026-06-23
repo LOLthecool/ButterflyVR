@@ -3,6 +3,8 @@ class_name DesktopCamera
 
 const VERTICAL_LIMIT_MAX:float = 1.5707
 const VERTICAL_LIMIT_MIN:float = -1.5707
+const MAX_HEAD_Y_ROTATION_DEGREES:float = 80
+const MAX_HEAD_Y_ROTATION:float = deg_to_rad(MAX_HEAD_Y_ROTATION_DEGREES)
 
 @export var player_access:PlayerAccess
 @export var raycaster:Node3D
@@ -46,4 +48,12 @@ func move_cam(xrot:float, yrot:float) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if head_target_ready and player_access.player.head_ik_target:
+		if rotation_center.rotation.y > MAX_HEAD_Y_ROTATION:
+			var diff:float = rotation_center.rotation.y - MAX_HEAD_Y_ROTATION
+			player_access.player.rotation.y += diff
+			rotation_center.rotation.y -= diff
+		if rotation_center.rotation.y < -MAX_HEAD_Y_ROTATION:
+			var diff:float = rotation_center.rotation.y + MAX_HEAD_Y_ROTATION
+			player_access.player.rotation.y += diff
+			rotation_center.rotation.y -= diff
 		player_access.player.head_ik_target.rotation = rotation_center.rotation

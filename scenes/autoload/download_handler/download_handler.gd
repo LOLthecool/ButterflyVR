@@ -137,6 +137,11 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 
 func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType, uuid:UUID, 
 		key:PackedByteArray, iv:PackedByteArray) -> PackedScene:
+	if !object:
+		push_warning("object %s did not exist in cache" % uuid.to_string())
+		cache.remove(uuid.to_string())
+		return null
+	
 	var aes:AESContext = AESContext.new()
 	aes.start(AESContext.MODE_CBC_DECRYPT, key, iv)
 	
@@ -154,6 +159,10 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	aes.finish()
 	
 	var new_object:String = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true).get_path()
+	
+	if decrypted_buffer.size() == 0:
+		push_warning("got empty object from server")
+		return null
 	
 	# trim pading bytes
 	# padding bytes are 255 followed by 0s
@@ -186,6 +195,7 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	
 	if !ProjectSettings.load_resource_pack(new_object, false):
 		push_error("failed to load object pck from %s" % new_object)
+		return null
 	
 	return ResourceLoader.load("res://_loaded_content/%s/%s.tscn" % [object_type, uuid], 
 			"PackedScene", ResourceLoader.CACHE_MODE_IGNORE_DEEP) as PackedScene

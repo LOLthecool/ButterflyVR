@@ -34,10 +34,10 @@ func _unhandled_input(event:InputEvent) -> void:
 	if event.is_action_released("player_jump"):
 		should_jump = false
 	
-	if event.is_action_pressed("player_crouch") and player_state == Player_states.NONE:
-		player_state = Player_states.CROUCHED
-	if event.is_action_released("player_crouch") and player_state == Player_states.CROUCHED:
-		player_state = Player_states.NONE
+	#if event.is_action_pressed("player_crouch") and player_state == Player_states.NONE:
+		#player_state = Player_states.CROUCHED
+	#if event.is_action_released("player_crouch") and player_state == Player_states.CROUCHED:
+		#player_state = Player_states.NONE
 	if event.is_action_pressed("player_sprint") and player_state == Player_states.NONE:
 		player_state = Player_states.SPRINTING
 	if event.is_action_released("player_sprint") and player_state == Player_states.SPRINTING:

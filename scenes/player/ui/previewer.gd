@@ -15,7 +15,7 @@ func create_preview(uuid:UUID) -> void:
 			uuid, LRUCache.ObjectType.avatar)
 	
 	if !avatar_scene:
-		push_error("failed to load avatar %s for preview" % uuid)
+		push_warning("failed to load avatar %s for preview" % uuid)
 		return
 	
 	if !SetupHelpers.check_safe(avatar_scene.get_state()):

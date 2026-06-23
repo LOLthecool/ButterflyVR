@@ -47,7 +47,9 @@ static func setup_world(root:Node) -> WorldController:
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
 	
 	for node:Node in get_node_and_children_recursive(root):
-		if is_instance_of(node, blacklisted_nodes):
+		@warning_ignore("untyped_declaration")
+		if blacklisted_nodes.any(func(blacklist_item) -> bool:
+				return is_instance_of(node, blacklist_item)):
 			node.queue_free()
 			continue
 		
@@ -93,7 +95,9 @@ static func setup_avatar(root:Node, player:Player) -> void:
 	state.state["is_local"] = player.is_local
 	
 	for node:Node in nodes:
-		if is_instance_of(node, blacklisted_nodes):
+		@warning_ignore("untyped_declaration")
+		if blacklisted_nodes.any(func(blacklist_item) -> bool:
+				return is_instance_of(node, blacklist_item)):
 			node.queue_free()
 			continue
 		

@@ -39,7 +39,7 @@ func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.S
 	head_twist_propogater.set_end_bone(0, values["head_bone"] as int)
 	head_twist_propogater.set_extend_end_bone(0, true)
 	head_twist_propogater.set_disperse_mode(0, BoneTwistDisperser3D.DISPERSE_MODE_CUSTOM)
-	head_twist_propogater.set_joint_twist_amount.call_deferred(0, 0, 0.2)
+	head_twist_propogater.set_joint_twist_amount.call_deferred(0, 0, 0.1)
 	head_twist_propogater.set_joint_twist_amount.call_deferred(0, 1, 0.5)
 	
 	# todo: ik nodes for vr controls
