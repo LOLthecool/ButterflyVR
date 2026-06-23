@@ -3,7 +3,7 @@ class_name DesktopCamera
 
 const VERTICAL_LIMIT_MAX:float = 1.5707
 const VERTICAL_LIMIT_MIN:float = -1.5707
-const MAX_HEAD_Y_ROTATION_DEGREES:float = 80
+const MAX_HEAD_Y_ROTATION_DEGREES:float = 70
 const MAX_HEAD_Y_ROTATION:float = deg_to_rad(MAX_HEAD_Y_ROTATION_DEGREES)
 
 @export var player_access:PlayerAccess

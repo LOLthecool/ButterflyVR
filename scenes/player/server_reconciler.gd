@@ -20,9 +20,9 @@ func _physics_process(delta: float) -> void:
 	
 	if player.server_position == Vector3.ZERO:
 		ticks_without_update += 1
-		if ticks_without_update > 60:
+		if ticks_without_update > 300:
 			ticks_without_update = 0
-			push_warning("server is not sending sync data for our player, bug?")
+			push_warning("server is not sending sync data for our player, bug? disconnect?")
 		return
 	ticks_without_update = 0
 	

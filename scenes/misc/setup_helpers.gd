@@ -41,7 +41,7 @@ static func get_cck_markers() -> Array[CCKMarker]:
 	return classes
 
 static func setup_world(root:Node) -> WorldController:
-	var blacklisted_nodes:Array = [Window, EditorPlugin, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
+	var blacklisted_nodes:Array = [Window, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
 	
 	var state:SetupState = SetupState.new()
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
@@ -85,7 +85,7 @@ static func setup_world(root:Node) -> WorldController:
 	return world
 
 static func setup_avatar(root:Node, player:Player) -> void:
-	var blacklisted_nodes:Array = [Window, EditorPlugin, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
+	var blacklisted_nodes:Array = [Window, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
 	
 	var state:SetupState = SetupState.new()
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
