@@ -17,7 +17,6 @@ func _get_networked_values() -> Array:
 	if target.head_ik_target:
 		values.push_back(target.head_ik_target.rotation)
 	else:
-		push_warning("no target")
 		values.push_back(Vector3.ZERO)
 	return values
 
@@ -25,7 +24,7 @@ func _set_networked_values(values: Array) -> void:
 	target.server_position = values[0]
 	target.server_rotation = values[1]
 	target.server_velocity = values[2]
-	if !target.is_local:
+	if target.head_ik_target and !target.is_local:
 		target.head_ik_target.rotation = values[3]
 
 func _get_networked_value_type(idx: int) -> TypeHelper.NetworkedValueTypes:
