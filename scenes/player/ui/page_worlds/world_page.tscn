@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bw1xhp1qer3a"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_nfh3x"]
-[ext_resource type="Script" uid="uid://byxidffb2k4ao" path="res://scenes/player/ui/page_avatars/owned_filter.gd" id="2_ju76t"]
+[ext_resource type="Script" uid="uid://byxidffb2k4ao" path="res://scenes/player/ui/page_worlds/owned_filter.gd" id="2_ju76t"]
 [ext_resource type="Script" uid="uid://xo6kpymld7ew" path="res://scenes/player/ui/page_worlds/world_list.gd" id="3_0bqws"]
 [ext_resource type="Script" uid="uid://f2hurcepphnt" path="res://scenes/player/ui/page_worlds/instance_page.gd" id="4_0bqws"]
 [ext_resource type="Script" uid="uid://bke03jxrinrui" path="res://scenes/player/ui/page_worlds/instance_list.gd" id="5_1vkh6"]
