@@ -41,7 +41,7 @@ static func get_cck_markers() -> Array[CCKMarker]:
 	return classes
 
 static func setup_world(root:Node) -> WorldController:
-	var blacklisted_nodes:Array = [AnimationTree, Window, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
+	var blacklisted_nodes:Array = [AnimationMixer, Window, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
 	
 	var state:SetupState = SetupState.new()
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
@@ -85,11 +85,11 @@ static func setup_world(root:Node) -> WorldController:
 	return world
 
 static func setup_avatar(root:Node, player:Player) -> void:
-	var blacklisted_nodes:Array = [AnimationTree, Window, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
+	var blacklisted_nodes:Array = [AnimationMixer, Window, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
 	
 	var state:SetupState = SetupState.new()
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
-	var combined_aabb:AABB = AABB(Vector3(0, 0, 0), Vector3(0.1, 0.1, 0.1))
+	var combined_aabb:AABB = AABB(Vector3.ZERO, Vector3.ZERO)
 	var nodes:Array[Node] = get_node_and_children_recursive(root)
 	
 	state.state["is_local"] = player.is_local
@@ -102,8 +102,11 @@ static func setup_avatar(root:Node, player:Player) -> void:
 			continue
 		
 		if node is VisualInstance3D:
-			var aabb:AABB = (node as VisualInstance3D).get_aabb().abs()
-			combined_aabb.merge(aabb)
+			if combined_aabb == AABB(Vector3.ZERO, Vector3.ZERO):
+				combined_aabb = (node as VisualInstance3D).get_aabb()
+			else:
+				var aabb:AABB = (node as VisualInstance3D).get_aabb()
+				combined_aabb = combined_aabb.merge(aabb)
 		
 		
 		for marker:CCKMarker in cck_markers:
@@ -128,6 +131,9 @@ static func setup_avatar(root:Node, player:Player) -> void:
 		player.head_view_offset = state.state["ik_values"]["head_view"]
 	
 	player.position.y -= (player.collider.shape as CapsuleShape3D).height / 2
+	
+	if combined_aabb == AABB(Vector3.ZERO, Vector3.ZERO):
+		combined_aabb = AABB(Vector3.ZERO, Vector3(0.1, 0.2, 0.1))
 	
 	player.collider.shape = CapsuleShape3D.new()
 	

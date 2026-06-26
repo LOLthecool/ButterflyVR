@@ -2,8 +2,8 @@ extends CCKMarker
 class_name Spawnpoint
 
 func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.SetupState) -> void:
-	if values["marker_version"] == "1" and target.get_parent() is Node3D:
-		state.state["spawnpoint"] = target.get_parent()
+	if values["marker_version"] == "1" and target is Node3D:
+		state.state["spawnpoint"] = target
 
 func get_name() -> String:
 	return "Spawnpoint"

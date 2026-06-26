@@ -46,8 +46,23 @@ func move_cam(xrot:float, yrot:float) -> void:
 			VERTICAL_LIMIT_MIN, 
 			VERTICAL_LIMIT_MAX)
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if head_target_ready and player_access.player.head_ik_target:
+		var movement:Vector2 =  Vector2(player_access.player.velocity.x, player_access.player.velocity.z)
+		if movement != Vector2.ZERO:
+			var diff:float = rotation_center.rotation.y
+			player_access.player.rotation.y = move_toward(
+					player_access.player.rotation.y, 
+					player_access.player.rotation.y + diff,
+					delta * absf(diff) * 9
+			)
+			rotation_center.rotation.y = move_toward(
+					rotation_center.rotation.y,
+					rotation_center.rotation.y - diff,
+					delta * absf(diff) * 9
+			)
+			return
+		
 		if rotation_center.rotation.y > MAX_HEAD_Y_ROTATION:
 			var diff:float = rotation_center.rotation.y - MAX_HEAD_Y_ROTATION
 			player_access.player.rotation.y += diff
