@@ -146,7 +146,6 @@ func _ready() -> void:
 			
 			time_without_request += 1.0 / Engine.physics_ticks_per_second
 			if time_without_request > 10:
-				print("doing ping request")
 				waiting_requests.push_back(Request.new(HTTPClient.METHOD_GET, PING_ENDPOINT, "", PackedStringArray()))
 			
 			await tree.physics_frame
@@ -156,7 +155,6 @@ func _ready() -> void:
 		
 		timeout_progress = 0
 		time_without_request = 0
-		print("doing request")
 		
 		var request:Request = waiting_requests.pop_back()
 		client.request(request.method, request.target, headers + request.additional_headers, request.body)

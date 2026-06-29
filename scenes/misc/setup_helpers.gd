@@ -133,7 +133,8 @@ static func setup_avatar(root:Node, player:Player) -> void:
 	player.position.y -= (player.collider.shape as CapsuleShape3D).height / 2
 	
 	if combined_aabb == AABB(Vector3.ZERO, Vector3.ZERO):
-		combined_aabb = AABB(Vector3.ZERO, Vector3(0.1, 0.2, 0.1))
+		combined_aabb = AABB(Vector3.ZERO, Vector3(0.1, 0.4, 0.1))
+	
 	
 	player.collider.shape = CapsuleShape3D.new()
 	
@@ -146,6 +147,26 @@ static func setup_avatar(root:Node, player:Player) -> void:
 		(player.collider.shape as CapsuleShape3D).radius = maxf(combined_aabb.size.x, combined_aabb.size.z)
 		(player.collider.shape as CapsuleShape3D).height = combined_aabb.size.y
 	
-	player.collider.position = combined_aabb.position
+	
+	if state.state.has("collider_values"):
+		var radius:float = state.state["collider_values"]["radius"]
+		var height:float = state.state["collider_values"]["height"]
+		
+		radius = maxf((player.collider.shape as CapsuleShape3D).radius / 4, 
+				minf((player.collider.shape as CapsuleShape3D).radius * 2, radius))
+		
+		height = maxf((player.collider.shape as CapsuleShape3D).height / 4, 
+				minf((player.collider.shape as CapsuleShape3D).height * 2, height))
+		
+		if radius > height / 2:
+			(player.collider.shape as CapsuleShape3D).height = height
+			(player.collider.shape as CapsuleShape3D).radius = radius
+		else:
+			(player.collider.shape as CapsuleShape3D).radius = radius
+			(player.collider.shape as CapsuleShape3D).height = height
+	
+	player.collider.position = combined_aabb.position + \
+			(Vector3(
+					combined_aabb.size.x, (player.collider.shape as CapsuleShape3D).height, combined_aabb.size.z) / 2)
 	
 	player.position.y += (player.collider.shape as CapsuleShape3D).height / 2
