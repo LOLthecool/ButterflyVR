@@ -9,6 +9,7 @@ func send_message(player:PackedByteArray, target:String) -> void:
 		index_path = PathHelper.path_to_index_path(target, self)
 		if index_path.is_empty():
 			push_error("failed to parse path of grabbed node")
+			return
 	
 	
 	var values:Array = [player, index_path]
@@ -30,6 +31,9 @@ func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.Networked
 func _process_message(values: Array) -> void:
 	var target:Node = get_tree().root
 	if values[1] != []:
+		@warning_ignore("unsafe_cast")
+		var indexes:Array[int] = (values[1] as Array[int])
+		indexes.reverse()
 		# scene tree could be desynced for us so dont blindly trust the path
 		for idx:int in values[1]:
 			if target.get_child(idx) == null:
@@ -39,4 +43,4 @@ func _process_message(values: Array) -> void:
 	else:
 		target = null
 	
-	player_grabbed.emit.call_deferred(values[0], target)
+	player_grabbed.emit(values[0], target)

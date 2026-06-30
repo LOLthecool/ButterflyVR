@@ -22,17 +22,32 @@ func _physics_process(_delta: float) -> void:
 		wants_to_grab = false
 		force_raycast_update()
 		if is_colliding():
-			grab_handler.send_message((await GlobalAccountHandler.get_uuid()).backing_storage, (get_collider() as Node).get_path())
+			var collider:CollisionObject3D = get_collider()
+			
+			if collider.has_meta("grabbable_info"):
+				var collider_info:Dictionary[String, Variant] = collider.get_meta("grabbable_info")
+				
+				if collider_info["max_grab_distance"] != -1 and \
+						collider_info["max_grab_distance"] < \
+						absf((get_collision_point() - global_position).length()):
+					return
+				
+				grab_handler.send_message(
+						(await GlobalAccountHandler.get_uuid()).backing_storage, 
+						collider.get_parent().get_path())
 		return
+	
 	if is_grabbing:
 		grabbed_node.global_position = grab_target.global_position
 	else:
 		if grabbed_node != null:
 			if grabbed_node is RigidBody3D:
 				(grabbed_node as RigidBody3D).freeze = false
+			
 			grabbed_node = null
 			grab_target.position = Vector3.ZERO
 			grab_handler.send_message((await GlobalAccountHandler.get_uuid()).backing_storage, "")
+			
 			# todo: enabling this seems to cause on_confirmed_grab / on_grab to trigger twice, with the second call failing to get_node despite the path definetly being valid? this is very weird
 			#if get_collider().has_method("on_release"):
 			#	get_collider().on_release()
@@ -40,7 +55,8 @@ func _physics_process(_delta: float) -> void:
 func on_confirmed_grab(player:PackedByteArray, target:Node) -> void:
 	if !(player == (await GlobalAccountHandler.get_uuid()).backing_storage):
 		return
-	if target is Node3D:
+	
+	if is_instance_of(target, Node3D):
 		is_grabbing = true
 		grab_target.global_position = (target as Node3D).global_position
 		grabbed_node = target
