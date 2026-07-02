@@ -15,6 +15,8 @@ const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 @export var instances_list:InstanceList
 @export var instance_creator:InstanceCreator
 
+var world_uuid:UUID
+
 func show_details(short_world:Dictionary) -> void:
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, OBJECT_INFO_ENDPOINT % ["World", short_world["id"]], 
@@ -36,6 +38,9 @@ func show_details(short_world:Dictionary) -> void:
 	visible = true
 	
 	var world:Dictionary[String, Variant] = result[4]
+	
+	@warning_ignore("unsafe_cast")
+	world_uuid = UUID.from_String(world["id"] as String)
 	
 	@warning_ignore("unsafe_cast")
 	instance_creator.world = UUID.from_String(world["id"] as String)

@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://c0iwkcc0wn4a0" path="res://scenes/player/ui/page_worlds/instance_creator.gd" id="6_5kx4f"]
 [ext_resource type="Script" uid="uid://bnhxoegmb208c" path="res://scenes/player/ui/page_worlds/world_tags_list.gd" id="6_pyqlh"]
 [ext_resource type="Script" uid="uid://u726n2aw6hbe" path="res://scenes/player/ui/page_worlds/max_player_preview.gd" id="7_35llq"]
+[ext_resource type="Script" uid="uid://r2nqmjca2y6c" path="res://scenes/player/ui/page_worlds/set_homeworld.gd" id="9_2rbbj"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2rbbj"]
 
@@ -478,16 +479,19 @@ theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Favourite"
 
-[node name="Button2" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=780510258]
+[node name="Button2" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=780510258 node_paths=PackedStringArray("instance_page")]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 text = "Make Home"
+script = ExtResource("9_2rbbj")
+instance_page = NodePath("../..")
 
 [node name="Button3" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=1204607590]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
+disabled = true
 text = "Preload"
 
 [node name="Button4" type="Button" parent="TabContainer/InstancePage/HBoxContainer" unique_id=1025277281]

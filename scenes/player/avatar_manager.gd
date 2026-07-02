@@ -1,6 +1,7 @@
 extends Node
 
 const USER_INFO_ENDPOINT:String = "/api/v0/user/%s"
+const USER_AVATAR_ENDPOINT:String = "/api/v0/this_user/avatar"
 
 signal avatar_loaded
 
@@ -66,6 +67,24 @@ func change_avatar(target_player:PackedByteArray, avatar:UUID) -> void:
 	if !SetupHelpers.check_safe(new_avatar.get_state()):
 		push_error("tried to load unsafe world, aborting")
 		push_error("no error handling here, exiting")
+	
+	# set current avatar in api
+	if owner_id == (await GlobalAccountHandler.get_uuid()).backing_storage and !NetworkManager.is_server():
+		var response:Array[Variant] = await GlobalAPIHandler.make_request(
+				HTTPClient.METHOD_POST, USER_AVATAR_ENDPOINT, 
+				PackedStringArray([GlobalAccountHandler.get_token_header()]),
+				JSON.stringify({"uuid": avatar.to_string()}))
+		@warning_ignore("unsafe_call_argument")
+		var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], [])
+		
+		if !result[0]:
+			push_error("failed to update current avatar")
+			if result[1] != -1:
+				push_error("server response: %s" % result[1])
+			if result[2] != "":
+				push_error("error code: %s" % result[2])
+			if result[3] != "":
+				push_error("error message: %s" % result[3])
 	
 	avatar_uuid = avatar
 	
