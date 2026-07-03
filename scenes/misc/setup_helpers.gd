@@ -4,7 +4,10 @@ class_name SetupHelpers
 class SetupState:
 	var state:Dictionary[String, Variant]
 
-# checks if the scene is doing anything definetly bad
+# checks if the scene is capable of running code or doing anything else bad during instanciation
+# (for example a gdscript can have a _init() function)
+# other safety check can deferred until the setup_x functions or handled here
+# checks handled in setup_x should be checks that are hard or impossible to do with a SceneState
 static func check_safe(root:SceneState) -> bool:
 	for idx:int in range(root.get_node_count()):
 		if root.get_node_type(idx).begins_with("Editor"):
@@ -12,7 +15,6 @@ static func check_safe(root:SceneState) -> bool:
 		for group:String in root.get_node_groups(idx):
 			if !(group.begins_with("_") or group.begins_with("_cck")):
 				return false
-		# check for scripts
 		for property_idx:int in range(root.get_node_property_count(idx)):
 			if root.get_node_property_name(idx, property_idx) == "script":
 				if root.get_node_property_value(idx, property_idx) != null:
