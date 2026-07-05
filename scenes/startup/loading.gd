@@ -43,6 +43,7 @@ const OUTPUT_LENGTH:int = 64
 @export var register_username:LineEdit
 @export var register_email:LineEdit
 @export var register_password:LineEdit
+@export var register_password2:LineEdit
 @export var register_tos:CheckBox
 @export var register_acknowledge:CheckBox
 #endregion
@@ -116,6 +117,9 @@ func _on_register() -> void:
 		return
 	if register_password.text.length() < 6:
 		await show_popup("Password must be longer than 6 characters")
+		return
+	if register_password.text != register_password2.text:
+		await show_popup("Passwords do not match")
 		return
 	if !register_tos.button_pressed:
 		await show_popup("Please agree to the terms of service and privacy policy")
