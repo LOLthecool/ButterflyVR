@@ -86,10 +86,15 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 	
 	var object:LRUCache.Pack = cache.get_object(uuid, type)
 	if object:
-		if object.cache_time_utc >= response_values["updated_at"]:
-			return true
-		else:
+		if (!FileAccess.file_exists(cache.object_file_path % [uuid])) or \
+				FileAccess.get_size(cache.object_file_path % [uuid]) < 1:
+			push_error("cached file did not exist for object: %s" % uuid)
 			cache.remove(uuid.to_string())
+		else:
+			if object.cache_time_utc >= response_values["updated_at"]:
+				return true
+			else:
+				cache.remove(uuid.to_string())
 	
 	# cache value didnt exist or was stale so we download
 	await download_object(uuid, type)
@@ -158,8 +163,6 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	object.close()
 	aes.finish()
 	
-	var new_object:String = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true).get_path()
-	
 	if decrypted_buffer.size() == 0:
 		push_warning("got empty object from server")
 		return null
@@ -179,12 +182,15 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	# remove all padding including 255
 	decrypted_buffer.resize(decrypted_buffer.size() - (zero_bytes + 1))
 	
-	var decrypted:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true)
+	var decrypted:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck")
 	decrypted.store_buffer(decrypted_buffer)
+	decrypted.flush()
 	var decrypted_path:String = decrypted.get_path()
-	decrypted.close()
 	
+	var handle:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck")
+	var new_object:String = handle.get_path()
 	ZSTDCompressor.decompress_file_to_file(decrypted_path, new_object)
+	decrypted.close()
 	
 	# todo: a malicious object could contain files in _loaded_content/_/_ for another object uuid
 	# since overwiting is forbidden (cant have then overwriting internal files) if that object is later loaded
@@ -196,7 +202,7 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	if !ProjectSettings.load_resource_pack(new_object, false):
 		push_error("failed to load object pck from %s" % new_object)
 		return null
-	
+	handle.close()
 	return ResourceLoader.load("res://_loaded_content/%s/%s.tscn" % [object_type, uuid], 
 			"PackedScene", ResourceLoader.CACHE_MODE_IGNORE_DEEP) as PackedScene
 

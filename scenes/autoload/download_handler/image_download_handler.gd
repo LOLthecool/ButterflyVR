@@ -31,10 +31,15 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	
 	var object:LRUCache.Pack = cache.get_object(uuid, type)
 	if object:
-		if object.cache_time_utc >= response_values["updated_at"]:
-			return load_image(cache.object_file_path % [uuid])
-		else:
+		if (!FileAccess.file_exists(cache.object_file_path % [uuid])) or \
+				FileAccess.get_size(cache.object_file_path % [uuid]) < 1:
+			push_error("cached file did not exist for object image: %s" % uuid)
 			cache.remove(uuid.to_string())
+		else:
+			if object.cache_time_utc >= response_values["updated_at"]:
+				return load_image(cache.object_file_path % [uuid])
+			else:
+				cache.remove(uuid.to_string())
 	
 	# cache value didnt exist or was stale so we download
 	await download_object(uuid, type)
