@@ -39,11 +39,10 @@ offset_right = -389.0
 offset_bottom = -219.0
 grow_horizontal = 2
 grow_vertical = 2
-current_tab = 3
+current_tab = 0
 tabs_visible = false
 
 [node name="Loading" type="Control" parent="TabContainer" unique_id=871492324]
-visible = false
 layout_mode = 2
 metadata/_tab_index = 0
 
@@ -180,6 +179,7 @@ text = "Back"
 metadata/_edit_use_anchors_ = true
 
 [node name="Register" type="Control" parent="TabContainer" unique_id=563437191]
+visible = false
 layout_mode = 2
 metadata/_tab_index = 3
 
