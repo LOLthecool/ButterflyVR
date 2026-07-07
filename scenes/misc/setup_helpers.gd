@@ -60,7 +60,7 @@ static func setup_world(root:Node) -> WorldController:
 				continue
 			if marker.supports_multiple_copies():
 				for meta_item:StringName in node.get_meta_list():
-					if meta_item.split(":")[0] == marker.get_name():
+					if meta_item.split("_")[0] == marker.get_name():
 						var values:Dictionary[String, Variant] = {}
 						@warning_ignore("unsafe_cast")
 						values.assign(node.get_meta(meta_item) as Dictionary)
@@ -116,7 +116,7 @@ static func setup_avatar(root:Node, player:Player) -> void:
 				continue
 			if marker.supports_multiple_copies():
 				for meta_item:StringName in node.get_meta_list():
-					if meta_item.split(":")[0] == marker.get_name():
+					if meta_item.split("_")[0] == marker.get_name():
 						@warning_ignore("unsafe_cast")
 						marker.setup(
 								node.get_meta(meta_item) as Dictionary, 
