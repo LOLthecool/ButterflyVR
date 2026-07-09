@@ -181,13 +181,13 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	
 	# remove all padding including 255
 	decrypted_buffer.resize(decrypted_buffer.size() - (zero_bytes + 1))
-	
 	var decrypted:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck")
 	decrypted.store_buffer(decrypted_buffer)
 	decrypted.flush()
 	var decrypted_path:String = decrypted.get_path()
 	
-	var handle:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck")
+	# todo: ram backed tmp files to avoid storing decrypted pcks
+	var handle:FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true)
 	var new_object:String = handle.get_path()
 	ZSTDCompressor.decompress_file_to_file(decrypted_path, new_object)
 	decrypted.close()
@@ -202,7 +202,7 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 	if !ProjectSettings.load_resource_pack(new_object, false):
 		push_error("failed to load object pck from %s" % new_object)
 		return null
-	handle.close()
+	
 	return ResourceLoader.load("res://_loaded_content/%s/%s.tscn" % [object_type, uuid], 
 			"PackedScene", ResourceLoader.CACHE_MODE_IGNORE_DEEP) as PackedScene
 
