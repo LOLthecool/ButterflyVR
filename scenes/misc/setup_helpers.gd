@@ -42,37 +42,54 @@ static func get_cck_markers() -> Array[CCKMarker]:
 				))
 	return classes
 
-static func setup_world(root:Node) -> WorldController:
-	var blacklisted_nodes:Array = [AnimationMixer, Window, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
+static func setup_object(root:Node, type:LRUCache.ObjectType, state:SetupState) -> void:
+	var blacklisted_nodes:Array = [AnimationMixer, Window, HTTPRequest, MultiplayerSpawner, 
+			MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, 
+			AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, 
+			MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, 
+			ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, 
+			WorldController, WorldHandler, ObjectEventHandler]
 	
-	var state:SetupState = SetupState.new()
 	var cck_markers:Array[CCKMarker] = get_cck_markers()
 	
-	for node:Node in get_node_and_children_recursive(root):
+	var event_handler:ObjectEventHandler = ObjectEventHandler.new()
+	state.state["event_handler"] = event_handler
+	
+	var nodes:Array[Node] = get_node_and_children_recursive(root)
+	for node:Node in nodes:
 		@warning_ignore("untyped_declaration")
 		if blacklisted_nodes.any(func(blacklist_item) -> bool:
 				return is_instance_of(node, blacklist_item)):
 			node.queue_free()
 			continue
 		
+		if node is Camera3D:
+			(node as Camera3D).clear_current()
+		
 		for marker:CCKMarker in cck_markers:
-			if !marker.is_allowed_on(LRUCache.ObjectType.world):
+			if !marker.is_allowed_on(type):
 				continue
+			
 			if marker.supports_multiple_copies():
 				for meta_item:StringName in node.get_meta_list():
 					if meta_item.split("_")[0] == marker.get_name():
 						var values:Dictionary[String, Variant] = {}
 						@warning_ignore("unsafe_cast")
 						values.assign(node.get_meta(meta_item) as Dictionary)
-						@warning_ignore("unsafe_cast")
 						marker.setup(values, node, state)
 			else:
 				if node.has_meta(marker.get_name()):
 					var values:Dictionary[String, Variant] = {}
 					@warning_ignore("unsafe_cast")
 					values.assign(node.get_meta(marker.get_name()) as Dictionary)
-					@warning_ignore("unsafe_cast")
 					marker.setup(values, node, state)
+	
+	root.add_child(event_handler)
+
+static func setup_world(root:Node) -> WorldController:
+	var state:SetupState = SetupState.new()
+	
+	setup_object(root, LRUCache.ObjectType.world, state)
 	
 	var world:WorldController
 	if state.state.has("spawnpoint"):
@@ -87,15 +104,16 @@ static func setup_world(root:Node) -> WorldController:
 	return world
 
 static func setup_avatar(root:Node, player:Player) -> void:
-	var blacklisted_nodes:Array = [AnimationMixer, Window, HTTPRequest, MultiplayerSpawner, MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, MovementHandler, NetNodeManager, NetworkedNode, PathHelper, PersistanceHandler, ServerHandler, ServerLoader, SetupHelpers, StringifyHelper, TypeHelper, WorldController, WorldHandler]
+	var blacklisted_nodes:Array = [WorldEnvironment, ShaderGlobalsOverride, CanvasLayer, CanvasItem]
 	
 	var state:SetupState = SetupState.new()
-	var cck_markers:Array[CCKMarker] = get_cck_markers()
 	var combined_aabb:AABB = AABB(Vector3.ZERO, Vector3.ZERO)
-	var nodes:Array[Node] = get_node_and_children_recursive(root)
 	
 	state.state["is_local"] = player.is_local
 	
+	setup_object(root, LRUCache.ObjectType.avatar, state)
+	
+	var nodes:Array[Node] = get_node_and_children_recursive(root)
 	for node:Node in nodes:
 		@warning_ignore("untyped_declaration")
 		if blacklisted_nodes.any(func(blacklist_item) -> bool:
@@ -109,24 +127,6 @@ static func setup_avatar(root:Node, player:Player) -> void:
 			else:
 				var aabb:AABB = (node as VisualInstance3D).get_aabb()
 				combined_aabb = combined_aabb.merge(aabb)
-		
-		
-		for marker:CCKMarker in cck_markers:
-			if !marker.is_allowed_on(LRUCache.ObjectType.avatar):
-				continue
-			if marker.supports_multiple_copies():
-				for meta_item:StringName in node.get_meta_list():
-					if meta_item.split("_")[0] == marker.get_name():
-						@warning_ignore("unsafe_cast")
-						marker.setup(
-								node.get_meta(meta_item) as Dictionary, 
-								node, state)
-			else:
-				if node.has_meta(marker.get_name()):
-					@warning_ignore("unsafe_cast")
-					marker.setup(
-							node.get_meta(marker.get_name()) as Dictionary, 
-							node, state)
 	
 	if state.state.has("ik_values"):
 		player.head_ik_target = state.state["ik_values"]["head_target"]

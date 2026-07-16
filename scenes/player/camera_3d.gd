@@ -19,6 +19,7 @@ var head_target_ready:bool = false
 @onready var verticalSensitivity:float = sensitivity * verticalSensitivityMultiplier
 
 func _ready() -> void:
+	make_current()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	player_access.player.interactor_origin = raycaster
 	player_access.player.avatar_changed.connect(on_avatar_changed)
@@ -47,6 +48,9 @@ func move_cam(xrot:float, yrot:float) -> void:
 			VERTICAL_LIMIT_MAX)
 
 func _physics_process(delta: float) -> void:
+	if !current:
+		make_current()
+	
 	if head_target_ready and player_access.player.head_ik_target:
 		var movement:Vector2 =  Vector2(player_access.player.velocity.x, player_access.player.velocity.z)
 		if movement != Vector2.ZERO:
