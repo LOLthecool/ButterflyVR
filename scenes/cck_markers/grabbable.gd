@@ -8,12 +8,15 @@ func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.
 	
 	var collider_values:Dictionary[String, Variant] = {}
 	
-	collider_values["max_grab_distance"] = values["max_grab_distance"]
+	@warning_ignore("unsafe_cast")
+	collider_values["max_grab_distance"] = values["max_grab_distance"] as float
 	collider_values["target"] = target
 	
 	if values.has("snap_offset_position") and values.has("snap_offset_rotation"):
-		collider_values["snap_offset_position"] = values["snap_offset_position"]
-		collider_values["snap_offset_rotation"] = values["snap_offset_rotation"]
+		@warning_ignore("unsafe_cast")
+		collider_values["snap_offset_position"] = values["snap_offset_position"] as Vector3
+		@warning_ignore("unsafe_cast")
+		collider_values["snap_offset_rotation"] = values["snap_offset_rotation"] as Vector3
 	
 	@warning_ignore("unsafe_cast")
 	if values.has("highlight_mesh"):
@@ -39,8 +42,9 @@ func perform_migrations(values:Dictionary[String, Variant]) -> Dictionary[String
 			values["version"] = "2"
 			return perform_migrations(values)
 		_:
+			@warning_ignore("unsafe_cast")
 			push_error("had no valid migration for %s version %s. content may be broken" \
-			% [get_name(), values["version"]])
+					% [get_name(), values["version"] as String])
 			return values
 
 func get_current_version_string() -> String:

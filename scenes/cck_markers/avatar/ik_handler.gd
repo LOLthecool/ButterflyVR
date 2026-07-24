@@ -43,9 +43,10 @@ func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.S
 	
 	# todo: ik nodes for vr controls
 	
+	@warning_ignore("unsafe_cast")
 	var state_values:Dictionary[String, Variant] = {
 			"head_target":head_target,
-			"head_view": values["head_view"] - head_target.position
+			"head_view": (values["head_view"] as Vector3) - head_target.position
 			}
 	
 	state.state["ik_values"] = state_values
@@ -56,8 +57,9 @@ func perform_migrations(values:Dictionary[String, Variant]) -> Dictionary[String
 		current_version:
 			return values
 		_:
+			@warning_ignore("unsafe_cast")
 			push_error("had no valid migration for %s version %s. content may be broken" \
-			% [get_name(), values["version"]])
+					% [get_name(), values["version"] as String])
 			return values
 
 func get_current_version_string() -> String:
