@@ -71,7 +71,7 @@ func get_name() -> String:
 func supports_multiple_copies() -> bool:
 	return false
 
-func is_allowed_on(object_type: LRUCache.ObjectType) -> bool:
-	if object_type == LRUCache.ObjectType.avatar:
+func is_allowed_on(object_type: TypeHelper.ObjectType) -> bool:
+	if object_type == TypeHelper.ObjectType.avatar:
 		return true
 	return false

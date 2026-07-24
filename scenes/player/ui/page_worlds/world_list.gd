@@ -52,6 +52,6 @@ func get_and_show_worlds(search_string:String, filters_untyped:Dictionary) -> vo
 		var world:Dictionary[String, Variant] = {}
 		world.assign(world_untyped)
 		var world_listing:ObjectListing = ObjectListing.new()
-		world_listing.create(world, LRUCache.ObjectType.world)
+		world_listing.create(world, TypeHelper.ObjectType.world)
 		world_listing.object_selected.connect(instance_page.show_details)
 		add_child(world_listing)

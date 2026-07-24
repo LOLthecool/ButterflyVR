@@ -15,8 +15,8 @@ unsafe impl ExtensionLibrary for MyExtension {}
 /// Metadata for a cache entry.
 #[derive(Copy, Clone)]
 struct Pack {
-    cache_time_utc: i32,
-    size_kb: i32,
+    cache_time_utc: i64,
+    size_kb: i64,
 }
 
 /// LRU cache used internally by ButterflyVR for pack caching.
@@ -79,7 +79,7 @@ impl LruCache {
     }
 
     #[func]
-    fn push_front(&mut self, uuid: String, cache_time_utc: i32, size_kb: i32) {
+    fn push_front(&mut self, uuid: String, cache_time_utc: i64, size_kb: i64) {
         let Ok(key) = Uuid::try_parse(&uuid) else {
             godot_error!("uuid was not a valid UUID");
             return;
@@ -94,18 +94,18 @@ impl LruCache {
     }
 
     #[func]
-    fn get(&mut self, uuid: String) -> AnyDictionary {
+    fn get(&mut self, uuid: String) -> Dictionary<GString, i64> {
         let Ok(key) = Uuid::try_parse(&uuid) else {
             godot_error!("uuid was not a valid UUID");
-            return VarDictionary::new().upcast_any_dictionary();
+            return Dictionary::new();
         };
         if let Some(pack) = self.cache.get(&key) {
-            let mut result = VarDictionary::new();
+            let mut result = Dictionary::new();
             result.set("cache_time_utc", pack.cache_time_utc);
             result.set("size_kb", pack.size_kb);
-            result.upcast_any_dictionary()
+            result
         } else {
-            VarDictionary::new().upcast_any_dictionary()
+            Dictionary::new()
         }
     }
 
@@ -163,11 +163,11 @@ impl LruCache {
                 return;
             };
 
-            let Ok(cache_time_utc) = i32::try_from_variant(&cache_time_utc) else {
+            let Ok(cache_time_utc) = i64::try_from_variant(&cache_time_utc) else {
                 godot_error!("cache_time_utc was not an int");
                 return;
             };
-            let Ok(size_kb) = i32::try_from_variant(&size_kb) else {
+            let Ok(size_kb) = i64::try_from_variant(&size_kb) else {
                 godot_error!("size_kb was not an int");
                 return;
             };

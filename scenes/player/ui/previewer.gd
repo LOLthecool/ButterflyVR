@@ -12,7 +12,7 @@ func create_preview(uuid:UUID) -> void:
 	rotation.y = 0
 	
 	var avatar_scene:PackedScene = await GlobalDownloadHandler.get_object(
-			uuid, LRUCache.ObjectType.avatar)
+			uuid, TypeHelper.ObjectType.avatar)
 	
 	if !avatar_scene:
 		push_warning("failed to load avatar %s for preview" % uuid)

@@ -5,18 +5,37 @@ class_name ImageDownloadHandler
 const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 const OBJECT_IMAGE_ENDPOINT:String = "/api/v0/%s/%s/image"
 const DAY_UTC:int = 60 * 60 * 24
+const MEGABYTE:int = 1024 * 1024
+const CACHE_SIZE:int = MEGABYTE * 100
+const CACHE_FILE:String = "image_cache"
+const IMAGE_FILE_PATH:String = "user://images/%s"
 
-# max size: 50mb
-var cache:LRUCache = LRUCache.load_cache("image_cache", 1000 * 100, "images")
+var backing_cache:LruCache = LruCache.new_cache(
+			CACHE_SIZE, on_save, on_load, on_destroy)
 
+func on_save(cached_objects:Dictionary) -> void:
+	GlobalPersistanceHandler.clear_catagory(CACHE_FILE, "values")
+	for uuid:String in cached_objects.keys():
+		GlobalPersistanceHandler.save_value(
+				CACHE_FILE, 
+				"values",
+				uuid, 
+				cached_objects[uuid])
 
-func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
+func on_load() -> Dictionary:
+	return GlobalPersistanceHandler.get_catagory(CACHE_FILE, "values")
+
+func on_destroy(uuid:String) -> void:
+	DirAccess.remove_absolute(IMAGE_FILE_PATH % uuid)
+
+func get_object(uuid:UUID, type:TypeHelper.ObjectType) -> Image:
+	var id:String = uuid.to_string()
 	var object_type_string:String = "UNNAMED"
 	
 	match type:
-		LRUCache.ObjectType.world:
+		TypeHelper.ObjectType.world:
 			object_type_string = "World"
-		LRUCache.ObjectType.avatar:
+		TypeHelper.ObjectType.avatar:
 			object_type_string = "Avatar"
 	
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
@@ -29,26 +48,28 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> Image:
 	# todo: error handling
 	var response_values:Dictionary[String, Variant] = result[4]
 	
-	var object:LRUCache.Pack = cache.get_object(uuid, type)
-	if object:
-		if (!FileAccess.file_exists(cache.object_file_path % [uuid])) or \
-				FileAccess.get_size(cache.object_file_path % [uuid]) < 1:
-			push_error("cached file did not exist for object image: %s" % uuid)
-			cache.remove(uuid.to_string())
+	var image:Dictionary[String, int] = {}
+	image.assign(backing_cache.get(id))
+	if !image.is_empty():
+		if (!FileAccess.file_exists(IMAGE_FILE_PATH % [id])) or \
+				FileAccess.get_size(IMAGE_FILE_PATH % [id]) < 1:
+			push_error("cached file did not exist for object image: %s" % id)
+			backing_cache.pop(id)
 		else:
-			if object.cache_time_utc >= response_values["updated_at"]:
-				return load_image(cache.object_file_path % [uuid])
+			if image.cache_time_utc >= response_values["updated_at"]:
+				backing_cache.save()
+				return load_image(IMAGE_FILE_PATH % id)
 			else:
-				cache.remove(uuid.to_string())
+				backing_cache.pop(id)
 	
 	# cache value didnt exist or was stale so we download
-	await download_object(uuid, type)
+	await download_object(id, type)
 	@warning_ignore("unsafe_cast")
-	var item:LRUCache.Pack = LRUCache.Pack.new(
+	backing_cache.push_front(id, 
 			response_values["updated_at"] as int, 
 			int(ceilf(response_values["image_size"] as float / 1024)))
-	cache.push_front(uuid.to_string(), item)
-	return load_image(cache.object_file_path % [uuid])
+	backing_cache.save()
+	return load_image(IMAGE_FILE_PATH % [uuid])
 
 func load_image(file:String) -> Image:
 	var buffer:PackedByteArray = FileAccess.get_file_as_bytes(file)
@@ -64,13 +85,13 @@ func load_image(file:String) -> Image:
 		push_error("failed to parse image file.")
 		return new_image
 
-func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
+func download_object(uuid:String, object_type:TypeHelper.ObjectType) -> void:
 	var object_type_string:String = "UNNAMED"
 	
 	match object_type:
-		LRUCache.ObjectType.world:
+		TypeHelper.ObjectType.world:
 			object_type_string = "World"
-		LRUCache.ObjectType.avatar:
+		TypeHelper.ObjectType.avatar:
 			object_type_string = "Avatar"
 	
 	var url:String = OBJECT_IMAGE_ENDPOINT % [object_type_string, uuid]
@@ -78,12 +99,12 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	var downloader:HTTPRequest = HTTPRequest.new()
 	add_child(downloader)
 	
-	downloader.download_file = cache.object_file_path % [uuid]
+	downloader.download_file = IMAGE_FILE_PATH % [uuid]
 	
 	if !DirAccess.dir_exists_absolute(
-			cache.object_file_path.trim_suffix("%s.epck")):
+			IMAGE_FILE_PATH.trim_suffix("%s")):
 		DirAccess.make_dir_recursive_absolute(
-				cache.object_file_path.trim_suffix("%s.epck"))
+				IMAGE_FILE_PATH.trim_suffix("%s"))
 	
 	FileAccess.open(downloader.download_file, FileAccess.WRITE).close()
 	
@@ -101,4 +122,4 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	downloader.queue_free()
 
 func _physics_process(_delta: float) -> void:
-	cache.process_destroy_queue()
+	backing_cache.process_destroy_queue()

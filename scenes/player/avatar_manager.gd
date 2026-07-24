@@ -56,7 +56,7 @@ func change_avatar(target_player:PackedByteArray, avatar:UUID) -> void:
 	
 	get_parent().add_child(avatar_root)
 	
-	new_avatar = await GlobalDownloadHandler.get_object(avatar, LRUCache.ObjectType.avatar)
+	new_avatar = await GlobalDownloadHandler.get_object(avatar, TypeHelper.ObjectType.avatar)
 	
 	
 	if !new_avatar:

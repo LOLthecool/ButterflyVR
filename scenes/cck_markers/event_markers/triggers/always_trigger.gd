@@ -28,5 +28,5 @@ func get_name() -> String:
 func supports_multiple_copies() -> bool:
 	return true
 
-func is_allowed_on(_object_type: LRUCache.ObjectType) -> bool:
+func is_allowed_on(_object_type: TypeHelper.ObjectType) -> bool:
 	return true

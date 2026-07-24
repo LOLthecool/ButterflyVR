@@ -40,7 +40,7 @@ func load_fallback_world() -> void:
 	get_tree().change_scene_to_file("res://scenes/world/fallback world/debug_world.tscn")
 
 func load_world(world_id:UUID, instance_id:UUID = null) -> void:
-	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
+	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, TypeHelper.ObjectType.world)
 	
 	if world == null:
 		await load_fallback_world()
@@ -81,7 +81,7 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 
 # server must be started before this is called
 func load_world_server(world_id:UUID, bind_port:int) -> void:
-	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, LRUCache.ObjectType.world)
+	var world:PackedScene = await GlobalDownloadHandler.get_object(world_id, TypeHelper.ObjectType.world)
 	
 	if world == null:
 		push_error("failed to load world")

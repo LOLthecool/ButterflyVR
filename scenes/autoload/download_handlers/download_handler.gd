@@ -1,25 +1,43 @@
 extends Node
 class_name DownloadHandler
 
-
-
 const OBJECT_INFO_ENDPOINT:String = "/api/v0/%s/%s"
 const OBJECT_DOWNLOAD_ENDPOINT:String = "/api/v0/%s/%s/epck"
 const MEGABYTE:int = 1024 * 1024
 const GIGABYTE:int = MEGABYTE * 1024
+const CACHE_SIZE:int = GIGABYTE * 10
+const CACHE_FILE:String = "object_cache"
+const OBJECT_FILE_PATH:String = "user://objects/%s.epck"
 
-var cache:LRUCache = LRUCache.load_cache("cache_meta", GIGABYTE * 10, "cache")
+var backing_cache:LruCache = LruCache.new_cache(
+			CACHE_SIZE, on_save, on_load, on_destroy)
 
-func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
-	if !await preload_object(uuid, type):
+func on_save(cached_objects:Dictionary) -> void:
+	GlobalPersistanceHandler.clear_catagory(CACHE_FILE, "values")
+	for uuid:String in cached_objects.keys():
+		GlobalPersistanceHandler.save_value(
+				CACHE_FILE, 
+				"values",
+				uuid, 
+				cached_objects[uuid])
+
+func on_load() -> Dictionary:
+	return GlobalPersistanceHandler.get_catagory(CACHE_FILE, "values")
+
+func on_destroy(uuid:String) -> void:
+	DirAccess.remove_absolute(OBJECT_FILE_PATH % uuid)
+
+func get_object(uuid:UUID, type:TypeHelper.ObjectType) -> PackedScene:
+	var id:String = uuid.to_string()
+	if !await preload_object(id, type):
 		push_warning("error in preload step, returning null")
 		return null
 	
 	var object_type_string:String = "UNNAMED"
 	match type:
-		LRUCache.ObjectType.world:
+		TypeHelper.ObjectType.world:
 			object_type_string = "World"
-		LRUCache.ObjectType.avatar:
+		TypeHelper.ObjectType.avatar:
 			object_type_string = "Avatar"
 	
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
@@ -46,23 +64,23 @@ func get_object(uuid:UUID, type:LRUCache.ObjectType) -> PackedScene:
 			push_error("error message: %s" % error_message)
 		return null
 	
-	var file:FileAccess = FileAccess.open(cache.object_file_path % [uuid], FileAccess.READ)
+	var file:FileAccess = FileAccess.open(OBJECT_FILE_PATH % [id], FileAccess.READ)
 	@warning_ignore("unsafe_cast")
-	return decrypt_and_load_object(file, type, uuid, response_values["encryption_key"] as PackedByteArray, 
+	return decrypt_and_load_object(file, type, id, response_values["encryption_key"] as PackedByteArray, 
 			response_values["encryption_iv"] as PackedByteArray)
 
-func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
+func preload_object(id:String, type:TypeHelper.ObjectType) -> bool:
 	var object_type_string:String = "UNNAMED"
 	
 	match type:
-		LRUCache.ObjectType.world:
+		TypeHelper.ObjectType.world:
 			object_type_string = "World"
-		LRUCache.ObjectType.avatar:
+		TypeHelper.ObjectType.avatar:
 			object_type_string = "Avatar"
 	
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, 
-			OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
+			OBJECT_INFO_ENDPOINT % [object_type_string, id],
 			PackedStringArray([GlobalAccountHandler.get_token_header()]))
 	@warning_ignore("unsafe_call_argument")
 	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], 
@@ -84,33 +102,36 @@ func preload_object(uuid:UUID, type:LRUCache.ObjectType) -> bool:
 			push_error("error message: %s" % error_message)
 		return false
 	
-	var object:LRUCache.Pack = cache.get_object(uuid, type)
-	if object:
-		if (!FileAccess.file_exists(cache.object_file_path % [uuid])) or \
-				FileAccess.get_size(cache.object_file_path % [uuid]) < 1:
-			push_error("cached file did not exist for object: %s" % uuid)
-			cache.remove(uuid.to_string())
+	var object:Dictionary[String, int] = {}
+	object.assign(backing_cache.get(id))
+	if !object.is_empty():
+		if (!FileAccess.file_exists(OBJECT_FILE_PATH % [id])) or \
+				FileAccess.get_size(OBJECT_FILE_PATH % [id]) < 1:
+			push_error("cached file did not exist for object: %s" % id)
+			backing_cache.pop(id)
 		else:
 			if object.cache_time_utc >= response_values["updated_at"]:
+				backing_cache.save()
 				return true
 			else:
-				cache.remove(uuid.to_string())
+				backing_cache.pop(id)
 	
 	# cache value didnt exist or was stale so we download
-	await download_object(uuid, type)
+	await download_object(id, type)
 	@warning_ignore("unsafe_cast")
-	var item:LRUCache.Pack = LRUCache.Pack.new(response_values["updated_at"] as int, 
+	backing_cache.push_front(id, 
+			response_values["updated_at"] as int, 
 			int(ceilf(response_values["object_size"] as float / 1024)))
-	cache.push_front(uuid.to_string(), item)
+	backing_cache.save()
 	return true
 
-func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
+func download_object(uuid:String, object_type:TypeHelper.ObjectType) -> void:
 	var object_type_string:String = "UNNAMED"
 	
 	match object_type:
-		LRUCache.ObjectType.world:
+		TypeHelper.ObjectType.world:
 			object_type_string = "World"
-		LRUCache.ObjectType.avatar:
+		TypeHelper.ObjectType.avatar:
 			object_type_string = "Avatar"
 	
 	var url:String = OBJECT_DOWNLOAD_ENDPOINT % [object_type_string, uuid]
@@ -118,12 +139,12 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	var downloader:HTTPRequest = HTTPRequest.new()
 	add_child(downloader)
 	
-	downloader.download_file = cache.object_file_path % [uuid]
+	downloader.download_file = OBJECT_FILE_PATH % [uuid]
 	
 	if !DirAccess.dir_exists_absolute(
-			cache.object_file_path.trim_suffix("%s.epck")):
+			OBJECT_FILE_PATH.trim_suffix("%s.epck")):
 		DirAccess.make_dir_recursive_absolute(
-				cache.object_file_path.trim_suffix("%s.epck"))
+				OBJECT_FILE_PATH.trim_suffix("%s.epck"))
 	
 	FileAccess.open(downloader.download_file, FileAccess.WRITE).close()
 	
@@ -140,11 +161,11 @@ func download_object(uuid:UUID, object_type:LRUCache.ObjectType) -> void:
 	
 	downloader.queue_free()
 
-func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType, uuid:UUID, 
+func decrypt_and_load_object(object:FileAccess, object_type:TypeHelper.ObjectType, uuid:String, 
 		key:PackedByteArray, iv:PackedByteArray) -> PackedScene:
 	if !object:
-		push_warning("object %s did not exist in cache" % uuid.to_string())
-		cache.remove(uuid.to_string())
+		push_warning("object %s did not exist in cache" % uuid)
+		backing_cache.pop(uuid)
 		return null
 	
 	var aes:AESContext = AESContext.new()
@@ -207,4 +228,4 @@ func decrypt_and_load_object(object:FileAccess, object_type:LRUCache.ObjectType,
 			"PackedScene", ResourceLoader.CACHE_MODE_IGNORE_DEEP) as PackedScene
 
 func _physics_process(_delta: float) -> void:
-	cache.process_destroy_queue()
+	backing_cache.process_destroy_queue()

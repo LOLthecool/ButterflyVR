@@ -58,7 +58,7 @@ func show_details(short_world:Dictionary) -> void:
 	@warning_ignore("unsafe_cast")
 	details_size.text = StringifyHelper.stringify_size_kb(world["object_size"] as int)
 	@warning_ignore("unsafe_cast")
-	details_world_image.texture = ImageTexture.create_from_image(await GlobalImageDownloadHandler.get_object(UUID.from_String(world["id"] as String), LRUCache.ObjectType.world))
+	details_world_image.texture = ImageTexture.create_from_image(await GlobalImageDownloadHandler.get_object(UUID.from_String(world["id"] as String), TypeHelper.ObjectType.world))
 	
 	details_tags.show_tags(world)
 	

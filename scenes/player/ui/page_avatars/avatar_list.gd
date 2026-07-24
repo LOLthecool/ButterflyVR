@@ -51,7 +51,7 @@ func get_and_show_avatars(search_string:String, filters:Dictionary[String ,Strin
 		var avatar:Dictionary[String, Variant] = {}
 		avatar.assign(avatar_untyped)
 		var avatar_listing:ObjectListing = ObjectListing.new()
-		avatar_listing.create(avatar, LRUCache.ObjectType.avatar)
+		avatar_listing.create(avatar, TypeHelper.ObjectType.avatar)
 		avatar_listing.object_selected.connect(avatar_previewer.preview_avatar)
 		add_child(avatar_listing)
 		if first_entry:

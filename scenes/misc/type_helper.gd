@@ -13,3 +13,10 @@ enum NetworkedValueTypes {
 	String,
 	ByteArray,
 }
+
+enum ObjectType{
+	world,
+	avatar,
+	prop,
+	component
+}

@@ -42,7 +42,7 @@ static func get_cck_markers() -> Array[CCKMarker]:
 				))
 	return classes
 
-static func setup_object(root:Node, type:LRUCache.ObjectType, state:SetupState) -> void:
+static func setup_object(root:Node, type:TypeHelper.ObjectType, state:SetupState) -> void:
 	var blacklisted_nodes:Array = [AnimationMixer, Window, HTTPRequest, MultiplayerSpawner, 
 			MultiplayerSynchronizer, StatusIndicator, APIHandler, APIHelper, AccountHandler, 
 			AgonesSDK, MessageHandler, ImageDownloadHandler, InstanceHandler, MessageManager, 
@@ -91,7 +91,7 @@ static func setup_object(root:Node, type:LRUCache.ObjectType, state:SetupState) 
 static func setup_world(root:Node) -> WorldController:
 	var state:SetupState = SetupState.new()
 	
-	setup_object(root, LRUCache.ObjectType.world, state)
+	setup_object(root, TypeHelper.ObjectType.world, state)
 	
 	var world:WorldController
 	if state.state.has("spawnpoint"):
@@ -113,7 +113,7 @@ static func setup_avatar(root:Node, player:Player) -> void:
 	
 	state.state["is_local"] = player.is_local
 	
-	setup_object(root, LRUCache.ObjectType.avatar, state)
+	setup_object(root, TypeHelper.ObjectType.avatar, state)
 	
 	var nodes:Array[Node] = get_node_and_children_recursive(root)
 	for node:Node in nodes:
