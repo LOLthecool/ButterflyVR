@@ -1,5 +1,5 @@
 extends CCKMarker
-class_name CCKAnimationPlayer
+class_name CCKAnimationTree
 
 func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.SetupState) -> void:
 	if values["animation"] is not Animation:
@@ -21,6 +21,9 @@ func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.
 		@warning_ignore("unsafe_cast")
 		player.play("InternalCCKAnimationLibrary/InternalCCKAnimation", -1, values["playback_speed"] as float)
 
+func get_name() -> String:
+	return "CCKAnimationTree"
+
 func perform_migrations(values:Dictionary[String, Variant]) -> Dictionary[String, Variant]:
 	var current_version:String = get_current_version_string()
 	match values["version"]:
@@ -33,9 +36,6 @@ func perform_migrations(values:Dictionary[String, Variant]) -> Dictionary[String
 
 func get_current_version_string() -> String:
 	return "1"
-
-func get_name() -> String:
-	return "CCKAnimationPlayer"
 
 func supports_multiple_copies() -> bool:
 	return true

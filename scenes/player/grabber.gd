@@ -27,14 +27,15 @@ func _physics_process(_delta: float) -> void:
 			if collider.has_meta("grabbable_info"):
 				var collider_info:Dictionary[String, Variant] = collider.get_meta("grabbable_info")
 				
-				if collider_info["max_grab_distance"] != -1 and \
+				if collider_info["max_grab_distance"] >= 0 and \
 						collider_info["max_grab_distance"] < \
 						absf((get_collision_point() - global_position).length()):
 					return
 				
+				@warning_ignore("unsafe_cast")
 				grab_handler.send_message(
 						(await GlobalAccountHandler.get_uuid()).backing_storage, 
-						collider.get_parent().get_path())
+						(collider_info["target"] as Node3D).get_path())
 		return
 	
 	if is_grabbing:

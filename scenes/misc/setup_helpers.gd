@@ -76,12 +76,14 @@ static func setup_object(root:Node, type:LRUCache.ObjectType, state:SetupState) 
 						var values:Dictionary[String, Variant] = {}
 						@warning_ignore("unsafe_cast")
 						values.assign(node.get_meta(meta_item) as Dictionary)
+						values = marker.perform_migrations(values)
 						marker.setup(values, node, state)
 			else:
 				if node.has_meta(marker.get_name()):
 					var values:Dictionary[String, Variant] = {}
 					@warning_ignore("unsafe_cast")
 					values.assign(node.get_meta(marker.get_name()) as Dictionary)
+					values = marker.perform_migrations(values)
 					marker.setup(values, node, state)
 	
 	root.add_child(event_handler)

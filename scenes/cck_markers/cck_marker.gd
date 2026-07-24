@@ -6,6 +6,12 @@ class_name CCKMarker
 func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.SetupState) -> void
 
 @abstract
+func perform_migrations(values:Dictionary[String, Variant]) -> Dictionary[String, Variant]
+
+@abstract
+func get_current_version_string() -> String
+
+@abstract
 func get_name() -> String
 
 @abstract
