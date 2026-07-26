@@ -2,16 +2,22 @@ extends CCKMarker
 class_name CCKAnimationPlayer
 
 func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.SetupState) -> void:
-	if values["animation"] is not Animation:
-		return
 	var player:AnimationPlayer = AnimationPlayer.new()
-	var library:AnimationLibrary = AnimationLibrary.new()
 	
 	@warning_ignore("unsafe_cast")
-	library.add_animation("InternalCCKAnimation", values["animation"] as Animation)
-	player.add_animation_library("InternalCCKAnimationLibrary", library)
+	for library_name:String in (values["libraries"] as Dictionary).keys():
+		var library:Dictionary[String, Animation] = values["libraries"][library_name]
+		var animation_library:AnimationLibrary = AnimationLibrary.new()
+		for animation_name:String in library.keys():
+			if library[animation_name] is not Animation:
+				push_error("invalid animation in CCKAnimationPlayer: %s" % get_name())
+				return
+			var animation:Animation = library[animation_name]
+			animation_library.add_animation(animation_name.split("/", false, 1)[1], animation)
+		player.add_animation_library(library_name, animation_library)
 	
-	target.add_child(player)
+	player.name = values["player_name"]
+	target.add_child(player, true)
 	
 	player.active = values["active"]
 	player.speed_scale = values["playback_speed"]
@@ -19,7 +25,7 @@ func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.
 	player.root_node = player.get_path_to(target.get_node(values["root_node"] as String))
 	if player.active:
 		@warning_ignore("unsafe_cast")
-		player.play("InternalCCKAnimationLibrary/InternalCCKAnimation", -1, values["playback_speed"] as float)
+		player.play(values["animation"] as String, -1, values["playback_speed"] as float)
 
 func perform_migrations(values:Dictionary[String, Variant]) -> Dictionary[String, Variant]:
 	var current_version:String = get_current_version_string()

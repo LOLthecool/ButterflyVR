@@ -88,6 +88,42 @@ class DisplayAction extends BaseAction:
 	
 	func init(_handler:ObjectEventHandler) -> void:
 		return
+
+class AnimationSetAction extends BaseAction:
+	var from_parameter:bool
+	var animation:String
+	var target:AnimationPlayer
+	
+	@warning_ignore("shadowed_variable_base_class")
+	static func create(animation:String, target:AnimationPlayer, active:bool, 
+			custom_parameters:Array[Variant]) -> AnimationSetAction:
+		var x:AnimationSetAction = new()
+		x.active = active
+		x.custom_parameters = custom_parameters
+		x.from_parameter = animation == "From Parameter"
+		x.animation = animation
+		x.target = target
+		return x
+	
+	func on_event(parameters:Array[Variant], _handler:ObjectEventHandler) -> void:
+		if !from_parameter:
+			@warning_ignore("unsafe_cast")
+			target.play(animation, -1, 
+					parameters[0] as float 
+					if parameters.size() > 0 and parameters[0] is float 
+					else target.speed_scale)
+		else:
+			if parameters.size() > 0 and parameters[0] is String:
+				@warning_ignore("unsafe_cast")
+				target.play(parameters[0] as String, -1, 
+						parameters[1] as float 
+						if parameters.size() > 1 and parameters[1] is float 
+						else target.speed_scale)
+			else:
+				target.stop()
+	
+	func init(_handler:ObjectEventHandler) -> void:
+		return
 #endregion
 
 #region TriggerDefs
