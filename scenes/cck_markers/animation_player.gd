@@ -6,14 +6,18 @@ func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.
 	
 	@warning_ignore("unsafe_cast")
 	for library_name:String in (values["libraries"] as Dictionary).keys():
-		var library:Dictionary[String, Animation] = values["libraries"][library_name]
+		var library:Dictionary[String, Animation] = {}
+		@warning_ignore("unsafe_cast")
+		library.assign(values["libraries"][library_name] as Dictionary)
 		var animation_library:AnimationLibrary = AnimationLibrary.new()
+		
 		for animation_name:String in library.keys():
 			if library[animation_name] is not Animation:
 				push_error("invalid animation in CCKAnimationPlayer: %s" % get_name())
 				return
 			var animation:Animation = library[animation_name]
 			animation_library.add_animation(animation_name.split("/", false, 1)[1], animation)
+		
 		player.add_animation_library(library_name, animation_library)
 	
 	player.name = values["player_name"]

@@ -93,16 +93,21 @@ class AnimationSetAction extends BaseAction:
 	var from_parameter:bool
 	var animation:String
 	var target:AnimationPlayer
+	var path_start_point:Node
+	var target_path:String
 	
 	@warning_ignore("shadowed_variable_base_class")
-	static func create(animation:String, target:AnimationPlayer, active:bool, 
+	static func create(id:PackedByteArray, animation:String, target_path:String, 
+			path_start_point:Node, active:bool, 
 			custom_parameters:Array[Variant]) -> AnimationSetAction:
 		var x:AnimationSetAction = new()
+		x.id = id
 		x.active = active
 		x.custom_parameters = custom_parameters
 		x.from_parameter = animation == "From Parameter"
 		x.animation = animation
-		x.target = target
+		x.path_start_point = path_start_point
+		x.target_path = target_path
 		return x
 	
 	func on_event(parameters:Array[Variant], _handler:ObjectEventHandler) -> void:
@@ -123,7 +128,9 @@ class AnimationSetAction extends BaseAction:
 				target.stop()
 	
 	func init(_handler:ObjectEventHandler) -> void:
-		return
+		target = path_start_point.get_node(target_path)
+		path_start_point = null
+		target_path = ""
 #endregion
 
 #region TriggerDefs
@@ -198,6 +205,7 @@ func register_action(action:BaseAction) -> void:
 		push_error("tried to assign duplicate actions with id %s" % action.id)
 		return
 	actions[action.id] = action
+	await GlobalTreeAccessHelper.physics_frame
 	action.init(self)
 
 func new_event(target:BaseAction, parameters:Array[Variant]) -> void:

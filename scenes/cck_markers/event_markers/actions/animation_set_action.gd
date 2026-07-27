@@ -5,8 +5,8 @@ func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.S
 	var handler:ObjectEventHandler = state.state["event_handler"]
 	@warning_ignore("unsafe_cast")
 	handler.register_action(ObjectEventHandler.AnimationSetAction.create(
-			values["animation"] as String, 
-			target.get_node(values["target"] as String) as AnimationPlayer, 
+			values["action_id"] as PackedByteArray, values["animation"] as String, 
+			values["target"] as String, target,
 			values["active"] as bool, values["custom_parameters"] as Array))
 
 func perform_migrations(values:Dictionary[String, Variant]) -> Dictionary[String, Variant]:
