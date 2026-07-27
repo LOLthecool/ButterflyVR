@@ -10,23 +10,24 @@ const CACHE_SIZE:int = MEGABYTE * 100
 const CACHE_FILE:String = "image_cache"
 const IMAGE_FILE_PATH:String = "user://images/%s"
 
-var backing_cache:LruCache = LruCache.new_cache(
-			CACHE_SIZE, on_save, on_load, on_destroy)
+var backing_cache:LruCache
 
 func on_save(cached_objects:Dictionary) -> void:
-	GlobalPersistanceHandler.clear_catagory(CACHE_FILE, "values")
+	GlobalPersistanceHandler.clear_catagory(CACHE_FILE, "values", false)
 	for uuid:String in cached_objects.keys():
-		GlobalPersistanceHandler.save_value(
-				CACHE_FILE, 
-				"values",
-				uuid, 
-				cached_objects[uuid])
+		GlobalPersistanceHandler.register_value(
+				CACHE_FILE, "values",uuid, cached_objects[uuid], false)
+	GlobalPersistanceHandler.flush_file.call_deferred(CACHE_FILE)
 
 func on_load() -> Dictionary:
 	return GlobalPersistanceHandler.get_catagory(CACHE_FILE, "values")
 
 func on_destroy(uuid:String) -> void:
 	DirAccess.remove_absolute(IMAGE_FILE_PATH % uuid)
+
+func _init() -> void:
+	backing_cache = LruCache.new_cache(CACHE_SIZE, on_save, on_load, on_destroy)
+	backing_cache.load()
 
 func get_object(uuid:UUID, type:TypeHelper.ObjectType) -> Image:
 	var id:String = uuid.to_string()

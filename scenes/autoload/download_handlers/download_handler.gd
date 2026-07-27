@@ -9,23 +9,24 @@ const CACHE_SIZE:int = GIGABYTE * 10
 const CACHE_FILE:String = "object_cache"
 const OBJECT_FILE_PATH:String = "user://objects/%s.epck"
 
-var backing_cache:LruCache = LruCache.new_cache(
-			CACHE_SIZE, on_save, on_load, on_destroy)
+var backing_cache:LruCache
 
 func on_save(cached_objects:Dictionary) -> void:
-	GlobalPersistanceHandler.clear_catagory(CACHE_FILE, "values")
+	GlobalPersistanceHandler.clear_catagory(CACHE_FILE, "values", false)
 	for uuid:String in cached_objects.keys():
-		GlobalPersistanceHandler.save_value(
-				CACHE_FILE, 
-				"values",
-				uuid, 
-				cached_objects[uuid])
+		GlobalPersistanceHandler.register_value(
+				CACHE_FILE, "values",uuid, cached_objects[uuid], false)
+	GlobalPersistanceHandler.flush_file.call_deferred(CACHE_FILE)
 
 func on_load() -> Dictionary:
 	return GlobalPersistanceHandler.get_catagory(CACHE_FILE, "values")
 
 func on_destroy(uuid:String) -> void:
 	DirAccess.remove_absolute(OBJECT_FILE_PATH % uuid)
+
+func _init() -> void:
+	backing_cache = LruCache.new_cache(CACHE_SIZE, on_save, on_load, on_destroy)
+	backing_cache.load()
 
 func get_object(uuid:UUID, type:TypeHelper.ObjectType) -> PackedScene:
 	var id:String = uuid.to_string()
@@ -40,6 +41,7 @@ func get_object(uuid:UUID, type:TypeHelper.ObjectType) -> PackedScene:
 		TypeHelper.ObjectType.avatar:
 			object_type_string = "Avatar"
 	
+	# todo: make request once and then pass in values to preload
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, 
 			OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
