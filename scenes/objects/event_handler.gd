@@ -89,6 +89,84 @@ class DisplayAction extends BaseAction:
 	func init(_handler:ObjectEventHandler) -> void:
 		return
 
+class ParameterAction extends BaseAction:
+	var parameter:String
+	var target:AnimationTree
+	
+	@warning_ignore("shadowed_variable_base_class")
+	static func create(id:PackedByteArray, target:AnimationTree, parameter:String, active:bool, 
+			custom_parameters:Array[Variant]) -> ParameterAction:
+		var x:ParameterAction = new()
+		x.active = active
+		x.custom_parameters = custom_parameters
+		x.id = id
+		x.target = target
+		x.parameter = parameter
+		return x
+	
+	func on_event(parameters:Array[Variant], _handler:ObjectEventHandler) -> void:
+		if parameters.size() > 0:
+			target.set("parameters/" + parameter, parameters[0])
+	
+	func init(_handler:ObjectEventHandler) -> void:
+		return
+
+class TransitionAction extends BaseAction:
+	enum TransitionTypes{
+		single_transition,
+		travel,
+		instant
+	}
+
+	var target:AnimationTree
+	var state_machine:String
+	var target_node:String
+	var source_node:String
+	var transition_type:TransitionTypes
+	var teleport_if_unreachable:bool
+	
+	@warning_ignore("shadowed_variable_base_class")
+	static func create(id:PackedByteArray, target:AnimationTree, state_machine:String, 
+			target_node:String, source_node:String, transition_type:TransitionTypes, 
+			teleport_if_unreachable:bool, active:bool, 
+			custom_parameters:Array[Variant]) -> TransitionAction:
+		var x:TransitionAction = new()
+		x.active = active
+		x.custom_parameters = custom_parameters
+		x.id = id
+		x.target = target
+		x.state_machine = state_machine
+		x.target_node = target_node
+		x.source_node = source_node
+		x.transition_type = transition_type
+		x.teleport_if_unreachable = teleport_if_unreachable
+		return x
+	
+	func on_event(_parameters:Array[Variant], _handler:ObjectEventHandler) -> void:
+		var state_machine_playback:AnimationNodeStateMachinePlayback
+		if state_machine == "ROOT":
+			state_machine_playback = get("parameters/playback")
+		else:
+			pass#state_machine_playback = get()
+		
+		match transition_type:
+			TransitionTypes.single_transition:
+				# if source is none, loop through nodes and look for connected
+				# otherwise check if at source
+				# if unreachable, tp if true
+				pass
+			TransitionTypes.travel:
+				# use travel command
+				# if no path exists tp if true
+				pass
+			TransitionTypes.instant:
+				# tp if true
+				# otherwise check path exists and only tp in that case
+				pass
+	
+	func init(_handler:ObjectEventHandler) -> void:
+		return
+
 class AnimationSetAction extends BaseAction:
 	var from_parameter:bool
 	var animation:String
@@ -168,6 +246,86 @@ class AlwaysTrigger extends BaseTrigger:
 		var parameters:Array[Variant] = custom_parameters.duplicate()
 		if include_tick_count:
 			parameters.push_back(active_ticks)
+		for target:PackedByteArray in targets:
+			if !handler.actions.has(target):
+				push_error("invalid target %s" % target)
+				return
+			handler.new_event(handler.actions[target], parameters)
+
+class JumpTrigger extends BaseTrigger:
+	var player:Player
+	var was_on_floor:bool = false
+	
+	@warning_ignore("shadowed_variable_base_class")
+	static func create(player:Player, active:bool, custom_parameters:Array[Variant], 
+			targets:Array[PackedByteArray]) -> JumpTrigger:
+		var x:JumpTrigger = new()
+		x.active = active
+		x.custom_parameters = custom_parameters
+		x.targets = targets
+		x.player = player
+		return x
+	
+	func init(_handler:ObjectEventHandler) -> void:
+		return
+	
+	func tick(handler:ObjectEventHandler) -> void:
+		if was_on_floor and !player.is_on_floor():
+			var parameters:Array[Variant] = custom_parameters.duplicate()
+			for target:PackedByteArray in targets:
+				if !handler.actions.has(target):
+					push_error("invalid target %s" % target)
+				else:
+					handler.new_event(handler.actions[target], parameters)
+		was_on_floor = player.is_on_floor()
+
+class LandTrigger extends BaseTrigger:
+	var player:Player
+	var was_on_floor:bool = true
+	
+	@warning_ignore("shadowed_variable_base_class")
+	static func create(player:Player, active:bool, custom_parameters:Array[Variant], 
+			targets:Array[PackedByteArray]) -> LandTrigger:
+		var x:LandTrigger = new()
+		x.active = active
+		x.custom_parameters = custom_parameters
+		x.targets = targets
+		x.player = player
+		return x
+	
+	func init(_handler:ObjectEventHandler) -> void:
+		return
+	
+	func tick(handler:ObjectEventHandler) -> void:
+		if !was_on_floor and player.is_on_floor():
+			var parameters:Array[Variant] = custom_parameters.duplicate()
+			for target:PackedByteArray in targets:
+				if !handler.actions.has(target):
+					push_error("invalid target %s" % target)
+				else:
+					handler.new_event(handler.actions[target], parameters)
+		was_on_floor = player.is_on_floor()
+
+class VelocityTrigger extends BaseTrigger:
+	var player:Player
+	
+	@warning_ignore("shadowed_variable_base_class")
+	static func create(player:Player, active:bool, custom_parameters:Array[Variant], 
+			targets:Array[PackedByteArray]) -> VelocityTrigger:
+		var x:VelocityTrigger = new()
+		x.active = active
+		x.custom_parameters = custom_parameters
+		x.targets = targets
+		x.player = player
+		return x
+	
+	func init(_handler:ObjectEventHandler) -> void:
+		return
+	
+	func tick(handler:ObjectEventHandler) -> void:
+		var parameters:Array[Variant] = custom_parameters.duplicate()
+		var absolute_velocity:Vector2 = Vector2(player.velocity.x, player.velocity.z)
+		parameters.push_back(absolute_velocity.rotated(player.rotation.y))
 		for target:PackedByteArray in targets:
 			if !handler.actions.has(target):
 				push_error("invalid target %s" % target)

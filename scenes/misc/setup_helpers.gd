@@ -111,14 +111,14 @@ static func setup_avatar(root:Node, player:Player) -> void:
 	var state:SetupState = SetupState.new()
 	var combined_aabb:AABB = AABB(Vector3.ZERO, Vector3.ZERO)
 	
-	state.state["is_local"] = player.is_local
+	state.state["player"] = player
 	
 	setup_object(root, TypeHelper.ObjectType.avatar, state)
 	
 	var nodes:Array[Node] = get_node_and_children_recursive(root)
 	for node:Node in nodes:
 		@warning_ignore("untyped_declaration")
-		if blacklisted_nodes.any(func(blacklist_item) -> bool:
+		if blacklisted_nodes.any(func(blacklist_item:Variant) -> bool:
 				return is_instance_of(node, blacklist_item)):
 			node.queue_free()
 			continue

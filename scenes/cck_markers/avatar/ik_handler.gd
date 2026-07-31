@@ -5,7 +5,7 @@ func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.S
 	if target is not Skeleton3D:
 		return
 	
-	if state.state["is_local"]:
+	if state.state["player"].is_local:
 		@warning_ignore("unsafe_cast")
 		(target as Skeleton3D).set_bone_pose_scale(values["head_bone"] as int, Vector3(0.001, 0.001, 0.001))
 	
