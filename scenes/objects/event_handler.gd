@@ -112,23 +112,15 @@ class ParameterAction extends BaseAction:
 		return
 
 class TransitionAction extends BaseAction:
-	enum TransitionTypes{
-		single_transition,
-		travel,
-		instant
-	}
-
 	var target:AnimationTree
 	var state_machine:String
 	var target_node:String
 	var source_node:String
-	var transition_type:TransitionTypes
-	var teleport_if_unreachable:bool
+	var teleport:bool
 	
 	@warning_ignore("shadowed_variable_base_class")
 	static func create(id:PackedByteArray, target:AnimationTree, state_machine:String, 
-			target_node:String, source_node:String, transition_type:TransitionTypes, 
-			teleport_if_unreachable:bool, active:bool, 
+			target_node:String, source_node:String, teleport:bool, active:bool, 
 			custom_parameters:Array[Variant]) -> TransitionAction:
 		var x:TransitionAction = new()
 		x.active = active
@@ -138,31 +130,25 @@ class TransitionAction extends BaseAction:
 		x.state_machine = state_machine
 		x.target_node = target_node
 		x.source_node = source_node
-		x.transition_type = transition_type
-		x.teleport_if_unreachable = teleport_if_unreachable
+		x.teleport = teleport
 		return x
 	
 	func on_event(_parameters:Array[Variant], _handler:ObjectEventHandler) -> void:
 		var state_machine_playback:AnimationNodeStateMachinePlayback
 		if state_machine == "ROOT":
-			state_machine_playback = get("parameters/playback")
+			state_machine_playback = target.get("parameters/playback")
 		else:
-			pass#state_machine_playback = get()
+			var path:String = "parameters/"
+			for chunk:String in state_machine.trim_prefix("ROOT/").split("/"):
+				path += chunk.substr(1)
+			state_machine_playback = target.get(path + "/playback")
 		
-		match transition_type:
-			TransitionTypes.single_transition:
-				# if source is none, loop through nodes and look for connected
-				# otherwise check if at source
-				# if unreachable, tp if true
-				pass
-			TransitionTypes.travel:
-				# use travel command
-				# if no path exists tp if true
-				pass
-			TransitionTypes.instant:
-				# tp if true
-				# otherwise check path exists and only tp in that case
-				pass
+		if teleport:
+			if source_node == "None" or source_node == state_machine_playback.get_current_node():
+				state_machine_playback.start(target_node)
+		else:
+			if source_node == "None" or source_node == state_machine_playback.get_current_node():
+				state_machine_playback.travel(target_node)
 	
 	func init(_handler:ObjectEventHandler) -> void:
 		return
@@ -355,10 +341,16 @@ var active_events:Array[Event] = []
 var inactive_events:Array[Event] = []
 
 func register_trigger(trigger:BaseTrigger) -> void:
+	if triggers.size() > 256:
+		push_error("too many triggers registered for object %s" % get_parent().name)
+	
 	triggers.push_back(trigger)
 	trigger.init(self)
 
 func register_action(action:BaseAction) -> void:
+	if actions.size() > 256:
+		push_error("too many actions registered for object %s" % get_parent().name)
+	
 	if actions.has(action.id):
 		push_error("tried to assign duplicate actions with id %s" % action.id)
 		return
@@ -367,6 +359,9 @@ func register_action(action:BaseAction) -> void:
 	action.init(self)
 
 func new_event(target:BaseAction, parameters:Array[Variant]) -> void:
+	if inactive_events.size() > 64:
+		push_error("too many scheduled events for object %s" % get_parent().name)
+	
 	var x:Event = Event.create(target, parameters)
 	inactive_events.push_back(x)
 

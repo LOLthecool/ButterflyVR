@@ -20,6 +20,17 @@ func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.
 		
 		player.add_animation_library(library_name, animation_library)
 	
+	for animation_name:String in player.get_animation_list():
+		var animation:Animation = player.get_animation(animation_name)
+		for i:int in range(0, animation.get_track_count()):
+			if animation.track_get_type(i) == Animation.TrackType.TYPE_METHOD \
+					or animation.track_get_type(i) == Animation.TrackType.TYPE_VALUE \
+					or animation.track_get_type(i) == Animation.TrackType.TYPE_ANIMATION:
+				player.free()
+				push_error("unsafe animation %s in node %s. ignoring this animation player" 
+						% [animation_name, values["player_name"]])
+				return
+	
 	target.add_child(player)
 	
 	@warning_ignore("unsafe_cast")

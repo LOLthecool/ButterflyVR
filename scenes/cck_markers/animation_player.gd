@@ -13,12 +13,23 @@ func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.
 		
 		for animation_name:String in library.keys():
 			if library[animation_name] is not Animation:
-				push_error("invalid animation in CCKAnimationPlayer: %s" % get_name())
+				push_error("invalid animation in CCKAnimationPlayer: %s" % values["player_name"])
 				return
 			var animation:Animation = library[animation_name]
 			animation_library.add_animation(animation_name.split("/", false, 1)[1], animation)
 		
 		player.add_animation_library(library_name, animation_library)
+	
+	for animation_name:String in player.get_animation_list():
+		var animation:Animation = player.get_animation(animation_name)
+		for i:int in range(0, animation.get_track_count()):
+			if animation.track_get_type(i) == Animation.TrackType.TYPE_METHOD \
+					or animation.track_get_type(i) == Animation.TrackType.TYPE_VALUE \
+					or animation.track_get_type(i) == Animation.TrackType.TYPE_ANIMATION:
+				player.free()
+				push_error("unsafe animation %s in node %s. ignoring this animation player" 
+						% [animation_name, values["player_name"]])
+				return
 	
 	player.name = values["player_name"]
 	target.add_child(player, true)
