@@ -15,6 +15,7 @@ script = ExtResource("1_yag7k")
 
 [node name="Camera3D" parent="Node3D" unique_id=958796167 node_paths=PackedStringArray("player_access", "raycaster", "movement_handler", "rotation_center") instance=ExtResource("1_76yq6")]
 current = true
+near = 0.01
 player_access = NodePath("../..")
 raycaster = NodePath("Raycaster")
 movement_handler = NodePath("../../MovementHandler")

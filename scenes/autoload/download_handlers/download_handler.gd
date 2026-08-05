@@ -16,7 +16,7 @@ func on_save(cached_objects:Dictionary) -> void:
 	for uuid:String in cached_objects.keys():
 		GlobalPersistanceHandler.register_value(
 				CACHE_FILE, "values",uuid, cached_objects[uuid], false)
-	GlobalPersistanceHandler.flush_file.call_deferred(CACHE_FILE)
+	GlobalPersistanceHandler.flush_file(CACHE_FILE)
 
 func on_load() -> Dictionary:
 	return GlobalPersistanceHandler.get_catagory(CACHE_FILE, "values")
@@ -113,7 +113,10 @@ func preload_object(id:String, type:TypeHelper.ObjectType) -> bool:
 			backing_cache.pop(id)
 		else:
 			if object.cache_time_utc >= response_values["updated_at"]:
+				var t1:int = Time.get_ticks_msec()
 				backing_cache.save()
+				var t2:int = Time.get_ticks_msec()
+				print(t2 - t1)
 				return true
 			else:
 				backing_cache.pop(id)

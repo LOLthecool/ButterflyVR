@@ -120,12 +120,12 @@ impl LruCache {
 
     #[func]
     fn save(&self) {
-        let mut data = VarDictionary::new();
+        let mut data: Dictionary<GString, AnyDictionary> = Dictionary::new();
         for (key, value) in self.cache.iter() {
-            let mut sub: VarDictionary = VarDictionary::new();
+            let mut sub: Dictionary<GString, i64> = Dictionary::new();
             sub.set("cache_time_utc", value.cache_time_utc);
             sub.set("size_kb", value.size_kb);
-            data.set(key.to_string(), &sub);
+            data.set(&key.to_string(), sub.upcast_any_dictionary());
         }
         self.save_call.call(&[data.to_variant()]);
     }

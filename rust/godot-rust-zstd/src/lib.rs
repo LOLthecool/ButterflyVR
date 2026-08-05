@@ -5,6 +5,7 @@ use godot::prelude::*;
 use zstd::{Decoder, Encoder};
 
 const CHUNK_SIZE: usize = 1024 * 1024;
+const COMPRESSION_LEVEL: i32 = 3;
 
 struct MyExtension;
 
@@ -30,7 +31,7 @@ impl ZSTDCompressor {
         else {
             return false;
         };
-        let Ok(mut encoder) = Encoder::new(&mut output, 3)
+        let Ok(mut encoder) = Encoder::new(&mut output, COMPRESSION_LEVEL)
             .inspect_err(|e| godot_error!("error while creating encoder: {}", e))
         else {
             return false;

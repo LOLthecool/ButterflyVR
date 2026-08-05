@@ -294,6 +294,7 @@ class LandTrigger extends BaseTrigger:
 
 class VelocityTrigger extends BaseTrigger:
 	var player:Player
+	var last_velocity:Vector2
 	
 	@warning_ignore("shadowed_variable_base_class")
 	static func create(player:Player, active:bool, custom_parameters:Array[Variant], 
@@ -311,6 +312,12 @@ class VelocityTrigger extends BaseTrigger:
 	func tick(handler:ObjectEventHandler) -> void:
 		var parameters:Array[Variant] = custom_parameters.duplicate()
 		var absolute_velocity:Vector2 = Vector2(player.velocity.x, player.velocity.z)
+		
+		if absolute_velocity == last_velocity:
+			return
+		
+		last_velocity = absolute_velocity
+		
 		parameters.push_back(absolute_velocity.rotated(player.rotation.y))
 		for target:PackedByteArray in targets:
 			if !handler.actions.has(target):
