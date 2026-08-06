@@ -10,6 +10,7 @@ const CACHE_FILE:String = "object_cache"
 const OBJECT_FILE_PATH:String = "user://objects/%s.epck"
 
 var backing_cache:LruCache
+var cache_lock:Mutex = Mutex.new()
 
 func on_save(cached_objects:Dictionary) -> void:
 	GlobalPersistanceHandler.clear_catagory(CACHE_FILE, "values", false)
@@ -66,10 +67,16 @@ func get_object(uuid:UUID, type:TypeHelper.ObjectType) -> PackedScene:
 			push_error("error message: %s" % error_message)
 		return null
 	
+	await MiscHelpers.await_lock_mutex(cache_lock)
+	
 	var file:FileAccess = FileAccess.open(OBJECT_FILE_PATH % [id], FileAccess.READ)
 	@warning_ignore("unsafe_cast")
-	return decrypt_and_load_object(file, type, id, response_values["encryption_key"] as PackedByteArray, 
+	var object:PackedScene = decrypt_and_load_object(file, type, id, response_values["encryption_key"] as PackedByteArray, 
 			response_values["encryption_iv"] as PackedByteArray)
+	
+	cache_lock.unlock()
+	
+	return object
 
 func preload_object(id:String, type:TypeHelper.ObjectType) -> bool:
 	var object_type_string:String = "UNNAMED"
@@ -104,6 +111,8 @@ func preload_object(id:String, type:TypeHelper.ObjectType) -> bool:
 			push_error("error message: %s" % error_message)
 		return false
 	
+	await MiscHelpers.await_lock_mutex(cache_lock)
+	
 	var object:Dictionary[String, int] = {}
 	object.assign(backing_cache.get(id))
 	if !object.is_empty():
@@ -113,10 +122,7 @@ func preload_object(id:String, type:TypeHelper.ObjectType) -> bool:
 			backing_cache.pop(id)
 		else:
 			if object.cache_time_utc >= response_values["updated_at"]:
-				var t1:int = Time.get_ticks_msec()
 				backing_cache.save()
-				var t2:int = Time.get_ticks_msec()
-				print(t2 - t1)
 				return true
 			else:
 				backing_cache.pop(id)
@@ -128,6 +134,9 @@ func preload_object(id:String, type:TypeHelper.ObjectType) -> bool:
 			response_values["updated_at"] as int, 
 			int(ceilf(response_values["object_size"] as float / 1024)))
 	backing_cache.save()
+	
+	cache_lock.unlock()
+	
 	return true
 
 func download_object(uuid:String, object_type:TypeHelper.ObjectType) -> void:

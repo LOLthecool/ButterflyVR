@@ -12,7 +12,6 @@ use rand::SeedableRng;
 use std::collections::HashMap;
 use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
-use std::thread;
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -39,6 +38,7 @@ pub struct NetNodeClient {
 enum ConnectionStatus {
     AwaitingConnection([u8; 8]),
     Connected,
+    Disconnected,
 }
 
 impl NetNodeClient {
@@ -115,12 +115,13 @@ impl NetNodeClient {
         };
         self.networker
             .disconnect_peer(server, false, 0, "player disconnected");
-        // todo: this technically guarentees the close packet will be sent but its also very hacky
-        let _ = self.networker.update();
-        thread::sleep(std::time::Duration::from_millis(16));
-        let _ = self.networker.update();
-        thread::sleep(std::time::Duration::from_millis(16));
+        self.connected = ConnectionStatus::Disconnected;
     }
+
+    pub fn has_disconnected(&self) -> bool {
+        matches!(self.connected, ConnectionStatus::Disconnected)
+    }
+
     fn tick(&mut self) -> Result<(), NetNodesError> {
         let server = self.networker.get_peers(false).pop().unwrap();
         let server = &server;
@@ -281,11 +282,15 @@ impl NetNodeClient {
         let tmp = self.networker.get_peers(true);
         let Some(server) = tmp.first() else {
             godot_error!("client is not connected to the server");
+            self.disconnect();
             return;
         };
 
         if let Err(e) = self.networker.update() {
             godot_error!("failed to update client networker: {e:?}");
+            if e == NetNodesError::Disconnected {
+                self.disconnect();
+            }
             return;
         }
 

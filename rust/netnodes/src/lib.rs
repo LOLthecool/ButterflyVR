@@ -333,6 +333,11 @@ impl NetNodeManager {
         matches!(self.inner, Inner::Server(_))
     }
 
+    #[func]
+    pub fn has_disconnected(&self) -> bool {
+        matches!(&self.inner, Inner::Client(client) if client.has_disconnected())
+    }
+
     /// Returns the number of players currently connected to the server.
     /// This is a server-only method.
     #[func]

@@ -6,6 +6,10 @@ const WORLD_INFO_ENDPOINT:String = "/api/v0/world/%s"
 
 var current_world:WorldController
 
+func _physics_process(delta: float) -> void:
+	if NetworkManager.has_disconnected():
+		disconnect_from_world(false)
+
 func load_homeworld() -> void:
 	var response:Array[Variant] = await GlobalAPIHandler.make_request(
 			HTTPClient.METHOD_GET, 
@@ -64,8 +68,6 @@ func load_world(world_id:UUID, instance_id:UUID = null) -> void:
 	var root:Node = SetupHelpers.setup_world(world.instantiate())
 	
 	await get_tree().physics_frame
-	
-	NetworkManager.kill()
 	
 	if instance_id:
 		if !await GlobalInstanceHandler.join_instance(instance_id):

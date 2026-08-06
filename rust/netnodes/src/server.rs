@@ -13,8 +13,8 @@ use rand::distr::weighted::Weight;
 use rand::{RngExt, SeedableRng};
 use std::collections::HashMap;
 use std::collections::{BTreeMap, HashSet, VecDeque};
+use std::mem;
 use std::time::Duration;
-use std::{mem, thread};
 
 #[derive(Debug)]
 pub struct NetNodeServer {
@@ -516,12 +516,6 @@ impl NetNodeServer {
             self.networker
                 .disconnect_peer(&client, false, 0, "server shutting down");
         }
-
-        // todo: this technically guarentees the close packet will be sent but its also very hacky
-        let _ = self.networker.update();
-        thread::sleep(std::time::Duration::from_millis(16));
-        let _ = self.networker.update();
-        thread::sleep(std::time::Duration::from_millis(16));
     }
 
     pub fn physics_process_inner(&mut self) {
