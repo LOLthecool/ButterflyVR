@@ -350,6 +350,7 @@ var inactive_events:Array[Event] = []
 func register_trigger(trigger:BaseTrigger) -> void:
 	if triggers.size() > 256:
 		push_error("too many triggers registered for object %s" % get_parent().name)
+		return
 	
 	triggers.push_back(trigger)
 	trigger.init(self)
@@ -357,6 +358,7 @@ func register_trigger(trigger:BaseTrigger) -> void:
 func register_action(action:BaseAction) -> void:
 	if actions.size() > 256:
 		push_error("too many actions registered for object %s" % get_parent().name)
+		return
 	
 	if actions.has(action.id):
 		push_error("tried to assign duplicate actions with id %s" % action.id)
@@ -368,6 +370,7 @@ func register_action(action:BaseAction) -> void:
 func new_event(target:BaseAction, parameters:Array[Variant]) -> void:
 	if inactive_events.size() > 64:
 		push_error("too many scheduled events for object %s" % get_parent().name)
+		return
 	
 	var x:Event = Event.create(target, parameters)
 	inactive_events.push_back(x)

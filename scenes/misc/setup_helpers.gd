@@ -13,7 +13,7 @@ static func check_safe(root:SceneState) -> bool:
 		if root.get_node_type(idx).begins_with("Editor"):
 			return false
 		for group:String in root.get_node_groups(idx):
-			if !(group.begins_with("_") or group.begins_with("_cck")):
+			if !(group.begins_with("_") or group.begins_with("cck_")):
 				return false
 		for property_idx:int in range(root.get_node_property_count(idx)):
 			if root.get_node_property_name(idx, property_idx) == "script":

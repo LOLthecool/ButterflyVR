@@ -48,7 +48,7 @@ func setup(values:Dictionary[String, Variant], target:Node, _state:SetupHelpers.
 	
 	var parameters:Dictionary[String, Variant] = values["parameters"]
 	for property_name:String in parameters.keys():
-		set(property_name, parameters[property_name])
+		tree.set("parameters/" + property_name, parameters[property_name])
 	
 	tree.name = values["name"]
 	target.add_child(tree, true)

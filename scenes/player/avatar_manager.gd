@@ -65,8 +65,8 @@ func change_avatar(target_player:PackedByteArray, avatar:UUID) -> void:
 	
 	# abort if source avatar is unsafe
 	if !SetupHelpers.check_safe(new_avatar.get_state()):
-		push_error("tried to load unsafe world, aborting")
-		push_error("no error handling here, exiting")
+		push_error("tried to load unsafe avatar, aborting")
+		new_avatar = preload("res://scenes/player/loading_avatar.tscn")
 	
 	# set current avatar in api
 	if owner_id == (await GlobalAccountHandler.get_uuid()).backing_storage and !NetworkManager.is_server():
