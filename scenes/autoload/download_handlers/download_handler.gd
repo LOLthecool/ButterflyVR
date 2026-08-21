@@ -238,7 +238,7 @@ func decrypt_and_load_object(object:FileAccess, object_type:TypeHelper.ObjectTyp
 		push_error("failed to load object pck from %s" % new_object)
 		return null
 	
-	return ResourceLoader.load("res://_loaded_content/%s/%s.tscn" % [object_type, uuid], 
+	return ResourceLoader.load("res://_loaded_content/%s/%s/root.tscn" % [object_type, uuid], 
 			"PackedScene", ResourceLoader.CACHE_MODE_IGNORE_DEEP) as PackedScene
 
 func _physics_process(_delta: float) -> void:

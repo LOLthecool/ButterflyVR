@@ -6,8 +6,8 @@ func setup(values:Dictionary[String, Variant], target:Node, state:SetupHelpers.S
 	@warning_ignore("unsafe_cast")
 	handler.register_action(ObjectEventHandler.TransitionAction.create(
 			values["action_id"] as PackedByteArray, 
-			target.get_node(values["target"] as String) as AnimationTree, values["state_machine"], 
-			values["target_node"], values["source_node"], values["teleport"], 
+			target.get_node(values["target"] as String) as AnimationTree, values["state_machine"] as String, 
+			values["target_node"] as String, values["source_node"] as String, values["teleport"] as bool, 
 			values["active"] as bool, values["custom_parameters"] as Array))
 
 func perform_migrations(values:Dictionary[String, Variant]) -> Dictionary[String, Variant]:
