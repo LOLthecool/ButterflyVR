@@ -109,7 +109,7 @@ impl MessageHandler {
                     return (VarArray::new(), Array::new());
                 }
                 godot_error!("failed to decode message from the server.");
-                // todo: disconnect instead of panicing
+                // todo: disconnect instead of panicking
                 panic!("failed to decode message from the server.");
             };
             values.push(&last_value);

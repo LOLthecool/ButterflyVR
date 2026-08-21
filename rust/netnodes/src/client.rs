@@ -177,7 +177,7 @@ impl NetNodeClient {
                 } else {
                     // will give a few spurious errors if we get sync data for a netnode before its creation event
                     godot_warn!(
-                        "got update for nonexistant netnode with objectid: {:#?}",
+                        "got update for nonexistent netnode with objectid: {:#?}",
                         next_obj
                     );
                     break;

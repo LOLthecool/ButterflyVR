@@ -817,7 +817,7 @@ impl ConnectionHandler {
                     )
                 }
             }
-            Err(e) => panic!("error while sending mesage body: {e:?}. this is irrecoverable."),
+            Err(e) => panic!("error while sending message body: {e:?}. this is irrecoverable."),
         }
     }
 

@@ -57,7 +57,7 @@ pub fn handle_stream(
     previous_data: (&mut Option<usize>, &mut BitVec<u64, Lsb0>),
     networker: &mut ConnectionHandler,
     message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
-    // this function requires that message access corrosponds to the peer being either a client or a server
+    // this function requires that message access corresponds to the peer being either a client or a server
     // clients should use manager while servers should use handlers
     mut message_access: MessageAccess,
 ) -> Result<(), NetNodesError> {

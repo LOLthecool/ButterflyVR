@@ -86,7 +86,7 @@ impl NetNodeServer {
 
     pub fn get_next_object_id(&mut self) -> u16 {
         // todo: should probably try to reuse object ids from removed nodes
-        // if we manage to actually have no free ids, panicing is fine
+        // if we manage to actually have no free ids, panicking is fine
         self.last_netnode_id.checked_add_assign(&1).unwrap();
         self.last_netnode_id
     }
@@ -282,7 +282,7 @@ impl NetNodeServer {
                         } else {
                             // will give a few spurious errors if we get sync data for a netnode before its creation event
                             godot_warn!(
-                                "got update for nonexistant netnode with objectid: {:#?}",
+                                "got update for nonexistent netnode with objectid: {:#?}",
                                 next_obj
                             );
                             break;

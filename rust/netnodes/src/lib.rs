@@ -1,6 +1,6 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::doc_markdown)]
-// todo: split message handling to seperate node, call deferred from common, server and client get scene access via this node
+// todo: split message handling to separate node, call deferred from common, server and client get scene access via this node
 // message applier just calls the usual handle_message, handle message shouldnt defer itself
 
 //! Low level networking library for the Godot engine.
@@ -258,7 +258,7 @@ impl NetNodeManager {
     }
 
     /// Starts a client connection to a server using the given server address and identifier.
-    /// The uuid and identifier should corrospond to a uuid and identifier combo from an external server.
+    /// The uuid and identifier should correspond to a uuid and identifier combo from an external server.
     /// If the server does not require an associated account, you may generate both randomly.
     /// Once this function is called, client only and generic networking api methods become available. but it may still take some time to connect.
     #[func]
