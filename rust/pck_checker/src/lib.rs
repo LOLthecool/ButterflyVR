@@ -37,7 +37,7 @@ impl PCKChecker {
         // no offset support, shouldnt be an issue
         let magic: u32 = unsafe { read_value(&mut pck) };
         if magic != 0x43504447 {
-            godot_error!("invalid magic number");
+            godot_error!("invalid magic number, found 0x{:x}", magic);
             return false;
         }
 
@@ -75,8 +75,7 @@ impl PCKChecker {
                 object_type_string, uuid_string
             )) {
                 godot_error!("found unwanted file at path {:?}", path);
-                // disable temporarily
-                //return false;
+                return false;
             }
 
             if BAD_EXTENSIONS.iter().any(|ext| path.ends_with(ext)) {
@@ -125,8 +124,8 @@ impl PCKChecker {
             .into_iter()
             .map(|c| char::from_u32(c as u32).unwrap())
             .collect();
-        if buffer != "[gd_scene format=4]" {
-            godot_error!("invalid header in scene {:?}", file.path);
+        if buffer != "[gd_scene format=4]" && buffer != "[gd_scene format=3]" {
+            godot_error!("invalid header in scene {:?}. got {:?}", file.path, buffer);
             return false;
         }
 
