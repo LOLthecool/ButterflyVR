@@ -1,7 +1,8 @@
 extends Button
 
+
 func _pressed() -> void:
-	var tree:SceneTree = get_tree()
+	var tree: SceneTree = get_tree()
 	get_parent().remove_child(self) # to avoid freeing ourself before finishing
 	GlobalWorldHandler.current_world.queue_free()
 	await tree.physics_frame

@@ -1,33 +1,40 @@
 extends ScrollContainer
 class_name InstanceList
 
-const INSTANCE_SEARCH_ENDPOINT:String = "/api/v0/instances/search"
-const INSTANCE_JOIN_ENDPOINT:String = "/api/v0/instances/%s/join"
+const INSTANCE_SEARCH_ENDPOINT: String = "/api/v0/instances/search"
+const INSTANCE_JOIN_ENDPOINT: String = "/api/v0/instances/%s/join"
 
-@export var instances_container:VBoxContainer
+@export var instances_container: VBoxContainer
 
-var world_id:String
-var filters:Dictionary
+var world_id: String
+var filters: Dictionary
 
-func update_filters(_filters:Dictionary) -> void:
+
+func update_filters(_filters: Dictionary) -> void:
 	pass
 
-func show_instances(world:Dictionary) -> void:
+
+func show_instances(world: Dictionary) -> void:
 	world_id = world["id"]
 	filters["world"] = world_id
 	filters["is_empty"] = false
 	filters["is_full"] = false
-	
-	var body:String = JSON.stringify(filters)
-	
-	var response:Array[Variant] = await GlobalAPIHandler.make_request(
-			HTTPClient.METHOD_POST, 
-			INSTANCE_SEARCH_ENDPOINT, 
-			PackedStringArray([GlobalAccountHandler.get_token_header()]), 
-			body)
-	@warning_ignore("unsafe_call_argument")
-	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["instances"])
-	
+
+	var body: String = JSON.stringify(filters)
+
+	var response: Array[Variant] = await GlobalAPIHandler.make_request(
+		HTTPClient.METHOD_POST,
+		INSTANCE_SEARCH_ENDPOINT,
+		PackedStringArray([GlobalAccountHandler.get_token_header()]),
+		body,
+	)
+	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+		response[0],
+		response[2],
+		[200],
+		["instances"],
+	)
+
 	if !result[0]:
 		push_error("error when getting instances")
 		if result[1] != -1:
@@ -37,30 +44,32 @@ func show_instances(world:Dictionary) -> void:
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
 		return
-	
-	for child:Node in instances_container.get_children():
+
+	for child: Node in instances_container.get_children():
 		child.queue_free()
 	await get_tree().physics_frame
-	
-	for instance:Dictionary in result[4]["instances"]:
-		@warning_ignore("unsafe_cast")
-		var id:UUID = UUID.from_String(instance["id"] as String)
-		var instance_name:String = instance["name"]
-		var player_count:int = instance["current_players"]
-		var max_players:int = instance["max_players"]
-		@warning_ignore("unsafe_cast")
-		var publicity:String = StringifyHelper.stringify_instance_publicity(instance["publicity"] as int)
-		
-		var player_count_string:String = "%s/%s" % [player_count, max_players]
-		
-		var listing:InstanceListing = preload(
-				"res://scenes/player/ui/page_worlds/instance_listing.tscn").instantiate()
-		
+
+	for instance: Dictionary in result[4]["instances"]:
+		@warning_ignore("unsafe_cast") var id: UUID = UUID.from_String(instance["id"] as String)
+		var instance_name: String = instance["name"]
+		var player_count: int = instance["current_players"]
+		var max_players: int = instance["max_players"]
+		@warning_ignore("unsafe_cast") var publicity: String = StringifyHelper.stringify_instance_publicity(
+			instance["publicity"] as int
+		)
+
+		var player_count_string: String = "%s/%s" % [player_count, max_players]
+
+		var listing: InstanceListing = preload(
+			"res://scenes/player/ui/page_worlds/instance_listing.tscn"
+		).instantiate()
+
 		listing.instance_name.text = instance_name
 		listing.publicity.text = publicity
 		listing.player_count.text = player_count_string
 		listing.join_button.pressed.connect(on_join_button_pressed.bind(id))
 		instances_container.add_child(listing)
 
-func on_join_button_pressed(instance:UUID) -> void:
+
+func on_join_button_pressed(instance: UUID) -> void:
 	GlobalWorldHandler.load_world(UUID.from_String(world_id), instance)

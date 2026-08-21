@@ -14,9 +14,9 @@ enum NetworkedValueTypes {
 	ByteArray,
 }
 
-enum ObjectType{
+enum ObjectType {
 	world,
 	avatar,
 	prop,
-	component
+	component,
 }

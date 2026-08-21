@@ -1,7 +1,8 @@
 extends Node
 
-@export var player_access:PlayerAccess
-@export var nameplate:NamePlate
+@export var player_access: PlayerAccess
+@export var nameplate: NamePlate
+
 
 func _physics_process(_delta: float) -> void:
 	player_access.player.position = player_access.player.server_position

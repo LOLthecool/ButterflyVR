@@ -1,10 +1,11 @@
 extends Button
 
-@export var popup:Panel
-@export var popup_text:Label
-@export var confirm_button:Button
-@export var cancel_button:Button
-@export var popup_dialogue:String
+@export var popup: Panel
+@export var popup_text: Label
+@export var confirm_button: Button
+@export var cancel_button: Button
+@export var popup_dialogue: String
+
 
 func _pressed() -> void:
 	if popup.visible:
@@ -14,14 +15,17 @@ func _pressed() -> void:
 	confirm_button.pressed.connect(on_confirm)
 	cancel_button.pressed.connect(on_cancel)
 
+
 func on_confirm() -> void:
 	clean_popup()
 	await GlobalWorldHandler.disconnect_from_world(false)
 	GlobalAccountHandler.logout()
 	get_tree().change_scene_to_packed(preload("res://scenes/startup/loading.tscn"))
 
+
 func on_cancel() -> void:
 	clean_popup()
+
 
 func clean_popup() -> void:
 	popup.visible = false

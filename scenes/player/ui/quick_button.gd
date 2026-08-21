@@ -1,7 +1,8 @@
 extends Button
 
-@export var page:PackedScene
-@export var page_handler:PageHandler
+@export var page: PackedScene
+@export var page_handler: PageHandler
+
 
 func _pressed() -> void:
 	page_handler.change_current_page(page.instantiate() as Page)

@@ -1,18 +1,19 @@
 extends VBoxContainer
 class_name PageHandler
 
-const DEFAULT_PAGE:PackedScene = preload("res://scenes/player/ui/page_home/home_page.tscn")
-const TAB:PackedScene = preload("res://scenes/player/ui/tab.tscn")
+const DEFAULT_PAGE: PackedScene = preload("res://scenes/player/ui/page_home/home_page.tscn")
+const TAB: PackedScene = preload("res://scenes/player/ui/tab.tscn")
 
-@export var page_root:ScrollContainer
-@export var tab_container:HBoxContainer
+@export var page_root: ScrollContainer
+@export var tab_container: HBoxContainer
 
-var current_page:Page
-var current_tab:Tab
+var current_page: Page
+var current_tab: Tab
+
 
 func create_tab() -> void:
-	var tab:Tab = TAB.instantiate()
-	var page:Page = DEFAULT_PAGE.instantiate()
+	var tab: Tab = TAB.instantiate()
+	var page: Page = DEFAULT_PAGE.instantiate()
 	tab.create(page)
 	tab.tab_clicked.connect(on_tab_clicked)
 	tab.tab_destroyed.connect(on_tab_destroyed)
@@ -25,7 +26,8 @@ func create_tab() -> void:
 	else:
 		on_tab_clicked(tab, page)
 
-func change_current_page(page:Page) -> void:
+
+func change_current_page(page: Page) -> void:
 	if current_tab == null:
 		create_tab()
 	current_tab.held_tab.queue_free()
@@ -33,7 +35,8 @@ func change_current_page(page:Page) -> void:
 	page.tab_name_changed.connect(current_tab.update_name)
 	on_tab_clicked(current_tab, page)
 
-func on_tab_clicked(tab:Tab, page:Page) -> void:
+
+func on_tab_clicked(tab: Tab, page: Page) -> void:
 	if page == current_page:
 		return
 	page_root.remove_child(current_page)
@@ -43,15 +46,16 @@ func on_tab_clicked(tab:Tab, page:Page) -> void:
 	tab.hide_overlay()
 	current_tab = tab
 
-func on_tab_destroyed(tab:Tab, page:Page) -> void:
+
+func on_tab_destroyed(tab: Tab, page: Page) -> void:
 	if page != current_page:
 		return
-	var idx:int = tab.get_index()
+	var idx: int = tab.get_index()
 	if tab_container.get_children().size() > idx + 1:
-		var new_tab:Tab = tab_container.get_child(idx + 1)
+		var new_tab: Tab = tab_container.get_child(idx + 1)
 		on_tab_clicked(new_tab, new_tab.held_tab)
 	elif idx - 1 >= 0:
-		var new_tab:Tab = tab_container.get_child(idx - 1)
+		var new_tab: Tab = tab_container.get_child(idx - 1)
 		on_tab_clicked(new_tab, new_tab.held_tab)
 	else:
 		page_root.remove_child(current_page)

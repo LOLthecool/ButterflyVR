@@ -1,7 +1,8 @@
 extends Node
 class_name StringifyHelper
 
-static func stringify_object_publicity(publicity:int) -> String:
+
+static func stringify_object_publicity(publicity: int) -> String:
 	match publicity:
 		0:
 			return "Private"
@@ -14,7 +15,8 @@ static func stringify_object_publicity(publicity:int) -> String:
 		_:
 			return "UNNAMED"
 
-static func stringify_instance_publicity(publicity:int) -> String:
+
+static func stringify_instance_publicity(publicity: int) -> String:
 	match publicity:
 		0:
 			return "Invite Only"
@@ -27,10 +29,11 @@ static func stringify_instance_publicity(publicity:int) -> String:
 		_:
 			return "UNNAMED"
 
-static func stringify_size_kb(size:int) -> String:
-	const KILOBYTE:int = 1024
-	const MEGABYTE:int = KILOBYTE * 1024
-	const GIGABYTE:int = MEGABYTE * 1024
+
+static func stringify_size_kb(size: int) -> String:
+	const KILOBYTE: int = 1024
+	const MEGABYTE: int = KILOBYTE * 1024
+	const GIGABYTE: int = MEGABYTE * 1024
 	if size > GIGABYTE:
 		return "%.2f GB" % ((size as float) / GIGABYTE)
 	elif size > MEGABYTE:

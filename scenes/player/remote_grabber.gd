@@ -1,10 +1,11 @@
 extends Node3D
 
-@export var player_access:PlayerAccess
-var grabbed_node:Node3D
-var owner_id:PackedByteArray
-var networker:PlayerNetworker
-var player:Player
+@export var player_access: PlayerAccess
+var grabbed_node: Node3D
+var owner_id: PackedByteArray
+var networker: PlayerNetworker
+var player: Player
+
 
 func _ready() -> void:
 	player = player_access.player
@@ -12,16 +13,19 @@ func _ready() -> void:
 	owner_id = networker.owner_id
 	GlobalWorldHandler.current_world.player_grab_handler.player_grabbed.connect(on_grab)
 
+
 func _physics_process(_delta: float) -> void:
 	if grabbed_node != null:
 		grabbed_node.global_transform = global_transform
+
 
 func on_release() -> void:
 	if grabbed_node is RigidBody3D:
 		(grabbed_node as RigidBody3D).freeze = false
 	grabbed_node = null
 
-func on_grab(grabbing_player:PackedByteArray, target:Node) -> void:
+
+func on_grab(grabbing_player: PackedByteArray, target: Node) -> void:
 	if grabbing_player != owner_id:
 		return
 	if target == null:

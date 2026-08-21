@@ -1,11 +1,13 @@
 extends VBoxContainer
 
-@export var ui_access:UiAccess
+@export var ui_access: UiAccess
 
-var previous_mouse_mode:Input.MouseMode
+var previous_mouse_mode: Input.MouseMode
+
 
 func _ready() -> void:
 	visible = false
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("player_mainmenu_toggle"):

@@ -1,7 +1,8 @@
 extends Node
 # handles initializing the player since otherwise it waits forever for the server to start
 
-@export var player:Player
+@export var player: Player
+
 
 func _ready() -> void:
 	player.init_local()

@@ -1,42 +1,49 @@
 extends HFlowContainer
 class_name WorldList
 
-const SEARCH_ENDPOINT:String = "/api/v0/search/%s"
+const SEARCH_ENDPOINT: String = "/api/v0/search/%s"
 
-@export var instance_page:InstancePage
+@export var instance_page: InstancePage
+
 
 func _ready() -> void:
-	get_and_show_worlds("", {"sort":"weekly_uses"})
+	get_and_show_worlds("", { "sort": "weekly_uses" })
 
-func get_and_show_worlds(search_string:String, filters_untyped:Dictionary) -> void:
-	var filters:Dictionary[String, String]
+
+func get_and_show_worlds(search_string: String, filters_untyped: Dictionary) -> void:
+	var filters: Dictionary[String, String]
 	filters.assign(filters_untyped)
-	
+
 	filters["is"] = "world"
-	
-	var filter_string:String = ""
-	for key:String in filters.keys():
+
+	var filter_string: String = ""
+	for key: String in filters.keys():
 		filter_string += "%s:%s," % [key, filters[key]]
-	
+
 	filter_string = filter_string.trim_suffix(",")
-	
+
 	# remove & to stop users accidentally breaking the filters
 	search_string = search_string.remove_char("&".unicode_at(0))
-	
-	var search:String = "%s&%s" % [search_string, filter_string]
-	var response:Array[Variant] = await GlobalAPIHandler.make_request(
-			HTTPClient.METHOD_GET, 
-			SEARCH_ENDPOINT % search, 
-			PackedStringArray([GlobalAccountHandler.get_token_header()]))
-	
-	for child:Node in get_children():
+
+	var search: String = "%s&%s" % [search_string, filter_string]
+	var response: Array[Variant] = await GlobalAPIHandler.make_request(
+		HTTPClient.METHOD_GET,
+		SEARCH_ENDPOINT % search,
+		PackedStringArray([GlobalAccountHandler.get_token_header()]),
+	)
+
+	for child: Node in get_children():
 		child.queue_free()
 	await get_tree().physics_frame
-	
-	@warning_ignore("unsafe_call_argument")
-	var result:Array[Variant] = GlobalAPIHandler.handle_response(response[0], response[2], [200], ["worlds"])
+
+	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+		response[0],
+		response[2],
+		[200],
+		["worlds"],
+	)
 	if !result[0]:
-		var error_msg:Label = Label.new()
+		var error_msg: Label = Label.new()
 		error_msg.text = "error while retriving worlds, please try again"
 		add_child(error_msg)
 		push_error("error while retriving worlds")
@@ -47,11 +54,11 @@ func get_and_show_worlds(search_string:String, filters_untyped:Dictionary) -> vo
 		if result[3] != "":
 			push_error("error message: %s" % result[3])
 		return
-	
-	for world_untyped:Dictionary in result[4]["worlds"]:
-		var world:Dictionary[String, Variant] = {}
+
+	for world_untyped: Dictionary in result[4]["worlds"]:
+		var world: Dictionary[String, Variant] = { }
 		world.assign(world_untyped)
-		var world_listing:ObjectListing = ObjectListing.new()
+		var world_listing: ObjectListing = ObjectListing.new()
 		world_listing.create(world, TypeHelper.ObjectType.world)
 		world_listing.object_selected.connect(instance_page.show_details)
 		add_child(world_listing)

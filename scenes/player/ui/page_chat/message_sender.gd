@@ -1,6 +1,7 @@
 extends Button
 
-@export var message_box:LineEdit
+@export var message_box: LineEdit
+
 
 func _pressed() -> void:
 	if message_box.text.is_empty():
