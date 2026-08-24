@@ -46,6 +46,7 @@ impl PCKChecker {
         let mut pck = BufReader::new(File::open(pck_path).unwrap());
 
         // no offset support, shouldnt be an issue
+        // if some people are failing this check it might be the endianness issue in read_value
         let magic: u32 = read_value(&mut pck);
         if magic != 0x43504447 {
             godot_error!("invalid magic number, found 0x{:x}", magic);
@@ -213,6 +214,8 @@ struct PCKFile {
     size: u64,
 }
 
+// this is not very portable but it works on my machine and it can always be replaced later
+// machines with a different endianness will error out at the magic number check
 fn read_value<T: DirectlyReadable>(file: &mut impl Read) -> T {
     unsafe {
         let mut value = MaybeUninit::zeroed().assume_init();
