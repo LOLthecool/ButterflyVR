@@ -106,13 +106,13 @@ func get_uuid(use_cached_value: bool = true) -> UUID:
 	)
 	var values: Dictionary[String, Variant] = result[4]
 	if !result[0]:
-		push_error("failed to aquire user uuid")
-		if result[1] != -1:
-			push_error("server response: %s" % result[1])
-		if result[2] != "":
-			push_error("error code: %s" % result[2])
-		if result[3] != "":
-			push_error("error message: %s" % result[3])
+		@warning_ignore("unsafe_cast")
+		MiscHelpers.log_request_error(
+			"error while getting user uuid",
+			result[1] as int,
+			result[2] as String,
+			result[3] as String,
+		)
 		return UUID.new()
 	@warning_ignore("unsafe_cast")
 	return UUID.from_String(values["id"] as String)

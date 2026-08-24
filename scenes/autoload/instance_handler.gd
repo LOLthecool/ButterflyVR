@@ -53,13 +53,13 @@ func create_online_instance(
 		["id"],
 	)
 	if !result[0]:
-		push_error("error while creating an online instance")
-		if result[1] != -1:
-			push_error("server response: %s" % result[1])
-		if result[2] != "":
-			push_error("error code: %s" % result[2])
-		if result[3] != "":
-			push_error("error message: %s" % result[3])
+		@warning_ignore("unsafe_cast")
+		MiscHelpers.log_request_error(
+			"failed to create online instance",
+			result[1] as int,
+			result[2] as String,
+			result[3] as String,
+		)
 		return null
 
 	@warning_ignore("unsafe_cast")
@@ -113,13 +113,13 @@ func join_instance(instance: UUID) -> bool:
 	)
 
 	if !result[0]:
-		push_error("error while joining an online instance")
-		if result[1] != -1:
-			push_error("server response: %s" % result[1])
-		if result[2] != "":
-			push_error("error code: %s" % result[2])
-		if result[3] != "":
-			push_error("error message: %s" % result[3])
+		@warning_ignore("unsafe_cast")
+		MiscHelpers.log_request_error(
+			"error while joining an online instance",
+			result[1] as int,
+			result[2] as String,
+			result[3] as String,
+		)
 		return false
 
 	var ip: String = result[4]["ip"]

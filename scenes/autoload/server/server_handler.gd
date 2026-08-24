@@ -16,73 +16,81 @@ var api_token: PackedByteArray
 var instance_id: UUID
 var inactivity: float
 var is_gameserver: bool = false
-var is_processing_client: bool = false
+var client_verification_mutex: Mutex = Mutex.new()
 
 
 func _physics_process(delta: float) -> void:
-	if finished_starting:
-		while true and !is_processing_client:
-			var client_id: PackedByteArray = NetworkManager.get_unverified_client()
-			if client_id == PackedByteArray():
-				break
-			is_processing_client = true
-			if !agones_sdk:
-				# our token is the same as the user for a local server
-				NetworkManager.verify_client(
-					client_id,
-					(await GlobalAccountHandler.get_uuid()).backing_storage,
+	if !finished_starting:
+		return
+
+	# continues until break case, unless already running (from previous frame because async)
+	while client_verification_mutex.try_lock():
+		var client_id: PackedByteArray = NetworkManager.get_unverified_client()
+
+		if client_id == PackedByteArray():
+			client_verification_mutex.unlock()
+			break
+
+		if !agones_sdk:
+			# our token is the same as the user for a local server
+			NetworkManager.verify_client(
+				client_id,
+				(await GlobalAccountHandler.get_uuid()).backing_storage,
+			)
+			client_verification_mutex.unlock()
+			break
+
+		var response: Array[Variant] = await GlobalAPIHandler.make_request(
+			HTTPClient.METHOD_GET,
+			IDENTIFIER_VERIFY_ENDPOINT % client_id.hex_encode(),
+			PackedStringArray([GlobalAccountHandler.get_token_header()]),
+		)
+		@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+			response[0],
+			response[2],
+			[200],
+			["user_id"],
+		)
+
+		if !result[0]:
+			push_warning("rejecting client: invalid identifier")
+			NetworkManager.reject_client(client_id)
+
+			if result[1] != 404:
+				@warning_ignore("unsafe_cast")
+				MiscHelpers.log_request_error(
+					"error while getting a client identifier",
+					result[1] as int,
+					result[2] as String,
+					result[3] as String,
 				)
-			else:
-				var response: Array[Variant] = await GlobalAPIHandler.make_request(
+
+		@warning_ignore("unsafe_cast")
+		NetworkManager.verify_client(
+			client_id,
+			UUID.from_String(result[4]["user_id"] as String).backing_storage,
+		)
+
+		client_verification_mutex.unlock()
+
+	if NetworkManager.get_player_count() == 0:
+		inactivity += delta
+
+		if inactivity > INACTIVITY_KILL_THRESHOLD or (!agones_sdk and inactivity > 5):
+			inactivity = 0 # avoid spam since shutdown takes multiple frames
+			push_warning("too long with 0 players: exiting")
+
+			if agones_sdk:
+				await GlobalAPIHandler.make_request(
 					HTTPClient.METHOD_GET,
-					IDENTIFIER_VERIFY_ENDPOINT % client_id.hex_encode(),
+					CLOSE_INSTANCE_ENDPOINT,
 					PackedStringArray([GlobalAccountHandler.get_token_header()]),
 				)
-				@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
-					response[0],
-					response[2],
-					[200],
-					["user_id"],
-				)
-				if result[0]:
-					@warning_ignore("unsafe_cast")
-					NetworkManager.verify_client(
-						client_id,
-						UUID.from_String(result[4]["user_id"] as String).backing_storage,
-					)
-				else:
-					push_warning("rejecting client: invalid identifier")
-					NetworkManager.reject_client(client_id)
-					if result[1] != 404:
-						push_error("error while getting a client identifier")
-						if result[1] != -1:
-							push_error("server response: %s" % result[1])
-						else:
-							push_error("server did not respond")
-						if result[2] != "":
-							push_error("error code: %s" % result[2])
-						if result[3] != "":
-							push_error("error message: %s" % result[3])
-			is_processing_client = false
-
-		if NetworkManager.get_player_count() == 0:
-			inactivity += delta
-
-			if inactivity > INACTIVITY_KILL_THRESHOLD or (!agones_sdk and inactivity > 5):
-				inactivity = 0 # avoid spam since shutdown takes multiple frames
-				push_warning("too long with 0 players: exiting")
-
-				if agones_sdk:
-					await GlobalAPIHandler.make_request(
-						HTTPClient.METHOD_GET,
-						CLOSE_INSTANCE_ENDPOINT,
-						PackedStringArray([GlobalAccountHandler.get_token_header()]),
-					)
-					agones_sdk.shutdown()
-				else:
-					get_tree().quit()
-		else:
-			inactivity = 0
+				agones_sdk.shutdown()
+			else:
+				get_tree().quit()
+	else:
+		inactivity = 0
 
 
 # this autoload should do nothing until this function has run
@@ -95,25 +103,24 @@ func start(
 	started = true
 
 	if is_local:
-		# local instance
 		print("binding to address: 127.0.0.1:%s" % local_bind_port)
 
-		print("set token to %s" % api_token)
 		# set_token assumes we are a client
 		# todo: some way to switch account handler 'mode' between client and server
 		GlobalAccountHandler.session_token = api_token
 		GlobalAccountHandler.token_expiry_utc = -1
 		GlobalAccountHandler.token_renewable = false
+		print("set token to %s" % api_token)
 
 		instance_id = UUID.new()
 
 		await GlobalWorldHandler.load_world_server(local_world, local_bind_port)
 	else:
-		# game server instance
 		print("starting remote server")
 		is_gameserver = true
 
 		# since we are inside cluster we need to target internal ip + port
+		# todo: this should be a single function call
 		GlobalAPIHandler.target_port = 80
 		GlobalAPIHandler.target_host = "butterfly-api.butterfly-api"
 		GlobalAPIHandler.restart_requested = true
@@ -137,9 +144,9 @@ func start(
 			@warning_ignore("unsafe_cast")
 			if "world" in (agones_response["labels"] as Dictionary).keys():
 				break
-			else:
-				await timer.timeout
-				continue
+
+			await timer.timeout
+			continue
 
 		print("got allocation")
 
@@ -155,7 +162,7 @@ func start(
 
 		print("port:", port)
 		print("world:", world)
-		print("instancetoken:", instance_token)
+		print("instance token:", instance_token)
 
 		await GlobalAccountHandler.set_token(instance_token, -1, false)
 
@@ -174,19 +181,16 @@ func start(
 			@warning_ignore("unsafe_cast")
 			instance_id = UUID.from_String(result[4]["id"] as String)
 		else:
-			push_error("error while getting instance id")
-			if result[1] != -1:
-				push_error("server response: %s" % result[1])
-			else:
-				push_error("server did not respond")
-			if result[2] != "":
-				push_error("error code: %s" % result[2])
-			if result[3] != "":
-				push_error("error message: %s" % result[3])
+			@warning_ignore("unsafe_cast")
+			MiscHelpers.log_request_error(
+				"error while getting instance id",
+				result[1] as int,
+				result[2] as String,
+				result[3] as String,
+			)
 			get_tree().quit()
 
 		await GlobalWorldHandler.load_world_server(world, port)
 
-		print("ready for connections")
-
 	finished_starting = true
+	print("ready for connections")

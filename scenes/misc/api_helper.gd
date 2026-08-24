@@ -22,13 +22,13 @@ static func get_username(uuid: UUID) -> String:
 			push_warning("user with id %s does not exist" % uuid)
 			return "MissingUser"
 
-		push_error("failed to aquire username for user uuid %s" % uuid.to_string())
-		if result[1] != -1:
-			push_error("server response: %s" % result[1])
-		if result[2] != "":
-			push_error("error code: %s" % result[2])
-		if result[3] != "":
-			push_error("error message: %s" % result[3])
+		@warning_ignore("unsafe_cast")
+		MiscHelpers.log_request_error(
+			"error while getting username for user with id %s" % uuid.to_string(),
+			result[1] as int,
+			result[2] as String,
+			result[3] as String,
+		)
 		return "UNNAMED"
 
 	return result[4]["username"]

@@ -36,13 +36,13 @@ func show_instances(world: Dictionary) -> void:
 	)
 
 	if !result[0]:
-		push_error("error when getting instances")
-		if result[1] != -1:
-			push_error("server response: %s" % result[1])
-		if result[2] != "":
-			push_error("error code: %s" % result[2])
-		if result[3] != "":
-			push_error("error message: %s" % result[3])
+		@warning_ignore("unsafe_cast")
+		MiscHelpers.log_request_error(
+			"error while getting instances",
+			result[1] as int,
+			result[2] as String,
+			result[3] as String,
+		)
 		return
 
 	for child: Node in instances_container.get_children():

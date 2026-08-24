@@ -44,13 +44,13 @@ func get_and_show_avatars(search_string: String, filters: Dictionary[String, Str
 	if !result[0]:
 		var error_msg: Label = Label.new()
 		error_msg.text = "error while retriving avatars, please try again"
-		push_error("error while retriving avatars")
-		if result[1] != -1:
-			push_error("server response: %s" % result[1])
-		if result[2] != "":
-			push_error("error code: %s" % result[2])
-		if result[3] != "":
-			push_error("error message: %s" % result[3])
+		@warning_ignore("unsafe_cast")
+		MiscHelpers.log_request_error(
+			"error while retriving avatars",
+			result[1] as int,
+			result[2] as String,
+			result[3] as String,
+		)
 		return
 
 	var first_entry: bool = true

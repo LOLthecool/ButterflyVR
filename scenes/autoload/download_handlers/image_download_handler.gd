@@ -11,6 +11,7 @@ const CACHE_FILE: String = "image_cache"
 const IMAGE_FILE_PATH: String = "user://images/%s"
 
 var backing_cache: LruCache
+var cache_lock: Mutex = Mutex.new()
 
 
 func on_save(cached_objects: Dictionary) -> void:
@@ -66,10 +67,13 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> Image:
 
 	var image: Dictionary[String, int] = { }
 	image.assign(backing_cache.get(id))
+
+	MiscHelpers.await_lock_mutex(cache_lock)
+
 	if !image.is_empty():
 		if (!FileAccess.file_exists(IMAGE_FILE_PATH % [id])) or \
 				FileAccess.get_size(IMAGE_FILE_PATH % [id]) < 1:
-			push_error("cached file did not exist for object image: %s" % id)
+			push_error("cached file did not exist for image: %s" % id)
 			backing_cache.pop(id)
 		else:
 			if image.cache_time_utc >= response_values["updated_at"]:
@@ -80,6 +84,7 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> Image:
 
 	# cache value didnt exist or was stale so we download
 	await download_object(id, type)
+
 	@warning_ignore("unsafe_cast")
 	backing_cache.push_front(
 		id,
@@ -87,13 +92,18 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> Image:
 		int(ceilf(response_values["image_size"] as float / 1024)),
 	)
 	backing_cache.save()
+
+	cache_lock.unlock()
+
 	return load_image(IMAGE_FILE_PATH % [uuid])
 
 
 func load_image(file: String) -> Image:
 	var buffer: PackedByteArray = FileAccess.get_file_as_bytes(file)
 	var new_image: Image = Image.new()
+
 	# todo: stop these from emitting errors whenever we load an image
+	# theres probably a better general solution for this but i couldnt find it
 	if new_image.load_png_from_buffer(buffer) == OK:
 		return new_image
 	elif new_image.load_jpg_from_buffer(buffer) == OK:
@@ -102,7 +112,7 @@ func load_image(file: String) -> Image:
 		return new_image
 	else:
 		push_error("failed to parse image file.")
-		return new_image
+		return null
 
 
 func download_object(uuid: String, object_type: TypeHelper.ObjectType) -> void:

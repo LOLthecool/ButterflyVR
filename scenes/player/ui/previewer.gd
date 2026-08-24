@@ -8,7 +8,7 @@ var mutex: Mutex = Mutex.new()
 
 
 func create_preview(uuid: UUID) -> void:
-	mutex.lock()
+	MiscHelpers.await_lock_mutex(mutex)
 	for child: Node in get_children():
 		child.queue_free()
 

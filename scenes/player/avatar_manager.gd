@@ -34,13 +34,13 @@ func _ready() -> void:
 		)
 
 		if !result[0]:
-			push_error("failed to aquire avatar id")
-			if result[1] != -1:
-				push_error("server response: %s" % result[1])
-			if result[2] != "":
-				push_error("error code: %s" % result[2])
-			if result[3] != "":
-				push_error("error message: %s" % result[3])
+			@warning_ignore("unsafe_cast")
+			MiscHelpers.log_request_error(
+				"error while getting avatar id",
+				result[1] as int,
+				result[2] as String,
+				result[3] as String,
+			)
 			GlobalWorldHandler.current_world.avatar_change_handler.send_message(
 				owner_id,
 				UUID.from_bytes(PackedByteArray([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])),
@@ -93,13 +93,13 @@ func change_avatar(target_player: PackedByteArray, avatar: UUID) -> void:
 		)
 
 		if !result[0]:
-			push_error("failed to update current avatar")
-			if result[1] != -1:
-				push_error("server response: %s" % result[1])
-			if result[2] != "":
-				push_error("error code: %s" % result[2])
-			if result[3] != "":
-				push_error("error message: %s" % result[3])
+			@warning_ignore("unsafe_cast")
+			MiscHelpers.log_request_error(
+				"failed to update current avatar",
+				result[1] as int,
+				result[2] as String,
+				result[3] as String,
+			)
 
 	avatar_uuid = avatar
 

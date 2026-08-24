@@ -41,9 +41,6 @@ func _init() -> void:
 
 func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 	var id: String = uuid.to_string()
-	if !await preload_object(id, type):
-		push_warning("error in preload step, returning null")
-		return null
 
 	var object_type_string: String = "UNNAMED"
 	match type:
@@ -52,7 +49,6 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 		TypeHelper.ObjectType.avatar:
 			object_type_string = "Avatar"
 
-	# todo: make request once and then pass in values to preload
 	var response: Array[Variant] = await GlobalAPIHandler.make_request(
 		HTTPClient.METHOD_GET,
 		OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
@@ -62,14 +58,14 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 		response[0],
 		response[2],
 		[200],
-		["encryption_key", "encryption_iv"],
+		["encryption_key", "encryption_iv", "updated_at", "object_size"],
 	)
 
 	var success: bool = result[0]
 	var response_code: int = result[1]
 	var error_code: String = result[2]
 	var error_message: String = result[3]
-	var response_values: Dictionary[String, Variant] = result[4]
+	var values: Dictionary[String, Variant] = result[4]
 
 	if (!success):
 		push_warning("failed to aquire object data")
@@ -81,6 +77,16 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 			push_error("error message: %s" % error_message)
 		return null
 
+	@warning_ignore("unsafe_cast")
+	if !await preload_object(
+		id,
+		object_type_string,
+		values["updated_at"] as int,
+		values["object_size"] as int,
+	):
+		push_warning("error in preload step, returning null")
+		return null
+
 	await MiscHelpers.await_lock_mutex(cache_lock)
 
 	var file: FileAccess = FileAccess.open(OBJECT_FILE_PATH % [id], FileAccess.READ)
@@ -88,8 +94,8 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 		file,
 		type,
 		id,
-		response_values["encryption_key"] as PackedByteArray,
-		response_values["encryption_iv"] as PackedByteArray,
+		values["encryption_key"] as PackedByteArray,
+		values["encryption_iv"] as PackedByteArray,
 	)
 
 	cache_lock.unlock()
@@ -97,43 +103,12 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 	return object
 
 
-func preload_object(id: String, type: TypeHelper.ObjectType) -> bool:
-	var object_type_string: String = "UNNAMED"
-
-	match type:
-		TypeHelper.ObjectType.world:
-			object_type_string = "World"
-		TypeHelper.ObjectType.avatar:
-			object_type_string = "Avatar"
-
-	var response: Array[Variant] = await GlobalAPIHandler.make_request(
-		HTTPClient.METHOD_GET,
-		OBJECT_INFO_ENDPOINT % [object_type_string, id],
-		PackedStringArray([GlobalAccountHandler.get_token_header()]),
-	)
-	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
-		response[0],
-		response[2],
-		[200],
-		["updated_at", "object_size"],
-	)
-
-	var success: bool = result[0]
-	var response_code: int = result[1]
-	var error_code: String = result[2]
-	var error_message: String = result[3]
-	var response_values: Dictionary[String, Variant] = result[4]
-
-	if (!success):
-		push_warning("failed to aquire object data")
-		if response_code != -1:
-			push_error("server response: %s" % response_code)
-		if error_code != "":
-			push_error("error code: %s" % error_code)
-		if error_message != "":
-			push_error("error message: %s" % error_message)
-		return false
-
+func preload_object(
+	id: String,
+	object_type_string: String,
+	updated_at: int,
+	object_size_kb: int,
+) -> bool:
 	await MiscHelpers.await_lock_mutex(cache_lock)
 
 	var object: Dictionary[String, int] = { }
@@ -144,20 +119,17 @@ func preload_object(id: String, type: TypeHelper.ObjectType) -> bool:
 			push_error("cached file did not exist for object: %s" % id)
 			backing_cache.pop(id)
 		else:
-			if object.cache_time_utc >= response_values["updated_at"]:
+			if object.cache_time_utc >= updated_at:
 				backing_cache.save()
 				return true
 			else:
 				backing_cache.pop(id)
 
 	# cache value didnt exist or was stale so we download
-	await download_object(id, type)
+	await download_object(id, object_type_string)
+
 	@warning_ignore("unsafe_cast")
-	backing_cache.push_front(
-		id,
-		response_values["updated_at"] as int,
-		int(ceilf(response_values["object_size"] as float / 1024)),
-	)
+	backing_cache.push_front(id, updated_at as int, int(ceilf(object_size_kb as float / 1024)))
 	backing_cache.save()
 
 	cache_lock.unlock()
@@ -165,15 +137,7 @@ func preload_object(id: String, type: TypeHelper.ObjectType) -> bool:
 	return true
 
 
-func download_object(uuid: String, object_type: TypeHelper.ObjectType) -> void:
-	var object_type_string: String = "UNNAMED"
-
-	match object_type:
-		TypeHelper.ObjectType.world:
-			object_type_string = "World"
-		TypeHelper.ObjectType.avatar:
-			object_type_string = "Avatar"
-
+func download_object(uuid: String, object_type_string: String) -> void:
 	var url: String = OBJECT_DOWNLOAD_ENDPOINT % [object_type_string, uuid]
 
 	var downloader: HTTPRequest = HTTPRequest.new()
