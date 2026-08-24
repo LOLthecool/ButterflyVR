@@ -13,6 +13,17 @@ struct MyExtension;
 #[gdextension]
 unsafe impl ExtensionLibrary for MyExtension {}
 
+/// SAFETY: Implementers must have no invalid bit patterns. Or more explicitly:
+/// For every possible byte sequence of length size_of::<impl DirectlyReadable>(),
+/// that sequence constitutes a valid representation of the type.
+// yes technically a type with an empty Drop impl or a union with an empty tuple can be DirectlyReadable
+// but not Copy but its better to reject those edge cases to avoid the footgun here.
+unsafe trait DirectlyReadable: Copy {}
+
+unsafe impl DirectlyReadable for u8 {}
+unsafe impl DirectlyReadable for u32 {}
+unsafe impl DirectlyReadable for u64 {}
+
 const VERSION: [u32; 3] = [3, 4, 6];
 const BAD_EXTENSIONS: &[&str] = &[".res", ".tres", ".gd"];
 const UNSUPPORTED_EXTENSIONS: &[&str] = &[".scn", ".escn"];
@@ -35,14 +46,14 @@ impl PCKChecker {
         let mut pck = BufReader::new(File::open(pck_path).unwrap());
 
         // no offset support, shouldnt be an issue
-        let magic: u32 = unsafe { read_value(&mut pck) };
+        let magic: u32 = read_value(&mut pck);
         if magic != 0x43504447 {
             godot_error!("invalid magic number, found 0x{:x}", magic);
             return false;
         }
 
         for v in VERSION {
-            let version: u32 = unsafe { read_value(&mut pck) };
+            let version: u32 = read_value(&mut pck);
             if version != v {
                 godot_error!("version mismatch: got {}, expected {}", version, v);
                 return false;
@@ -51,17 +62,17 @@ impl PCKChecker {
         // ignore patch version and flag8
         pck.seek_relative(8).unwrap();
 
-        let file_base: u64 = unsafe { read_value(&mut pck) };
-        let dir_offset: u64 = unsafe { read_value(&mut pck) };
+        let file_base: u64 = read_value(&mut pck);
+        let dir_offset: u64 = read_value(&mut pck);
 
         pck.seek(SeekFrom::Start(dir_offset)).unwrap();
 
-        let file_count: u32 = unsafe { read_value(&mut pck) };
+        let file_count: u32 = read_value(&mut pck);
 
         let mut tscn_files: Vec<PCKFile> = Vec::with_capacity(file_count as usize);
 
         for _ in 0..file_count {
-            let length_hint: u32 = unsafe { read_value(&mut pck) };
+            let length_hint: u32 = read_value(&mut pck);
             let mut bytes = vec![0; length_hint as usize];
             pck.read_exact(&mut bytes).unwrap();
             let path = String::from_utf8(bytes).unwrap();
@@ -88,8 +99,8 @@ impl PCKChecker {
                 return false;
             }
 
-            let offset: u64 = unsafe { read_value(&mut pck) };
-            let size: u64 = unsafe { read_value(&mut pck) };
+            let offset: u64 = read_value(&mut pck);
+            let size: u64 = read_value(&mut pck);
             // skip md5 hash and flags
             pck.seek_relative(20).unwrap();
             if path.ends_with(".tscn") {
@@ -119,7 +130,8 @@ impl PCKChecker {
 
         pck.seek(SeekFrom::Start(file.absolute_offset)).unwrap();
 
-        let buffer: [u8; 19] = unsafe { read_value(pck) };
+        let mut buffer: Vec<u8> = vec![0; 19];
+        pck.read_exact(&mut buffer).unwrap();
         let buffer: String = buffer
             .into_iter()
             .map(|c| char::from_u32(c as u32).unwrap())
@@ -134,7 +146,7 @@ impl PCKChecker {
         while pck.stream_position().unwrap() < file.absolute_offset + file.size {
             match state {
                 ParserState::Scanning => {
-                    let buffer: u8 = unsafe { read_value(pck) };
+                    let buffer: u8 = read_value(pck);
                     let buffer = char::from_u32(buffer as u32).unwrap();
                     if buffer == '[' {
                         state = ParserState::InHeader;
@@ -201,13 +213,11 @@ struct PCKFile {
     size: u64,
 }
 
-/// Safety: T must have no invalid bit patterns
-unsafe fn read_value<T: Copy>(file: &mut impl Read) -> T {
+fn read_value<T: DirectlyReadable>(file: &mut impl Read) -> T {
     unsafe {
         let mut value = MaybeUninit::zeroed().assume_init();
 
-        let bytes =
-            slice::from_raw_parts_mut(&mut value as *mut T as *mut u8, std::mem::size_of::<T>());
+        let bytes = slice::from_raw_parts_mut(&raw mut value as *mut u8, std::mem::size_of::<T>());
 
         file.read_exact(bytes).unwrap();
 
