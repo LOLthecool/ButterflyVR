@@ -1,0 +1,10 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = 4.6
+reloadable = true
+
+[libraries]
+linux.debug.x86_64 =     "res://rust/target/debug/libpck_checker.so"
+linux.release.x86_64 =   "res://rust/target/release/libpck_checker.so"
+windows.debug.x86_64 =   "res://rust/target/x86_64-pc-windows-gnu/debug/pck_checker.dll"
+windows.release.x86_64 = "res://rust/target/x86_64-pc-windows-gnu/release/pck_checker.dll"

@@ -84,7 +84,7 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 	await MiscHelpers.await_lock_mutex(cache_lock)
 
 	var file: FileAccess = FileAccess.open(OBJECT_FILE_PATH % [id], FileAccess.READ)
-	@warning_ignore("unsafe_cast") var object: PackedScene = decrypt_and_load_object(
+	@warning_ignore("unsafe_cast") var object: PackedScene = await decrypt_and_load_object(
 		file,
 		type,
 		id,
@@ -259,22 +259,36 @@ func decrypt_and_load_object(
 	var new_object: String = handle.get_path()
 	ZSTDCompressor.decompress_file_to_file(decrypted_path, new_object)
 	decrypted.close()
-
-	# todo: a malicious object could contain files in _loaded_content/_/_ for another object uuid
-	# since overwiting is forbidden (cant have then overwriting internal files) if that object is later loaded
-	# it will use the malicious files.
-	# it will still need to follow the safety checks
-	# but this could allow bypassing a hypothetical future permission system for objects
-	# by 'injecting' into an object with more permissions
-	if !ProjectSettings.load_resource_pack(new_object, false):
+	
+	if !PCKChecker.is_pck_good(new_object, str(object_type), uuid):
+		push_error("object %s failed verification, aborting load." % uuid)
+		return null
+	
+	var load_thread:Thread = Thread.new()
+	
+	# PCKChecker checks all files are within _loaded_content/object_type/uuid 
+	# so overwriting is safe. 
+	load_thread.start(func() -> bool:
+		return ProjectSettings.load_resource_pack(new_object))
+	
+	while load_thread.is_alive():
+		await get_tree().physics_frame
+	
+	if !load_thread.wait_to_finish():
 		push_error("failed to load object pck from %s" % new_object)
 		return null
-
-	return ResourceLoader.load(
+	
+	load_thread.start(func() -> PackedScene:
+		return ResourceLoader.load(
 		"res://_loaded_content/%s/%s/root.tscn" % [object_type, uuid],
 		"PackedScene",
 		ResourceLoader.CACHE_MODE_IGNORE_DEEP,
-	) as PackedScene
+	) as PackedScene)
+	
+	while load_thread.is_alive():
+		await get_tree().physics_frame
+	
+	return load_thread.wait_to_finish()
 
 
 func _physics_process(_delta: float) -> void:

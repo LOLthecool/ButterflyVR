@@ -62,11 +62,6 @@ func load_world(world_id: UUID, instance_id: UUID = null) -> void:
 		await load_fallback_world()
 		return
 
-	if !SetupHelpers.check_safe(world.get_state()):
-		push_error("tried to load unsafe world, aborting")
-		load_fallback_world()
-		return
-
 	get_tree().current_scene.queue_free()
 
 	await get_tree().physics_frame
@@ -102,15 +97,8 @@ func load_world_server(world_id: UUID, bind_port: int) -> void:
 	)
 
 	if world == null:
-		push_error("failed to load world")
-		push_error("no error handling here, exiting")
-		get_tree().quit() # this is fine since we should disconnect before this point
-		return
-
-	if !SetupHelpers.check_safe(world.get_state()):
-		push_error("tried to load unsafe world, aborting")
-		push_error("no error handling here, exiting")
-		get_tree().quit() # this is fine since we should disconnect before this point
+		push_error("failed to load world, exiting")
+		get_tree().quit()
 		return
 
 	var root: Node = SetupHelpers.setup_world(world.instantiate())
