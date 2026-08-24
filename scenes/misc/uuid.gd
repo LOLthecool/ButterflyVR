@@ -14,8 +14,9 @@ func _init(random_uuid: bool = false) -> void:
 
 
 func _to_string() -> String:
-	return '%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x' % (backing_storage
-	as Array[int])
+	return '%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x' % (
+		backing_storage as Array[int]
+	)
 
 
 # operator overloading when?

@@ -4,12 +4,12 @@ class_name Previewer
 
 @export var viewport: SubViewport
 @export var camera: Camera3D
-var mutex:Mutex = Mutex.new()
+var mutex: Mutex = Mutex.new()
 
 
 func create_preview(uuid: UUID) -> void:
 	mutex.lock()
-	for child:Node in get_children():
+	for child: Node in get_children():
 		child.queue_free()
 
 	rotation.y = 0
@@ -25,7 +25,7 @@ func create_preview(uuid: UUID) -> void:
 
 	var avatar: Node = avatar_scene.instantiate()
 	add_child(avatar)
-	
+
 	var aabb: AABB = AABB()
 	for child: Node in SetupHelpers.get_node_and_children_recursive(avatar):
 		if child is VisualInstance3D:
@@ -45,9 +45,9 @@ func create_preview(uuid: UUID) -> void:
 	pos.z += maxf(candidate1, candidate2)
 	pos.z = -pos.z
 	camera.position = pos
-	
+
 	await get_tree().physics_frame
-	
+
 	mutex.unlock()
 
 

@@ -5,6 +5,7 @@ class_name SetupHelpers
 class SetupState:
 	var state: Dictionary[String, Variant]
 
+
 # todo: replace with iterative callback version from cck
 static func get_node_and_children_recursive(root: Node) -> Array[Node]:
 	var nodes: Array[Node]
@@ -76,23 +77,26 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 			else:
 				if node is AnimationTree:
 					clean_anim_tree(node as AnimationTree)
-		
-		for property:Dictionary in node.get_property_list():
+
+		for property: Dictionary in node.get_property_list():
 			if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_CATEGORY:
 				continue
 			if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_GROUP:
 				continue
 			if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_SUBGROUP:
 				continue
-			
+
 			# todo: check if any nodes take paths that arnt NodePaths
 			@warning_ignore("unsafe_cast")
 			if property["type"] == Variant.Type.TYPE_NODE_PATH:
 				@warning_ignore("unsafe_cast")
 				if !is_path_good(node, root, node[property["name"]] as NodePath):
-					print("got invalid path %s in %s.%s, removing." % [node[property["name"]], root.get_path_to(node), property["name"]])
+					print(
+						"got invalid path %s in %s.%s, removing."
+						% [node[property["name"]], root.get_path_to(node), property["name"]]
+					)
 					node[property["name"]] = ""
-		
+
 		for group: StringName in node.get_groups():
 			if !group.begins_with("cck_"):
 				print("removed group %s from node %s" % [group, root.get_path_to(node)])
@@ -130,24 +134,25 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 
 	root.add_child(event_handler)
 
-static func is_path_good(node:Node, root:Node, path:NodePath) -> bool:
-	var path_string:String = path
+
+static func is_path_good(node: Node, root: Node, path: NodePath) -> bool:
+	var path_string: String = path
 	if path_string.begins_with("/"):
 		# absolute paths can never be valid because the location of root is not known
 		return false
-	
+
 	if path_string == ".":
 		return true
-	
+
 	if path_string.contains(":"):
 		# todo: proper handling for properties in paths might be needed eventually
 		return false
-	
-	var current_node:Node = node
-	var path_segments:PackedStringArray = path_string.split("/", false)
+
+	var current_node: Node = node
+	var path_segments: PackedStringArray = path_string.split("/", false)
 	path_segments.reverse()
-	
-	for segment:String in path_segments:
+
+	for segment: String in path_segments:
 		if segment == "..":
 			if current_node == root:
 				return false
@@ -156,11 +161,12 @@ static func is_path_good(node:Node, root:Node, path:NodePath) -> bool:
 			current_node = current_node.get_node(segment)
 	return true
 
-static func is_animation_good(node:AnimationMixer) -> bool:
-	for animation_name:String in node.get_animation_list():
-		var animation:Animation = node.get_animation(animation_name)
-		for track:int in animation.get_track_count():
-			var type:int = animation.track_get_type(track)
+
+static func is_animation_good(node: AnimationMixer) -> bool:
+	for animation_name: String in node.get_animation_list():
+		var animation: Animation = node.get_animation(animation_name)
+		for track: int in animation.get_track_count():
+			var type: int = animation.track_get_type(track)
 			match type:
 				Animation.TrackType.TYPE_BEZIER:
 					# bezier can modify arbitary float properties
@@ -174,6 +180,7 @@ static func is_animation_good(node:AnimationMixer) -> bool:
 
 static func clean_anim_tree(node: AnimationTree) -> void:
 	pass
+
 
 static func setup_world(root: Node) -> WorldController:
 	var state: SetupState = SetupState.new()
