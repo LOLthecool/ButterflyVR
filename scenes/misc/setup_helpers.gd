@@ -70,7 +70,7 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 	for node: Node in nodes:
 		if is_instance_of(node, AnimationMixer):
 			if !is_animation_good(node as AnimationMixer):
-				print("removing node with bad animation tracks %s" % root.get_path_to(node))
+				print("removing node with bad animation tracks %s" % node)
 				node.get_parent().remove_child(node)
 				node.queue_free()
 			else:
@@ -92,13 +92,13 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 				if !is_path_good(node, root, node[property["name"]] as NodePath):
 					print(
 						"got invalid path %s in %s.%s, removing."
-						% [node[property["name"]], root.get_path_to(node), property["name"]]
+						% [node[property["name"]], node, property["name"]]
 					)
 					node[property["name"]] = ""
 
 		for group: StringName in node.get_groups():
 			if !group.begins_with("cck_"):
-				print("removed group %s from node %s" % [group, root.get_path_to(node)])
+				print("removed group %s from node %s" % [group, node])
 				node.remove_from_group(group)
 		@warning_ignore("untyped_declaration")
 		if blacklisted_nodes.any(
@@ -203,7 +203,9 @@ static func clean_anim_tree(untyped_node: AnimationRootNode) -> void:
 			if sub_node is AnimationRootNode:
 				clean_anim_tree(sub_node as AnimationRootNode)
 		for index: int in range(0, node.get_transition_count()):
-			node.get_transition(index).advance_expression = ""
+			if node.get_transition(index).advance_expression != "":
+				print("removing advance expression '%s' on transition with index %s inside anim tree %s" %[node.get_transition(index).advance_expression, index, node])
+				node.get_transition(index).advance_expression = ""
 
 
 
