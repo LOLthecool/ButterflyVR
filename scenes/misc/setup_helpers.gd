@@ -33,7 +33,6 @@ static func get_cck_markers() -> Array[CCKMarker]:
 
 static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupState) -> void:
 	var blacklisted_nodes: Array = [
-		AnimationMixer,
 		Window,
 		HTTPRequest,
 		MultiplayerSpawner,
@@ -76,7 +75,7 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 				node.queue_free()
 			else:
 				if node is AnimationTree:
-					clean_anim_tree(node as AnimationTree)
+					clean_anim_tree((node as AnimationTree).tree_root)
 
 		for property: Dictionary in node.get_property_list():
 			if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_CATEGORY:
@@ -150,7 +149,6 @@ static func is_path_good(node: Node, root: Node, path: NodePath) -> bool:
 
 	var current_node: Node = node
 	var path_segments: PackedStringArray = path_string.split("/", false)
-	path_segments.reverse()
 
 	for segment: String in path_segments:
 		if segment == "..":
@@ -159,6 +157,8 @@ static func is_path_good(node: Node, root: Node, path: NodePath) -> bool:
 			current_node = current_node.get_parent()
 		else:
 			current_node = current_node.get_node(segment)
+		if current_node == null:
+			return false
 	return true
 
 
@@ -178,8 +178,33 @@ static func is_animation_good(node: AnimationMixer) -> bool:
 	return true
 
 
-static func clean_anim_tree(node: AnimationTree) -> void:
-	pass
+static func clean_anim_tree(untyped_node: AnimationRootNode) -> void:
+	if untyped_node is AnimationNodeBlendSpace1D:
+		var node: AnimationNodeBlendSpace1D = untyped_node
+		for index: int in range(0, node.get_blend_point_count()):
+			clean_anim_tree(node.get_blend_point_node(index))
+
+	elif untyped_node is AnimationNodeBlendSpace2D:
+		var node: AnimationNodeBlendSpace2D = untyped_node
+		for index: int in range(0, node.get_blend_point_count()):
+			clean_anim_tree(node.get_blend_point_node(index))
+
+	elif untyped_node is AnimationNodeBlendTree:
+		var node: AnimationNodeBlendTree = untyped_node
+		for node_name: String in node.get_node_list():
+			var sub_node:AnimationNode = node.get_node(node_name)
+			if sub_node is AnimationRootNode:
+				clean_anim_tree(sub_node as AnimationRootNode)
+
+	elif untyped_node is AnimationNodeStateMachine:
+		var node: AnimationNodeStateMachine = untyped_node
+		for node_name:String in node.get_node_list():
+			var sub_node:AnimationNode = node.get_node(node_name) as AnimationNode
+			if sub_node is AnimationRootNode:
+				clean_anim_tree(sub_node as AnimationRootNode)
+		for index: int in range(0, node.get_transition_count()):
+			node.get_transition(index).advance_expression = ""
+
 
 
 static func setup_world(root: Node) -> WorldController:
