@@ -31,36 +31,9 @@ static func get_cck_markers() -> Array[CCKMarker]:
 	return classes
 
 
+# IMPORTANT: this must be called BEFORE the node is added to the scene tree, failing to do so
+# may allow path traversal attacks when marker setup is performed.
 static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupState) -> void:
-	var blacklisted_nodes: Array = [
-		Window,
-		HTTPRequest,
-		MultiplayerSpawner,
-		MultiplayerSynchronizer,
-		StatusIndicator,
-		APIHandler,
-		APIHelper,
-		AccountHandler,
-		AgonesSDK,
-		MessageHandler,
-		ImageDownloadHandler,
-		InstanceHandler,
-		MessageManager,
-		MovementHandler,
-		NetNodeManager,
-		NetworkedNode,
-		PathHelper,
-		PersistanceHandler,
-		ServerHandler,
-		ServerLoader,
-		SetupHelpers,
-		StringifyHelper,
-		TypeHelper,
-		WorldController,
-		WorldHandler,
-		ObjectEventHandler,
-	]
-
 	var cck_markers: Array[CCKMarker] = get_cck_markers()
 
 	var event_handler: ObjectEventHandler = ObjectEventHandler.new()
@@ -101,9 +74,10 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 				print("removed group %s from node %s" % [group, node])
 				node.remove_from_group(group)
 		@warning_ignore("untyped_declaration")
-		if blacklisted_nodes.any(
-			func(blacklist_item) -> bool:
-				return is_instance_of(node, blacklist_item),
+		if !NodeWhitelist.whitelisted_nodes.any(
+			func(whitelist_item) -> bool:
+				# whitelisted_item is type GDScriptNativeClass
+				return is_instance_of(node, whitelist_item),
 		):
 			node.queue_free()
 			continue
@@ -192,21 +166,23 @@ static func clean_anim_tree(untyped_node: AnimationRootNode) -> void:
 	elif untyped_node is AnimationNodeBlendTree:
 		var node: AnimationNodeBlendTree = untyped_node
 		for node_name: String in node.get_node_list():
-			var sub_node:AnimationNode = node.get_node(node_name)
+			var sub_node: AnimationNode = node.get_node(node_name)
 			if sub_node is AnimationRootNode:
 				clean_anim_tree(sub_node as AnimationRootNode)
 
 	elif untyped_node is AnimationNodeStateMachine:
 		var node: AnimationNodeStateMachine = untyped_node
-		for node_name:String in node.get_node_list():
-			var sub_node:AnimationNode = node.get_node(node_name) as AnimationNode
+		for node_name: String in node.get_node_list():
+			var sub_node: AnimationNode = node.get_node(node_name) as AnimationNode
 			if sub_node is AnimationRootNode:
 				clean_anim_tree(sub_node as AnimationRootNode)
 		for index: int in range(0, node.get_transition_count()):
 			if node.get_transition(index).advance_expression != "":
-				print("removing advance expression '%s' on transition with index %s inside anim tree %s" %[node.get_transition(index).advance_expression, index, node])
+				print(
+					"removing advance expression '%s' on transition with index %s inside anim tree %s"
+					% [node.get_transition(index).advance_expression, index, node]
+				)
 				node.get_transition(index).advance_expression = ""
-
 
 
 static func setup_world(root: Node) -> WorldController:

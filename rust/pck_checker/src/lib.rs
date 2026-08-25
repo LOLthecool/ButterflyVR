@@ -152,7 +152,7 @@ impl PCKChecker {
                     if buffer == '[' {
                         state = ParserState::InHeader;
                     } else {
-                        if buffer != '\n' {
+                        if buffer != '\n' && buffer as u8 > 32 {
                             pck.skip_until('\n' as u8).unwrap();
                         }
                     }
