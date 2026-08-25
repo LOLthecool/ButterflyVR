@@ -82,10 +82,13 @@ impl PCKChecker {
                 String::from_utf8(path.into_bytes().into_iter().filter(|x| *x != 0).collect())
                     .unwrap();
 
-            if !path.starts_with(&format!(
-                "_loaded_content/{}/{}/",
-                object_type_string, uuid_string
-            )) {
+            // contains("..") check appears unneeded currently, can be skipped if it causes issues
+            if path.contains("..")
+                || !path.starts_with(&format!(
+                    "_loaded_content/{}/{}/",
+                    object_type_string, uuid_string
+                ))
+            {
                 godot_error!("found unwanted file at path {:?}", path);
                 return false;
             }
@@ -152,6 +155,7 @@ impl PCKChecker {
                     if buffer == '[' {
                         state = ParserState::InHeader;
                     } else {
+                        // keep parsing until we hit a non-whitespace character
                         if buffer != '\n' && buffer as u8 > 32 {
                             pck.skip_until('\n' as u8).unwrap();
                         }

@@ -363,7 +363,6 @@ pub enum ResourceWhitelist {
     NavigationMeshSourceGeometryData2D,
     NavigationPolygon,
     PolygonPathFinder,
-    PackedScene,
     GLTFDocument,
     FBXDocument,
     GLTFState,
@@ -409,7 +408,6 @@ pub enum ResourceWhitelist {
     OpenXRDpadBindingModifier,
     OpenXRHapticBase,
     OpenXRHapticVibration,
-    VideoStreamTheora,
     AudioStreamOggVorbis,
     GDScriptSyntaxHighlighter,
 }

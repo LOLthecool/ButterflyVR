@@ -5,7 +5,6 @@ static var whitelisted_nodes: Array = [
 	CanvasItem,
 	Viewport,
 	SubViewport,
-	HTTPRequest,
 	Timer,
 	CanvasLayer,
 	ResourcePreloader,
@@ -234,7 +233,4 @@ static var whitelisted_nodes: Array = [
 	CSGPolygon3D,
 	CSGCombiner3D,
 	GridMap,
-	FileSystemDock,
-	EditorCommandPalette,
-	GridMapEditorPlugin,
 ]
