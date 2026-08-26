@@ -6,6 +6,7 @@ func setup(
 	values: Dictionary[String, Variant],
 	target: Node,
 	state: SetupHelpers.SetupState,
+	_root: Node,
 ) -> void:
 	@warning_ignore("unsafe_cast")
 	state.state["collider_values"] = {

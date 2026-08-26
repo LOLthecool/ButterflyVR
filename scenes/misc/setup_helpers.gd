@@ -50,24 +50,7 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 				if node is AnimationTree:
 					clean_anim_tree((node as AnimationTree).tree_root)
 
-		for property: Dictionary in node.get_property_list():
-			if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_CATEGORY:
-				continue
-			if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_GROUP:
-				continue
-			if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_SUBGROUP:
-				continue
-
-			# todo: check if any nodes take paths that arnt NodePaths
-			@warning_ignore("unsafe_cast")
-			if property["type"] == Variant.Type.TYPE_NODE_PATH:
-				@warning_ignore("unsafe_cast")
-				if !is_path_good(node, root, node[property["name"]] as NodePath):
-					print(
-						"got invalid path %s in %s.%s, removing."
-						% [node[property["name"]], node, property["name"]]
-					)
-					node[property["name"]] = ""
+		clean_paths(node, root, node)
 
 		for group: StringName in node.get_groups():
 			if !group.begins_with("cck_"):
@@ -96,44 +79,94 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 						@warning_ignore("unsafe_cast")
 						values.assign(node.get_meta(meta_item) as Dictionary)
 						values = marker.perform_migrations(values)
-						marker.setup(values, node, state)
+						marker.setup(values, node, state, root)
 			else:
 				if node.has_meta(marker.get_name()):
 					var values: Dictionary[String, Variant] = { }
 					@warning_ignore("unsafe_cast")
 					values.assign(node.get_meta(marker.get_name()) as Dictionary)
 					values = marker.perform_migrations(values)
-					marker.setup(values, node, state)
+					marker.setup(values, node, state, root)
 
 	root.add_child(event_handler)
 
 
-static func is_path_good(node: Node, root: Node, path: NodePath) -> bool:
-	var path_string: String = path
-	if path_string.begins_with("/"):
-		# absolute paths can never be valid because the location of root is not known
-		return false
+static func clean_paths(object: Object, root: Node, original_node: Node) -> void:
+	for property: Dictionary in object.get_property_list():
+		if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_CATEGORY:
+			continue
+		if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_GROUP:
+			continue
+		if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_SUBGROUP:
+			continue
 
-	if path_string == ".":
-		return true
+		# workaround for a bug i dont wanna deal with right now
+		if property["name"] == "states/End/node" and object is AnimationNodeStateMachine:
+			continue
+		if property["name"] == "states/Start/node" and object is AnimationNodeStateMachine:
+			continue
 
-	if path_string.contains(":"):
-		# todo: proper handling for properties in paths might be needed eventually
-		return false
+		if (
+			property["type"] == Variant.Type.TYPE_NODE_PATH
+			or property["type"] == Variant.Type.TYPE_OBJECT
+			or property["type"] == Variant.Type.TYPE_ARRAY
+			or property["type"] == Variant.Type.TYPE_DICTIONARY
+		):
+			if object[property["name"]]:
+				@warning_ignore("unsafe_cast")
+				clean_property(
+					object[property["name"]],
+					object,
+					original_node,
+					root,
+					property["name"] as String,
+				)
 
-	var current_node: Node = node
-	var path_segments: PackedStringArray = path_string.split("/", false)
 
-	for segment: String in path_segments:
-		if segment == "..":
-			if current_node == root:
-				return false
-			current_node = current_node.get_parent()
+static func clean_property(
+	property: Variant,
+	object: Object,
+	original_node: Node,
+	root: Node,
+	property_name: String,
+) -> void:
+	# todo: check if any nodes take paths that arnt NodePaths
+	if property is NodePath:
+		if is_instance_of(object, Node):
+			@warning_ignore("unsafe_cast")
+			if !PathHelper.is_path_good(object as Node, root, property as NodePath):
+				print(
+					"got invalid path %s in %s.%s.%s, freeing object."
+					% [property, original_node, object, property_name]
+				)
+				object.free()
 		else:
-			current_node = current_node.get_node(segment)
-		if current_node == null:
-			return false
-	return true
+			@warning_ignore("unsafe_cast")
+			if !PathHelper.is_path_good(original_node, root, property as NodePath):
+				print(
+					"got invalid path %s in %s.%s, freeing object."
+					% [property, original_node, object]
+				)
+				original_node.free()
+
+	elif is_instance_of(property, Object):
+		if property:
+			@warning_ignore("unsafe_cast")
+			clean_paths(property as Object, root, original_node)
+
+	elif property is Array:
+		@warning_ignore("unsafe_cast")
+		for sub: Variant in property as Array:
+			clean_property(sub, object, original_node, root, property_name)
+
+	elif property is Dictionary:
+		@warning_ignore("unsafe_cast")
+		for sub: Variant in (property as Dictionary).keys():
+			clean_property(sub, object, original_node, root, property_name)
+
+		@warning_ignore("unsafe_cast")
+		for sub: Variant in (property as Dictionary).values():
+			clean_property(sub, object, original_node, root, property_name)
 
 
 static func is_animation_good(node: AnimationMixer) -> bool:

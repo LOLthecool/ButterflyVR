@@ -7,7 +7,7 @@ const WORLD_INFO_ENDPOINT: String = "/api/v0/world/%s"
 var current_world: WorldController
 
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	if NetworkManager.has_disconnected():
 		disconnect_from_world(false)
 

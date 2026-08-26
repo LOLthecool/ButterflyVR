@@ -6,6 +6,7 @@ func setup(
 	values: Dictionary[String, Variant],
 	target: Node,
 	_state: SetupHelpers.SetupState,
+	root: Node,
 ) -> void:
 	@warning_ignore("unsafe_cast") var hitbox: CollisionObject3D = target.get_node(
 		values["hitbox"] as String
@@ -26,13 +27,19 @@ func setup(
 
 	@warning_ignore("unsafe_cast")
 	if values.has("highlight_mesh"):
-		@warning_ignore("unsafe_cast") var highlight_mesh: MeshInstance3D = hitbox.get_node(
+		@warning_ignore("unsafe_cast")
+		if !PathHelper.is_path_good(target, root, values["highlight_mesh"] as String):
+			return
+
+		@warning_ignore("unsafe_cast") var highlight_mesh: MeshInstance3D = target.get_node(
 			values["highlight_mesh"] as String
 		)
+
 		var new_node: Highlighter = Highlighter.new()
 		highlight_mesh.add_child(new_node)
 		new_node.geometry = highlight_mesh
 		new_node.setup()
+
 		hitbox.set_meta("highlighter", new_node)
 
 	hitbox.set_meta("grabbable_info", collider_values)

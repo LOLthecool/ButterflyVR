@@ -2,6 +2,32 @@ extends Node
 class_name PathHelper
 
 
+static func is_path_good(node: Node, root: Node, path: NodePath) -> bool:
+	var path_string: String = path
+	if path_string.begins_with("/"):
+		# absolute paths can never be valid because the location of root is not known
+		return false
+
+	if path_string == ".":
+		return true
+
+	var current_node: Node = node
+
+	path_string = path_string.rsplit(":", false, 1)[0]
+	var path_segments: PackedStringArray = path_string.split("/", false)
+
+	for segment: String in path_segments:
+		if segment == "..":
+			if current_node == root:
+				return false
+			current_node = current_node.get_parent()
+		else:
+			current_node = current_node.get_node(segment)
+		if current_node == null:
+			return false
+	return true
+
+
 static func path_to_index_path(scene_path: String, caller: Node) -> Array[int]:
 	var index_path: Array[int] = []
 	var last_find: int = -1

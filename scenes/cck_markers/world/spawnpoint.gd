@@ -6,8 +6,9 @@ func setup(
 	values: Dictionary[String, Variant],
 	target: Node,
 	state: SetupHelpers.SetupState,
+	_root: Node,
 ) -> void:
-	# todo: dynamic adding and removal of spawnpoints
+	# todo: dynamic adding and removal of spawnpoints (using group?)
 	# todo: multiple spawnpoint support
 	if target is Node3D and values["enabled"]:
 		state.state["spawnpoint"] = target

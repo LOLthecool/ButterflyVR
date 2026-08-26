@@ -3,11 +3,13 @@ extends RefCounted
 class_name CCKMarker
 
 
+# remember to call PathHelper.is_path_good() if one of your values gets used as a path
 @abstract
 func setup(
 	values: Dictionary[String, Variant],
 	target: Node,
 	state: SetupHelpers.SetupState,
+	root: Node,
 ) -> void
 
 

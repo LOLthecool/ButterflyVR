@@ -6,7 +6,12 @@ func setup(
 	values: Dictionary[String, Variant],
 	target: Node,
 	state: SetupHelpers.SetupState,
+	root: Node,
 ) -> void:
+	@warning_ignore("unsafe_cast")
+	if !PathHelper.is_path_good(target, root, values["target"] as String):
+		return
+
 	var handler: ObjectEventHandler = state.state["event_handler"]
 	@warning_ignore("unsafe_cast")
 	handler.register_action(ObjectEventHandler.TransitionAction.create(

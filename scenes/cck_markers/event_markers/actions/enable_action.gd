@@ -6,6 +6,7 @@ func setup(
 	values: Dictionary[String, Variant],
 	target: Node,
 	state: SetupHelpers.SetupState,
+	_root: Node,
 ) -> void:
 	var handler: ObjectEventHandler = state.state["event_handler"]
 	@warning_ignore("unsafe_cast")

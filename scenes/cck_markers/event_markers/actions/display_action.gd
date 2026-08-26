@@ -6,6 +6,7 @@ func setup(
 	values: Dictionary[String, Variant],
 	target: Node,
 	state: SetupHelpers.SetupState,
+	_root: Node,
 ) -> void:
 	if target is not Label3D:
 		return
