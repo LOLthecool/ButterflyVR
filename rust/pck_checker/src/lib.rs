@@ -25,7 +25,7 @@ unsafe impl DirectlyReadable for u32 {}
 unsafe impl DirectlyReadable for u64 {}
 
 const VERSION: [u32; 3] = [3, 4, 6];
-const BAD_EXTENSIONS: &[&str] = &[".res", ".tres", ".gd"];
+const BAD_EXTENSIONS: &[&str] = &[".res", ".tres", ".gd", ".gdc", ".remap", ".import"];
 const UNSUPPORTED_EXTENSIONS: &[&str] = &[".scn", ".escn"];
 
 #[derive(GodotClass)]
@@ -78,9 +78,13 @@ impl PCKChecker {
             pck.read_exact(&mut bytes).unwrap();
             let path = String::from_utf8(bytes).unwrap();
 
-            let path =
-                String::from_utf8(path.into_bytes().into_iter().filter(|x| *x != 0).collect())
-                    .unwrap();
+            let path = String::from_utf8(
+                path.into_bytes()
+                    .into_iter()
+                    .take_while(|x| *x != 0)
+                    .collect(),
+            )
+            .unwrap();
 
             // contains("..") check appears unneeded currently, can be skipped if it causes issues
             if path.contains("..")
@@ -93,12 +97,18 @@ impl PCKChecker {
                 return false;
             }
 
-            if BAD_EXTENSIONS.iter().any(|ext| path.ends_with(ext)) {
+            if BAD_EXTENSIONS
+                .iter()
+                .any(|ext| path.to_ascii_lowercase().ends_with(ext))
+            {
                 godot_error!("found bad extension at path {:?}", path);
                 return false;
             }
 
-            if UNSUPPORTED_EXTENSIONS.iter().any(|ext| path.ends_with(ext)) {
+            if UNSUPPORTED_EXTENSIONS
+                .iter()
+                .any(|ext| path.to_ascii_lowercase().ends_with(ext))
+            {
                 godot_error!("found unsupported extension at path {:?}", path);
                 return false;
             }
@@ -126,84 +136,20 @@ impl PCKChecker {
     }
 
     fn check_tscn(&self, file: &PCKFile, pck: &mut BufReader<File>) -> bool {
-        enum ParserState {
-            Scanning,
-            InHeader,
-            InResource,
-        }
-
         pck.seek(SeekFrom::Start(file.absolute_offset)).unwrap();
 
         let mut buffer: Vec<u8> = vec![0; 19];
         pck.read_exact(&mut buffer).unwrap();
-        let buffer: String = buffer
-            .into_iter()
-            .map(|c| char::from_u32(c as u32).unwrap())
-            .collect();
+        let buffer = String::from_utf8(buffer).unwrap();
         if buffer != "[gd_scene format=4]" && buffer != "[gd_scene format=3]" {
             godot_error!("invalid header in scene {:?}. got {:?}", file.path, buffer);
             return false;
         }
 
-        let mut state = ParserState::Scanning;
-
         while pck.stream_position().unwrap() < file.absolute_offset + file.size {
-            match state {
-                ParserState::Scanning => {
-                    let buffer: u8 = read_value(pck);
-                    let buffer = char::from_u32(buffer as u32).unwrap();
-                    if buffer == '[' {
-                        state = ParserState::InHeader;
-                    } else {
-                        // keep parsing until we hit a non-whitespace character
-                        if buffer != '\n' && buffer as u8 > 32 {
-                            pck.skip_until('\n' as u8).unwrap();
-                        }
-                    }
-                }
-                ParserState::InHeader => {
-                    let mut type_buffer: Vec<u8> = Vec::new();
-                    pck.read_until(' ' as u8, &mut type_buffer).unwrap();
-                    let type_buffer = str::from_utf8(&type_buffer).unwrap();
-                    state = match type_buffer {
-                        "sub_resource " => ParserState::InResource,
-                        "node " => ParserState::Scanning,
-                        _ => {
-                            godot_error!(
-                                "external resource, connection, or unknown type '{:?}' in {:?}",
-                                type_buffer,
-                                file.path
-                            );
-                            return false;
-                        }
-                    };
-                }
-                ParserState::InResource => {
-                    let mut buffer: Vec<u8> = Vec::new();
-                    pck.read_until('"' as u8, &mut buffer).unwrap();
-                    let buffer = str::from_utf8(&buffer).unwrap();
-                    if buffer != "type=\"" {
-                        godot_error!(
-                            "expected type declaration got '{:?}' in {:?}",
-                            buffer,
-                            file.path
-                        );
-                        return false;
-                    }
-
-                    let mut buffer: Vec<u8> = Vec::new();
-                    pck.read_until('"' as u8, &mut buffer).unwrap();
-                    let buffer = str::from_utf8(&buffer[..buffer.len() - 1]).unwrap();
-                    if !(resources::ResourceWhitelist::iter().any(|f| f.to_string() == buffer)) {
-                        godot_error!(
-                            "unrecognized resource type '{:?}' in {:?}",
-                            buffer,
-                            file.path
-                        );
-                        return false;
-                    }
-                    state = ParserState::Scanning;
-                }
+            let next: u8 = read_value(pck);
+            if next <= 32 {
+                continue;
             }
         }
 

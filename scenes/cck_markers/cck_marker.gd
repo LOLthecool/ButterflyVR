@@ -4,6 +4,7 @@ class_name CCKMarker
 
 
 # remember to call PathHelper.is_path_good() if one of your values gets used as a path
+# being outside the scene tree during setup is not guarenteed
 @abstract
 func setup(
 	values: Dictionary[String, Variant],

@@ -8,6 +8,9 @@ func setup(
 	_state: SetupHelpers.SetupState,
 	root: Node,
 ) -> void:
+	@warning_ignore("unsafe_cast")
+	if !PathHelper.is_path_good(target, root, values["hitbox"] as String):
+		return
 	@warning_ignore("unsafe_cast") var hitbox: CollisionObject3D = target.get_node(
 		values["hitbox"] as String
 	)
