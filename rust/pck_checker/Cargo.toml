@@ -9,5 +9,6 @@ crate-type = ["cdylib"]
 [dependencies]
 godot = "0.5.5"
 godot-ffi = "0.5.5"
+nom = "7.0.0"
 strum = "0.28.0"
 strum_macros = "0.28.0"
