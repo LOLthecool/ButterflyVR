@@ -1,1 +1,98 @@
-todo
+Last updated: September 14, 2026
+
+1. Introduction
+
+ButterflyVR ("we," "us," or "our") operates the website ButterflyVR located at https://www.butterflyvr.net (the "Site") and provide software which accesses the Site (the "Client Applications"). This Privacy Policy explains what information we collect, how we use and share it, and the choices you have. By using the Site, you agree to the collection and use of information in accordance with this policy.
+
+2. Information We Collect
+
+We collect information that you provide directly to us and information that is collected automatically when you use the Site.
+
+Information you provide to us:
+
+•  Identifiers such as your name and email address when you contact us, subscribe, or submit a form.
+•  Account credentials, such as your username, email, and a hashed password, when you register for an account.
+
+Information collected automatically:
+
+•  Log and device data, such as your IP address, browser type, operating system, referring pages, and the dates and times of your visits.
+•  Usage data describing how you interact with the Site, including the pages you view and the links you click.
+•  Geographic data, based on your IP address.
+
+3. How We Use Your Information
+
+We use the information we collect for the following purposes:
+
+•  To operate, maintain, and improve the Site and its features.
+•  To respond to your questions, requests, and support inquiries.
+•  To create and manage your account and authenticate your access.
+•  To detect, prevent, and address technical issues, fraud, and abuse.
+•  To comply with our legal obligations and enforce our terms.
+
+4. Cookies and Tracking Technologies
+
+We use cookies and similar tracking technologies to operate and improve the Site. Cookies are small data files stored on your device. We use essential cookies that are necessary for the Site to function and, where applicable, functional and preference cookies that remember your settings.
+
+You can set your browser to refuse cookies or to alert you when cookies are being sent. If you disable cookies, some parts of the Site may not function properly.
+
+5. User Accounts
+
+When you create an account, we store the information needed to maintain and secure it. You are responsible for keeping your login credentials confidential. You may update, request a copy of, or request deletion of your account information at any time by contacting us at support@butterflyvr.net.
+
+6. How We Share Your Information
+
+We do not sell your personal information. We may share information in the following limited circumstances:
+
+•  With service providers who perform functions on our behalf, such as hosting, analytics, email delivery, and payment processing, and who are bound to use the information only to provide those services.
+•  To comply with a legal obligation, court order, or lawful request from public authorities.
+•  To protect the rights, property, or safety of our users, the public, or us, including to detect and prevent fraud.
+•  In connection with a merger, acquisition, or sale of assets, in which case any successor will be bound by this policy.
+
+7. Your Rights Under the GDPR
+
+If you are located in the European Economic Area or the United Kingdom, the General Data Protection Regulation (GDPR) gives you certain rights over your personal data. We process your personal data under one or more of the following legal bases: your consent; the performance of a contract with you; compliance with a legal obligation; or our legitimate interests, provided those interests are not overridden by your rights.
+
+Subject to applicable conditions, you have the right to:
+
+•  Access the personal data we hold about you.
+•  Request correction of inaccurate or incomplete data.
+•  Request erasure of your data (the "right to be forgotten").
+•  Restrict or object to our processing of your data.
+•  Receive your data in a portable, machine-readable format.
+•  Withdraw consent at any time, without affecting processing already carried out.
+•  Lodge a complaint with your local data protection supervisory authority.
+
+To exercise any of these rights, contact us at support@butterflyvr.net. We will respond within the time required by law, generally one month.
+
+8. Your California Privacy Rights (CCPA/CPRA)
+
+If you are a California resident, the California Consumer Privacy Act, as amended by the California Privacy Rights Act (CCPA/CPRA), gives you specific rights regarding your personal information.
+
+•  The right to know what personal information we collect, use, disclose, and (if applicable) share.
+•  The right to request deletion of the personal information we have collected from you.
+•  The right to correct inaccurate personal information.
+•  The right to opt out of the sale or sharing of your personal information. We do not sell your personal information.
+•  The right to limit the use and disclosure of sensitive personal information.
+•  The right not to receive discriminatory treatment for exercising any of these rights.
+
+To submit a request, contact us at support@butterflyvr.net. We will verify your request and respond within 45 days as required by law. You may designate an authorised agent to make a request on your behalf.
+
+9. Data Retention
+
+We retain personal information only for as long as necessary to fulfil the purposes described in this policy, to comply with our legal obligations, resolve disputes, and enforce our agreements. When information is no longer needed, we delete or anonymise it.
+
+10. Data Security
+
+We use reasonable administrative, technical, and physical safeguards designed to protect your information. However, no method of transmission over the internet or method of electronic storage is completely secure, and we cannot guarantee absolute security.
+
+11. Children's Privacy
+
+The Site is not directed to children. In the United States, we do not knowingly collect personal information from children under 13, consistent with the Children's Online Privacy Protection Act (COPPA). Under the EU and UK GDPR, where we rely on consent to offer online services to a child, that consent is valid only if the child is at least 16 years old, or a lower age (not below 13) set by the applicable EU member state; below that age we require consent from the holder of parental responsibility. If you believe a child has provided us with personal information without the required consent, please contact us so we can delete it.
+
+12. Changes to This Privacy Policy
+
+We may update this Privacy Policy from time to time. When we do, we will revise the "Last updated" date at the top of this policy. Your continued use of the Site after any change constitutes your acceptance of the revised policy.
+
+13. Contact Us
+
+If you have questions about this Privacy Policy or our data practices, contact us at support@butterflyvr.net.

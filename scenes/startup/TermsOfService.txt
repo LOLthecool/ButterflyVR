@@ -1,1 +1,63 @@
-todo
+Last updated: September 14, 2026
+
+1. Acceptance of Terms
+
+These Terms of Service ("Terms") govern your access to and use of the website ButterflyVR at https://www.butterflyvr.net (the "Site"), and the software provided by ButterflyVR (the Client Applications), operated by ButterflyVR. By accessing or using the Site, or downloading and running any of the Client Applications, you agree to be bound by these Terms. If you do not agree, do not use the Site or Client Applications.
+
+2. Use License and Acceptable Use
+
+We grant you a limited, non-exclusive, non-transferable, revocable license to access and use the Site for your personal or internal business purposes, subject to these Terms. This license does not include any right to resell or commercially exploit the Site or its contents, or to use any data mining, robots, or similar data gathering tools. Client Applications are distributed with a software license governing their use. If your copy of the Client Application does not include a copy of the license one can be acquired from the Site (butterflyvr.net/software_license.html).
+
+3. User Accounts
+
+To access certain features, you may need to create an account. You agree to provide accurate information, to keep it current, and to maintain the confidentiality of your login credentials. You are responsible for all activity that occurs under your account, and you must notify us immediately of any unauthorized use.
+
+4. Prohibited Uses
+
+You agree not to use the Site to:
+
+•  Violate any applicable law or regulation.
+•  Infringe the intellectual property or other rights of any party.
+•  Upload or transmit malware, or otherwise interfere with the operation of the Site.
+•  Attempt to gain unauthorized access to any portion of the Site or its systems.
+•  Harass, abuse, or harm another person, or collect information about others without consent.
+
+5. Intellectual Property
+
+The Site and its original content, features, and functionality are and will remain the exclusive property of ButterflyVR and its licensors, and are protected by copyright, trademark, and other laws. You may not use our trademarks without our prior written permission, and you may not use our software without following the accompanying software license included with the software files. If a copy of the license was not included one can be acquired from the Site (butterflyvr.net/software_license.html).
+
+6. Third-Party Links
+
+The Site may contain links to third-party websites or services that we do not own or control. We are not responsible for the content, privacy policies, or practices of any third-party sites, and you access them at your own risk.
+
+7. Third-Party Content
+
+The Site may host and distribute files or content produced by a third-party. We are not responsible for the content or behaviour of any third-party content, and you access them at your own risk.
+
+8. Disclaimer of Warranties
+
+The Site is provided on an "as is" and "as available" basis without warranties of any kind, whether express or implied, including implied warranties of merchantability, fitness for a particular purpose, and non-infringement. We do not warrant that the Site will be uninterrupted, secure, or error-free.
+
+9. Limitation of Liability
+
+To the fullest extent permitted by law, ButterflyVR and its officers, employees, and agents will not be liable for any indirect, incidental, special, consequential, or punitive damages, or for any loss of profits or data, arising out of your use of or inability to use the Site.
+
+10. Indemnification
+
+You agree to indemnify and hold harmless ButterflyVR from any claims, damages, liabilities, and expenses (including reasonable attorney fees) arising out of your use of the Site or your violation of these Terms.
+
+11. Termination
+
+We may suspend or terminate your access to the Site at any time, with or without notice, for any reason, including if you breach these Terms. Provisions that by their nature should survive termination will survive.
+
+12. Governing Law
+
+These Terms are governed by the laws of the United Kingdom, without regard to its conflict of law provisions. You agree to submit to the personal jurisdiction of the courts located in the United Kingdom for the resolution of any disputes.
+
+13. Changes to These Terms
+
+We may revise these Terms from time to time. When we do, we will update the "Last updated" date. Your continued use of the Site after changes take effect constitutes your acceptance of the revised Terms.
+
+14. Contact Us
+
+If you have any questions about these Terms, contact us at support@butterflyvr.net.
