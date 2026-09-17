@@ -33,7 +33,7 @@ class Request:
 		self.body = body
 		additional_headers = headers
 		if body != "":
-			additional_headers.push_back("Content-Length: " + str(body.length()))
+			additional_headers.push_back("Content-Length: " + str(body.to_utf8_buffer().size()))
 			additional_headers.push_back("Content-Type: application/json")
 		var singal_name: String = str(randi())
 		add_user_signal(
@@ -261,5 +261,5 @@ func _ready() -> void:
 			if raw_body.is_empty():
 				request.on_complete.emit(client.get_response_code(), response_headers, "")
 			else:
-				var body: String = raw_body.get_string_from_ascii()
+				var body: String = raw_body.get_string_from_utf8()
 				request.on_complete.emit(client.get_response_code(), response_headers, body)
