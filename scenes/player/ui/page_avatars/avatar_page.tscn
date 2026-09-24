@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://ksrjgkewkwkw" path="res://scenes/player/ui/previewer.gd" id="4_j5nty"]
 [ext_resource type="Script" uid="uid://cbfejau06v0jn" path="res://scenes/player/ui/page_avatars/flag_list.gd" id="5_m82ti"]
 [ext_resource type="Script" uid="uid://xdkkbmk0c8dk" path="res://scenes/player/ui/page_avatars/close_details.gd" id="5_moiu7"]
+[ext_resource type="Script" uid="uid://durvlg2r8dqq" path="res://scenes/player/ui/page_avatars/license_view.gd" id="6_qc2hn"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_b27c1"]
 
@@ -143,18 +144,18 @@ text = " + "
 [node name="TabContainer" type="TabContainer" parent="Control/VBoxContainer2" unique_id=1202729836]
 layout_mode = 2
 size_flags_horizontal = 3
-current_tab = 0
+current_tab = 1
 tabs_visible = false
 
 [node name="AvatarList" type="HFlowContainer" parent="Control/VBoxContainer2/TabContainer" unique_id=122960574 node_paths=PackedStringArray("avatar_previewer")]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("2_2ou7c")
 avatar_previewer = NodePath("../../VBoxContainer3")
 metadata/_tab_index = 0
 
-[node name="AvatarDetails" type="VBoxContainer" parent="Control/VBoxContainer2/TabContainer" unique_id=458652802 node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_size", "details_tags")]
-visible = false
+[node name="AvatarDetails" type="VBoxContainer" parent="Control/VBoxContainer2/TabContainer" unique_id=458652802 node_paths=PackedStringArray("details_name", "details_description", "details_creation_time", "details_update_time", "details_size", "details_tags", "license_view_button")]
 layout_mode = 2
 script = ExtResource("3_b27c1")
 details_name = NodePath("VBoxContainer/Label2")
@@ -163,6 +164,7 @@ details_creation_time = NodePath("VBoxContainer/HBoxContainer2/Label2")
 details_update_time = NodePath("VBoxContainer/HBoxContainer3/Label2")
 details_size = NodePath("VBoxContainer/HBoxContainer4/Label2")
 details_tags = NodePath("VBoxContainer/HFlowContainer")
+license_view_button = NodePath("VBoxContainer/Button2")
 metadata/_tab_index = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails" unique_id=1428489882]
@@ -246,12 +248,56 @@ text = "tags:"
 layout_mode = 2
 script = ExtResource("3_5qthq")
 
-[node name="Button" type="Button" parent="Control/VBoxContainer2/TabContainer/AvatarDetails" unique_id=2089056078 node_paths=PackedStringArray("details_page")]
+[node name="HSeparator4" type="HSeparator" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=545120189]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_moiu7")
+
+[node name="Button2" type="Button" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=1555977697 node_paths=PackedStringArray("panel", "license_label")]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 32
+text = "view license"
+script = ExtResource("6_qc2hn")
+panel = NodePath("../Panel")
+license_label = NodePath("../Panel/VBoxContainer/ScrollContainer/Label")
+
+[node name="Panel" type="PanelContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer" unique_id=457272163]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/Panel" unique_id=743977773]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/Panel/VBoxContainer" unique_id=2110135247]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/Panel/VBoxContainer/ScrollContainer" unique_id=246930137]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+theme_override_font_sizes/font_size = 24
+autowrap_mode = 3
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/Panel/VBoxContainer" unique_id=1363113165]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "close"
+
+[node name="HSeparator4" type="HSeparator" parent="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/Panel/VBoxContainer" unique_id=187025870]
+layout_mode = 2
+theme_override_constants/separation = 12
+theme_override_styles/separator = SubResource("StyleBoxEmpty_moiu7")
+
+[node name="Button" type="Button" parent="Control/VBoxContainer2/TabContainer/AvatarDetails" unique_id=2089056078 node_paths=PackedStringArray("details_page", "license_button")]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "close"
 script = ExtResource("5_moiu7")
 details_page = NodePath("..")
+license_button = NodePath("../VBoxContainer/Button2")
 
 [node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer2" unique_id=1335291196 node_paths=PackedStringArray("previewer", "avatar_name", "avatar_publicity", "avatar_author", "flag_list", "details_button", "equip_button", "details_page")]
 layout_mode = 2
@@ -282,7 +328,7 @@ msaa_3d = 2
 size = Vector2i(512, 1024)
 
 [node name="Node3D" type="Node3D" parent="Control/VBoxContainer2/VBoxContainer3/TextureRect/SubViewport" unique_id=374216070 node_paths=PackedStringArray("viewport", "camera")]
-transform = Transform3D(0.96227807, 0, 0.27206662, 0, 1, 0, -0.27206662, 0, 0.96227807, 0, 0, 0)
+transform = Transform3D(-0.99684674, 0, 0.07934633, 0, 1, 0, -0.07934633, 0, -0.99684674, 0, 0, 0)
 script = ExtResource("4_j5nty")
 viewport = NodePath("..")
 camera = NodePath("../Camera3D")
@@ -339,5 +385,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "equip"
 
+[connection signal="pressed" from="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/Panel/VBoxContainer/Button" to="Control/VBoxContainer2/TabContainer/AvatarDetails/VBoxContainer/Button2" method="_pressed"]
 [connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer3/Button" to="Control/VBoxContainer2/VBoxContainer3" method="on_avatar_details"]
 [connection signal="pressed" from="Control/VBoxContainer2/VBoxContainer3/Button2" to="Control/VBoxContainer2/VBoxContainer3" method="on_avatar_equip"]

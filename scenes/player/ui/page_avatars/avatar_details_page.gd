@@ -7,6 +7,7 @@ class_name AvatarDetailsPage
 @export var details_update_time: Label
 @export var details_size: Label
 @export var details_tags: tags_list
+@export var license_view_button:LicenseViewButton
 
 
 func show_details(avatar: Dictionary) -> void:
@@ -26,3 +27,6 @@ func show_details(avatar: Dictionary) -> void:
 	details_size.text = StringifyHelper.stringify_size_kb(avatar["object_size"] as int)
 
 	details_tags.show_tags(avatar)
+	
+	@warning_ignore("unsafe_cast")
+	license_view_button.license = avatar["license"] as String

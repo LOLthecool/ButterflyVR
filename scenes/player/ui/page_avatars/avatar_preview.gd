@@ -35,6 +35,7 @@ func preview_avatar(avatar: Dictionary[String, Variant]) -> void:
 			"object_size",
 			"creator",
 			"publicity",
+			"license",
 			"tags",
 		],
 	)
