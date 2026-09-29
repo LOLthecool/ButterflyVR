@@ -67,8 +67,11 @@ func change_avatar(target_player: PackedByteArray, avatar: UUID) -> void:
 	avatar_root = new_avatar.instantiate()
 
 	get_parent().add_child(avatar_root)
-
-	new_avatar = await GlobalDownloadHandler.get_object(avatar, TypeHelper.ObjectType.avatar)
+	
+	if NetworkManager.is_server():
+		new_avatar = await GlobalServerVariantDownloadHandler.get_object(avatar, TypeHelper.ObjectType.avatar)
+	else:
+		new_avatar = await GlobalDownloadHandler.get_object(avatar, TypeHelper.ObjectType.avatar)
 
 	if !new_avatar:
 		# todo: specific 'loading failed' avatar

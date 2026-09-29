@@ -2,40 +2,40 @@ extends Node
 class_name DownloadHandler
 
 const OBJECT_INFO_ENDPOINT: String = "/api/v0/%s/%s"
-const OBJECT_DOWNLOAD_ENDPOINT: String = "/api/v0/%s/%s/epck"
 const MEGABYTE: int = 1024 * 1024
 const GIGABYTE: int = MEGABYTE * 1024
-const CACHE_SIZE: int = GIGABYTE * 10
-const CACHE_FILE: String = "object_cache"
-const OBJECT_FILE_PATH: String = "user://objects/%s.epck"
 
+var object_download_endpoint: String = "/api/v0/%s/%s/epck"
+var cache_size: int = GIGABYTE * 10
+var cache_file: String = "object_cache"
+var object_file_path: String = "user://objects/%s.epck"
 var backing_cache: LruCache
 var cache_lock: Mutex = Mutex.new()
 
 
 func on_save(cached_objects: Dictionary) -> void:
-	GlobalPersistanceHandler.clear_catagory(CACHE_FILE, "values", false)
+	GlobalPersistanceHandler.clear_catagory(cache_file, "values", false)
 	for uuid: String in cached_objects.keys():
 		GlobalPersistanceHandler.register_value(
-			CACHE_FILE,
+			cache_file,
 			"values",
 			uuid,
 			cached_objects[uuid],
 			false,
 		)
-	GlobalPersistanceHandler.flush_file(CACHE_FILE)
+	GlobalPersistanceHandler.flush_file(cache_file)
 
 
 func on_load() -> Dictionary:
-	return GlobalPersistanceHandler.get_catagory(CACHE_FILE, "values")
+	return GlobalPersistanceHandler.get_catagory(cache_file, "values")
 
 
 func on_destroy(uuid: String) -> void:
-	DirAccess.remove_absolute(OBJECT_FILE_PATH % uuid)
+	DirAccess.remove_absolute(object_file_path % uuid)
 
 
 func _init() -> void:
-	backing_cache = LruCache.new_cache(CACHE_SIZE, on_save, on_load, on_destroy)
+	backing_cache = LruCache.new_cache(cache_size, on_save, on_load, on_destroy)
 	backing_cache.load()
 
 
@@ -89,7 +89,7 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 
 	await MiscHelpers.await_lock_mutex(cache_lock)
 
-	var file: FileAccess = FileAccess.open(OBJECT_FILE_PATH % [id], FileAccess.READ)
+	var file: FileAccess = FileAccess.open(object_file_path % [id], FileAccess.READ)
 	@warning_ignore("unsafe_cast") var object: PackedScene = await decrypt_and_load_object(
 		file,
 		type,
@@ -114,8 +114,8 @@ func preload_object(
 	var object: Dictionary[String, int] = { }
 	object.assign(backing_cache.get(id))
 	if !object.is_empty():
-		if (!FileAccess.file_exists(OBJECT_FILE_PATH % [id])) or \
-				FileAccess.get_size(OBJECT_FILE_PATH % [id]) < 1:
+		if (!FileAccess.file_exists(object_file_path % [id])) or \
+				FileAccess.get_size(object_file_path % [id]) < 1:
 			push_error("cached file did not exist for object: %s" % id)
 			backing_cache.pop(id)
 		else:
@@ -138,15 +138,15 @@ func preload_object(
 
 
 func download_object(uuid: String, object_type_string: String) -> void:
-	var url: String = OBJECT_DOWNLOAD_ENDPOINT % [object_type_string, uuid]
+	var url: String = object_download_endpoint % [object_type_string, uuid]
 
 	var downloader: HTTPRequest = HTTPRequest.new()
 	add_child(downloader)
 
-	downloader.download_file = OBJECT_FILE_PATH % [uuid]
+	downloader.download_file = object_file_path % [uuid]
 
-	if !DirAccess.dir_exists_absolute(OBJECT_FILE_PATH.trim_suffix("%s.epck")):
-		DirAccess.make_dir_recursive_absolute(OBJECT_FILE_PATH.trim_suffix("%s.epck"))
+	if !DirAccess.dir_exists_absolute(object_file_path.trim_suffix("%s.epck")):
+		DirAccess.make_dir_recursive_absolute(object_file_path.trim_suffix("%s.epck"))
 
 	FileAccess.open(downloader.download_file, FileAccess.WRITE).close()
 
@@ -175,7 +175,7 @@ func decrypt_and_load_object(
 	iv: PackedByteArray,
 ) -> PackedScene:
 	if !object:
-		push_warning("object %s did not exist in cache" % uuid)
+		push_error("object %s was requested but did not exist in cache" % uuid)
 		backing_cache.pop(uuid)
 		return null
 
@@ -196,7 +196,7 @@ func decrypt_and_load_object(
 	aes.finish()
 
 	if decrypted_buffer.size() == 0:
-		push_warning("got empty object from server")
+		push_error("got empty object from server")
 		return null
 
 	# trim pading bytes
@@ -205,12 +205,7 @@ func decrypt_and_load_object(
 	var zero_bytes: int = 0
 	while decrypted_buffer[(decrypted_buffer.size() - zero_bytes) - 1] == 0:
 		zero_bytes += 1
-
-	if decrypted_buffer[(decrypted_buffer.size() - zero_bytes) - 1] != 255:
-		push_error("object was not correctly padded, attempting to continue decoding")
-		# if this is causing issues its probably safe to remove and just reject bad padding outright
-		zero_bytes -= 1 # assumes the last byte of the object isnt 0, but this shouldnt happen anyways
-
+	
 	# remove all padding including 255
 	decrypted_buffer.resize(decrypted_buffer.size() - (zero_bytes + 1))
 	var decrypted: FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck")
@@ -218,7 +213,6 @@ func decrypt_and_load_object(
 	decrypted.flush()
 	var decrypted_path: String = decrypted.get_path()
 
-	# todo: ram backed tmp files to avoid storing decrypted pcks
 	var handle: FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck", true)
 	var new_object: String = handle.get_path()
 	ZSTDCompressor.decompress_file_to_file(decrypted_path, new_object)

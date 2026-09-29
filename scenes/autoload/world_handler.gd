@@ -91,7 +91,7 @@ func load_world(world_id: UUID, instance_id: UUID = null) -> void:
 
 # server must be started before this is called
 func load_world_server(world_id: UUID, bind_port: int) -> void:
-	var world: PackedScene = await GlobalDownloadHandler.get_object(
+	var world: PackedScene = await GlobalServerVariantDownloadHandler.get_object(
 		world_id,
 		TypeHelper.ObjectType.world,
 	)
