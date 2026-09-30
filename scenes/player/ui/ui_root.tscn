@@ -12,6 +12,8 @@
 [ext_resource type="PackedScene" uid="uid://opg2daisj1fm" path="res://scenes/player/ui/page_notifications/notifications_page.tscn" id="7_jcrsv"]
 [ext_resource type="PackedScene" uid="uid://do1488h54fo8r" path="res://scenes/player/ui/page_settings/settings_page.tscn" id="8_6roop"]
 [ext_resource type="PackedScene" uid="uid://knr0y1g4146x" path="res://scenes/player/ui/page_exit/exit_page.tscn" id="9_b1c3u"]
+[ext_resource type="PackedScene" uid="uid://bhnjooe7uoe25" path="res://scenes/player/ui/page_admin/admin_page.tscn" id="11_6roop"]
+[ext_resource type="Script" uid="uid://dt4v8ubj6umm" path="res://scenes/player/ui/admin_hider.gd" id="11_jcrsv"]
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_jhacy"]
 color = Color(0.096204735, 0.09620475, 0.096204735, 1)
@@ -150,6 +152,20 @@ vertical_icon_alignment = 0
 script = ExtResource("2_4flen")
 page = ExtResource("7_jcrsv")
 page_handler = NodePath("../../../PanelContainer/PageHandler")
+
+[node name="Button9" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=195784961 node_paths=PackedStringArray("page_handler")]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "admin"
+icon = SubResource("PlaceholderTexture2D_ab8o1")
+icon_alignment = 1
+vertical_icon_alignment = 0
+script = ExtResource("2_4flen")
+page = ExtResource("11_6roop")
+page_handler = NodePath("../../../PanelContainer/PageHandler")
+
+[node name="Node" type="Node" parent="menuRoot/QuickButtons/HBoxContainer/Button9" unique_id=241856027]
+script = ExtResource("11_jcrsv")
 
 [node name="Button6" type="Button" parent="menuRoot/QuickButtons/HBoxContainer" unique_id=1814619449 node_paths=PackedStringArray("page_handler")]
 layout_mode = 2

@@ -1,0 +1,185 @@
+[gd_scene format=3 uid="uid://bhnjooe7uoe25"]
+
+[ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_kntid"]
+[ext_resource type="Script" uid="uid://ce863odmpyhlg" path="res://scenes/player/ui/page_admin/hide_unauthorized.gd" id="2_f5v1d"]
+[ext_resource type="Script" uid="uid://uied7mggt3k2" path="res://scenes/player/ui/page_admin/admin_object_search.gd" id="3_a1poi"]
+[ext_resource type="Script" uid="uid://7mikj42eomlu" path="res://scenes/player/ui/page_admin/admin_object_list.gd" id="4_bdqst"]
+[ext_resource type="Script" uid="uid://bowxnor8jpytb" path="res://scenes/player/ui/page_admin/admin_object_moderation_options.gd" id="5_kl7x3"]
+[ext_resource type="Script" uid="uid://b3a108ns6do6v" path="res://scenes/player/ui/page_admin/object_verify_token_aquire.gd" id="6_3tyy0"]
+[ext_resource type="Script" uid="uid://c85mc4d4a4ykf" path="res://scenes/player/ui/page_admin/copy_token.gd" id="7_ve8ik"]
+[ext_resource type="Script" uid="uid://dgxxjjls18a63" path="res://scenes/player/ui/page_admin/admin_object_verification_options.gd" id="8_c4hio"]
+[ext_resource type="Script" uid="uid://ckdwdy0y7dqkq" path="res://scenes/player/ui/page_admin/user_ban_modal.gd" id="9_1hgsn"]
+
+[node name="AdminPage" type="TabContainer" unique_id=185554667]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 32
+tab_alignment = 1
+current_tab = 1
+tab_0/title = "Content Moderation"
+tab_1/title = "User Moderation"
+script = ExtResource("1_kntid")
+page_name = "Admin"
+
+[node name="Node" type="Node" parent="." unique_id=1167444555]
+script = ExtResource("2_f5v1d")
+
+[node name="ContentModeration" type="VBoxContainer" parent="." unique_id=415044366]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 0
+metadata/_tab_name = "Content Moderation"
+
+[node name="HBoxContainer" type="VBoxContainer" parent="ContentModeration" unique_id=1062293951]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3_a1poi")
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="ContentModeration/HBoxContainer" unique_id=1432762705]
+layout_mode = 2
+
+[node name="LineEdit" type="LineEdit" parent="ContentModeration/HBoxContainer/HBoxContainer2" unique_id=352292830]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+placeholder_text = "enter name, uuid, author, description, or tag"
+
+[node name="Button" type="Button" parent="ContentModeration/HBoxContainer/HBoxContainer2" unique_id=922056676]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "search"
+
+[node name="PanelContainer" type="PanelContainer" parent="ContentModeration/HBoxContainer" unique_id=105697153]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="ContentModeration/HBoxContainer/PanelContainer" unique_id=44322430]
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 4
+
+[node name="FlowContainer" type="FlowContainer" parent="ContentModeration/HBoxContainer/PanelContainer/ScrollContainer" unique_id=293110053]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("4_bdqst")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ContentModeration/HBoxContainer" unique_id=654404279]
+layout_mode = 2
+script = ExtResource("5_kl7x3")
+
+[node name="Button" type="Button" parent="ContentModeration/HBoxContainer/HBoxContainer" unique_id=1770810416]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Remove"
+
+[node name="VSeparator" type="VSeparator" parent="ContentModeration/HBoxContainer/HBoxContainer" unique_id=514737772]
+layout_mode = 2
+
+[node name="Button2" type="Button" parent="ContentModeration/HBoxContainer/HBoxContainer" unique_id=517325883]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Remove And Ban Author"
+
+[node name="VSeparator" type="HSeparator" parent="ContentModeration" unique_id=1113684107]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="ContentModeration" unique_id=1948267856]
+layout_mode = 2
+script = ExtResource("6_3tyy0")
+
+[node name="Button" type="Button" parent="ContentModeration/HBoxContainer2" unique_id=290471747]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "Get New Unverified Object"
+
+[node name="VSeparator" type="VSeparator" parent="ContentModeration/HBoxContainer2" unique_id=56504071]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PanelContainer" type="PanelContainer" parent="ContentModeration/HBoxContainer2" unique_id=601856292]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ContentModeration/HBoxContainer2/PanelContainer" unique_id=1404806988]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer" unique_id=1800153276]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_scroll_mode = 4
+vertical_scroll_mode = 0
+
+[node name="Label" type="Label" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer/ScrollContainer" unique_id=1819251505]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.6706895, 0.6706895, 0.6706895, 1)
+theme_override_font_sizes/font_size = 40
+
+[node name="VSeparator" type="VSeparator" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer" unique_id=1227976601]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Button" type="Button" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer" unique_id=1511872435]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Copy Token"
+script = ExtResource("7_ve8ik")
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="ContentModeration" unique_id=1144630268]
+layout_mode = 2
+theme_override_constants/separation = 24
+script = ExtResource("8_c4hio")
+
+[node name="Button2" type="Button" parent="ContentModeration/HBoxContainer3" unique_id=1920308457]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Accept"
+
+[node name="Button3" type="Button" parent="ContentModeration/HBoxContainer3" unique_id=1329438077]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Reject"
+
+[node name="Button4" type="Button" parent="ContentModeration/HBoxContainer3" unique_id=906372045]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Reject And Ban Author"
+
+[node name="UserModeration" type="VBoxContainer" parent="." unique_id=1702720460]
+layout_mode = 2
+metadata/_tab_index = 1
+metadata/_tab_name = "User Moderation"
+
+[node name="UserBanModal" type="Node" parent="." unique_id=1967349291]
+script = ExtResource("9_1hgsn")
+
+[node name="Panel" type="Panel" parent="UserBanModal" unique_id=86054936]
+visible = false
+anchors_preset = -1
+anchor_left = 0.19166666
+anchor_top = 0.048148148
+anchor_right = 0.80833334
+anchor_bottom = 0.95185184
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_use_anchors_ = true
+
+[connection signal="text_submitted" from="ContentModeration/HBoxContainer/HBoxContainer2/LineEdit" to="ContentModeration/HBoxContainer" method="_on_button_pressed"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer2/Button" to="ContentModeration/HBoxContainer" method="_on_button_pressed"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button" to="ContentModeration/HBoxContainer/HBoxContainer" method="_on_button_pressed"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button2" to="ContentModeration/HBoxContainer/HBoxContainer" method="_on_button_2_pressed"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer2/Button" to="ContentModeration/HBoxContainer2" method="_on_button_pressed"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer3/Button2" to="ContentModeration/HBoxContainer3" method="_on_button_2_pressed"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer3/Button3" to="ContentModeration/HBoxContainer3" method="_on_button_3_pressed"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer3/Button4" to="ContentModeration/HBoxContainer3" method="_on_button_4_pressed"]
