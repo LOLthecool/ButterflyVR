@@ -18,7 +18,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_font_sizes/font_size = 32
 tab_alignment = 1
-current_tab = 1
+current_tab = 0
 tab_0/title = "Content Moderation"
 tab_1/title = "User Moderation"
 script = ExtResource("1_kntid")
@@ -28,7 +28,6 @@ page_name = "Admin"
 script = ExtResource("2_f5v1d")
 
 [node name="ContentModeration" type="VBoxContainer" parent="." unique_id=415044366]
-visible = false
 layout_mode = 2
 metadata/_tab_index = 0
 metadata/_tab_name = "Content Moderation"
@@ -50,7 +49,7 @@ placeholder_text = "enter name, uuid, author, description, or tag"
 [node name="Button" type="Button" parent="ContentModeration/HBoxContainer/HBoxContainer2" unique_id=922056676]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "search"
+text = "Search"
 
 [node name="PanelContainer" type="PanelContainer" parent="ContentModeration/HBoxContainer" unique_id=105697153]
 layout_mode = 2
@@ -84,7 +83,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
-text = "Remove And Ban Author"
+text = "Remove And Moderate Author"
 
 [node name="VSeparator" type="HSeparator" parent="ContentModeration" unique_id=1113684107]
 layout_mode = 2
@@ -157,9 +156,58 @@ disabled = true
 text = "Reject And Ban Author"
 
 [node name="UserModeration" type="VBoxContainer" parent="." unique_id=1702720460]
+visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 metadata/_tab_name = "User Moderation"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="UserModeration" unique_id=460859080]
+layout_mode = 2
+
+[node name="LineEdit" type="LineEdit" parent="UserModeration/HBoxContainer2" unique_id=948907235]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+placeholder_text = "enter name or uuid"
+
+[node name="Button" type="Button" parent="UserModeration/HBoxContainer2" unique_id=1358057280]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Search"
+
+[node name="PanelContainer" type="PanelContainer" parent="UserModeration" unique_id=296739326]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UserModeration/PanelContainer" unique_id=1593121555]
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 4
+
+[node name="FlowContainer" type="FlowContainer" parent="UserModeration/PanelContainer/ScrollContainer" unique_id=92200789]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("4_bdqst")
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="UserModeration" unique_id=1528152863]
+layout_mode = 2
+script = ExtResource("5_kl7x3")
+
+[node name="Button" type="Button" parent="UserModeration/HBoxContainer3" unique_id=1834744139]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Details"
+
+[node name="VSeparator" type="VSeparator" parent="UserModeration/HBoxContainer3" unique_id=763075628]
+layout_mode = 2
+
+[node name="Button2" type="Button" parent="UserModeration/HBoxContainer3" unique_id=1685793301]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+disabled = true
+text = "Moderate"
 
 [node name="UserBanModal" type="Node" parent="." unique_id=1967349291]
 script = ExtResource("9_1hgsn")
@@ -175,6 +223,115 @@ grow_horizontal = 2
 grow_vertical = 2
 metadata/_edit_use_anchors_ = true
 
+[node name="VBoxContainer" type="VBoxContainer" parent="UserBanModal/Panel" unique_id=728808357]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="UserBanModal/Panel/VBoxContainer" unique_id=1176335262]
+layout_mode = 2
+alignment = 1
+
+[node name="Control" type="Control" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer3" unique_id=499197996]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer3" unique_id=249208118]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "target: "
+
+[node name="Label2" type="Label" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer3" unique_id=2097163081]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "UNNAMED"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer3" unique_id=358705296]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Button2" type="Button" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer3/HBoxContainer2" unique_id=1443734155]
+layout_mode = 2
+size_flags_horizontal = 8
+theme_override_font_sizes/font_size = 48
+text = "Close"
+
+[node name="HSeparator" type="HSeparator" parent="UserBanModal/Panel/VBoxContainer" unique_id=170712090]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UserBanModal/Panel/VBoxContainer" unique_id=437155583]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer" unique_id=1268976186]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "length: "
+
+[node name="OptionButton" type="OptionButton" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer" unique_id=925971042]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+selected = 7
+item_count = 8
+popup/item_0/text = "1 day"
+popup/item_0/id = 0
+popup/item_1/text = "1 week"
+popup/item_1/id = 1
+popup/item_2/text = "1 month"
+popup/item_2/id = 2
+popup/item_3/text = "3 months"
+popup/item_3/id = 3
+popup/item_4/text = "6 months"
+popup/item_4/id = 4
+popup/item_5/text = "1 year"
+popup/item_5/id = 5
+popup/item_6/text = "3 years"
+popup/item_6/id = 6
+popup/item_7/text = "permanent"
+popup/item_7/id = 7
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="UserBanModal/Panel/VBoxContainer" unique_id=84896499]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer2" unique_id=907944267]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "type:"
+
+[node name="OptionButton" type="OptionButton" parent="UserBanModal/Panel/VBoxContainer/HBoxContainer2" unique_id=139291072]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+selected = 0
+item_count = 3
+popup/item_0/text = "ban"
+popup/item_0/id = 0
+popup/item_1/text = "cck ban"
+popup/item_1/id = 1
+popup/item_1/disabled = true
+popup/item_2/text = "global mute"
+popup/item_2/id = 2
+popup/item_2/disabled = true
+
+[node name="Label" type="Label" parent="UserBanModal/Panel/VBoxContainer" unique_id=570016596]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "reason:"
+horizontal_alignment = 1
+
+[node name="TextEdit" type="TextEdit" parent="UserBanModal/Panel/VBoxContainer" unique_id=625697287]
+layout_mode = 2
+size_flags_vertical = 3
+placeholder_text = "..."
+
+[node name="Button" type="Button" parent="UserBanModal/Panel/VBoxContainer" unique_id=1515893073]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+disabled = true
+text = "Submit"
+
 [connection signal="text_submitted" from="ContentModeration/HBoxContainer/HBoxContainer2/LineEdit" to="ContentModeration/HBoxContainer" method="_on_button_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer2/Button" to="ContentModeration/HBoxContainer" method="_on_button_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button" to="ContentModeration/HBoxContainer/HBoxContainer" method="_on_button_pressed"]
@@ -183,3 +340,7 @@ metadata/_edit_use_anchors_ = true
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button2" to="ContentModeration/HBoxContainer3" method="_on_button_2_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button3" to="ContentModeration/HBoxContainer3" method="_on_button_3_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button4" to="ContentModeration/HBoxContainer3" method="_on_button_4_pressed"]
+[connection signal="pressed" from="UserModeration/HBoxContainer3/Button" to="UserModeration/HBoxContainer3" method="_on_button_pressed"]
+[connection signal="pressed" from="UserModeration/HBoxContainer3/Button2" to="UserModeration/HBoxContainer3" method="_on_button_2_pressed"]
+[connection signal="pressed" from="UserBanModal/Panel/VBoxContainer/HBoxContainer3/HBoxContainer2/Button2" to="UserBanModal" method="cancel"]
+[connection signal="pressed" from="UserBanModal/Panel/VBoxContainer/Button" to="UserBanModal" method="submit"]
