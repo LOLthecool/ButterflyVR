@@ -1,15 +1,40 @@
 extends HBoxContainer
+class_name ObjectVerifyTokenUI
 
+const MODERATION_MODERATE_OBJECT_ROUTE: String = "/api/v0/mod/object_token"
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
+signal token_generated(token:UUID, object_id:UUID, creator:UUID)
+signal reset
 
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
-
+@export var token_label:Label
+@export var generate_button:Button
 
 func _on_button_pressed() -> void:
-	pass # Replace with function body.
+	generate_button.disabled = true
+	var response: Array[Variant] = await GlobalAPIHandler.make_request(
+		HTTPClient.METHOD_GET,
+		MODERATION_MODERATE_OBJECT_ROUTE,
+		PackedStringArray([GlobalAccountHandler.get_token_header()]),
+	)
+
+	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+		response[0],
+		response[2],
+		[200],
+		["token", "object_id", "creator"],
+	)
+	
+	if !result[0]:
+		generate_button.disabled = false
+		@warning_ignore("unsafe_call_argument")
+		MiscHelpers.log_request_error("error while getting one time token", result[1], result[2], result[3])
+		return
+	
+	token_label.text = result[4]["token"]
+	@warning_ignore("unsafe_call_argument")
+	token_generated.emit(UUID.from_String(result[4]["token"]), UUID.from_String(result[4]["object_id"]),UUID.from_String( result[4]["creator"]))
+
+func end() -> void:
+	generate_button.disabled = false
+	token_label.text = ""
+	reset.emit()

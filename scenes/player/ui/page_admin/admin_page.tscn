@@ -2,12 +2,12 @@
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_kntid"]
 [ext_resource type="Script" uid="uid://uied7mggt3k2" path="res://scenes/player/ui/page_admin/admin_object_search.gd" id="3_a1poi"]
-[ext_resource type="Script" uid="uid://7mikj42eomlu" path="res://scenes/player/ui/page_admin/admin_object_list.gd" id="4_bdqst"]
-[ext_resource type="Script" uid="uid://bowxnor8jpytb" path="res://scenes/player/ui/page_admin/admin_object_moderation_options.gd" id="5_kl7x3"]
 [ext_resource type="Script" uid="uid://b3a108ns6do6v" path="res://scenes/player/ui/page_admin/object_verify_token_aquire.gd" id="6_3tyy0"]
+[ext_resource type="Script" uid="uid://dxuipdx8a1f8p" path="res://scenes/player/ui/page_admin/admin_user_moderation.gd" id="6_rqcrk"]
 [ext_resource type="Script" uid="uid://c85mc4d4a4ykf" path="res://scenes/player/ui/page_admin/copy_token.gd" id="7_ve8ik"]
 [ext_resource type="Script" uid="uid://dgxxjjls18a63" path="res://scenes/player/ui/page_admin/admin_object_verification_options.gd" id="8_c4hio"]
 [ext_resource type="Script" uid="uid://ckdwdy0y7dqkq" path="res://scenes/player/ui/page_admin/user_ban_modal.gd" id="9_1hgsn"]
+[ext_resource type="Script" uid="uid://camdx6g2mmpym" path="res://scenes/player/ui/page_admin/confirm_modal.gd" id="9_3tyy0"]
 
 [node name="AdminPage" type="TabContainer" unique_id=185554667]
 anchors_preset = 15
@@ -17,13 +17,14 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_font_sizes/font_size = 32
 tab_alignment = 1
-current_tab = 0
+current_tab = 1
 tab_0/title = "Content Moderation"
 tab_1/title = "User Moderation"
 script = ExtResource("1_kntid")
 page_name = "Admin"
 
 [node name="ContentModeration" type="VBoxContainer" parent="." unique_id=415044366]
+visible = false
 layout_mode = 2
 metadata/_tab_index = 0
 metadata/_tab_name = "Content Moderation"
@@ -111,11 +112,12 @@ size_flags_horizontal = 3
 horizontal_scroll_mode = 4
 vertical_scroll_mode = 0
 
-[node name="Label" type="Label" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer/ScrollContainer" unique_id=1819251505]
+[node name="LineEdit" type="LineEdit" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer/ScrollContainer" unique_id=1343111108]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.6706895, 0.6706895, 0.6706895, 1)
 theme_override_font_sizes/font_size = 40
+editable = false
 
 [node name="VSeparator" type="VSeparator" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer" unique_id=1227976601]
 layout_mode = 2
@@ -152,8 +154,8 @@ disabled = true
 text = "Reject And Ban Author"
 
 [node name="UserModeration" type="VBoxContainer" parent="." unique_id=1702720460]
-visible = false
 layout_mode = 2
+script = ExtResource("6_rqcrk")
 metadata/_tab_index = 1
 metadata/_tab_name = "User Moderation"
 
@@ -184,19 +186,8 @@ vertical_scroll_mode = 4
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-script = ExtResource("4_bdqst")
 
 [node name="HBoxContainer3" type="HBoxContainer" parent="UserModeration" unique_id=1528152863]
-layout_mode = 2
-script = ExtResource("5_kl7x3")
-
-[node name="Button" type="Button" parent="UserModeration/HBoxContainer3" unique_id=1834744139]
-layout_mode = 2
-theme_override_font_sizes/font_size = 48
-disabled = true
-text = "Details"
-
-[node name="VSeparator" type="VSeparator" parent="UserModeration/HBoxContainer3" unique_id=763075628]
 layout_mode = 2
 
 [node name="Button2" type="Button" parent="UserModeration/HBoxContainer3" unique_id=1685793301]
@@ -328,14 +319,57 @@ theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Submit"
 
+[node name="ConfirmModal" type="Node" parent="." unique_id=762988664]
+script = ExtResource("9_3tyy0")
+
+[node name="Panel" type="Panel" parent="ConfirmModal" unique_id=285262288]
+visible = false
+anchors_preset = -1
+anchor_left = 0.38697916
+anchor_top = 0.275
+anchor_right = 0.61302084
+anchor_bottom = 0.45277777
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ConfirmModal/Panel" unique_id=441539387]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="ConfirmModal/Panel/VBoxContainer" unique_id=1744153631]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 32
+text = "UNNAMED"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ConfirmModal/Panel/VBoxContainer" unique_id=413816561]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="ConfirmModal/Panel/VBoxContainer/HBoxContainer" unique_id=1182007909]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 48
+text = "Cancel"
+
+[node name="Button2" type="Button" parent="ConfirmModal/Panel/VBoxContainer/HBoxContainer" unique_id=2038048122]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 48
+text = "Confirm"
+
 [connection signal="text_submitted" from="ContentModeration/HBoxContainer/HBoxContainer2/LineEdit" to="ContentModeration/HBoxContainer" method="search"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button" to="ContentModeration/HBoxContainer" method="on_remove"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button2" to="ContentModeration/HBoxContainer" method="on_remove_and_moderate"]
+[connection signal="token_generated" from="ContentModeration/HBoxContainer2" to="ContentModeration/HBoxContainer3" method="on_generated"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer2/Button" to="ContentModeration/HBoxContainer2" method="_on_button_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button2" to="ContentModeration/HBoxContainer3" method="_on_button_2_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button3" to="ContentModeration/HBoxContainer3" method="_on_button_3_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button4" to="ContentModeration/HBoxContainer3" method="_on_button_4_pressed"]
-[connection signal="pressed" from="UserModeration/HBoxContainer3/Button" to="UserModeration/HBoxContainer3" method="_on_button_pressed"]
-[connection signal="pressed" from="UserModeration/HBoxContainer3/Button2" to="UserModeration/HBoxContainer3" method="_on_button_2_pressed"]
 [connection signal="pressed" from="UserBanModal/Panel/VBoxContainer/HBoxContainer3/HBoxContainer2/Button2" to="UserBanModal" method="cancel"]
 [connection signal="pressed" from="UserBanModal/Panel/VBoxContainer/Button" to="UserBanModal" method="submit"]

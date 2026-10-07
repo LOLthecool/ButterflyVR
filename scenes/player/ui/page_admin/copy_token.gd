@@ -1,11 +1,17 @@
 extends Button
 
+@export var token:Label
+@export var token_ui:ObjectVerifyTokenUI
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	pass # Replace with function body.
+	token_ui.token_generated.connect(on_generated)
+	token_ui.reset.connect(on_reset)
 
+func _pressed() -> void:
+	DisplayServer.clipboard_set(token.text)
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
+func on_generated(_token:UUID, _object_id:UUID, _creator:UUID) -> void:
+	disabled = false
+
+func on_reset() -> void:
+	disabled = true

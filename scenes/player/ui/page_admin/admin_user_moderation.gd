@@ -1,22 +1,18 @@
 extends VBoxContainer
 
 const MODERATOR_SEARCH_ROUTE:String = "/api/v0/mod/search"
-const MODERATION_MODERATE_OBJECT_ROUTE: String = "/api/v0/mod/moderate_object"
+const MODERATION_MODERATE_USER_ROUTE: String = "/api/v0/mod/moderate_user"
 
 @export var text:LineEdit
 @export var results_container:FlowContainer
-@export var remove_button:Button
-@export var remove_and_ban_button:Button
 @export var user_ban_modal:UserBanModal
-@export var confirm_modal:ConfirmModal
 
 var selected:UUID
-var selected_creator:UUID
 
 func search(_x:String) -> void:
 	var request:Dictionary[String, String] = {
 			"search_term":text.text, 
-			"search_type":"Objects",}
+			"search_type":"Users",}
 	
 	if UUID.is_uuid(text.text):
 		request["target_id"] = UUID.from_String(text.text).to_string()

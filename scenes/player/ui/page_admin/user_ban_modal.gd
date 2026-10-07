@@ -1,4 +1,5 @@
 extends Node
+class_name UserBanModal
 
 
 func open(target:UUID) -> void:
