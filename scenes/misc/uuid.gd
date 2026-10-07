@@ -41,6 +41,14 @@ static func from_String(uuid: String) -> UUID:
 	return result
 
 
+static func is_uuid(string: String) -> bool:
+	string = string.replace("-", "")
+
+	if len(string) != 32 or !string.is_valid_hex_number(): # 32 nibbles / 32 hex characters
+		return false
+	return true
+
+
 static func from_bytes(bytes: PackedByteArray) -> UUID:
 	var result: UUID = UUID.new()
 	if bytes.size() != 16:

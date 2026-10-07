@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://bhnjooe7uoe25"]
 
 [ext_resource type="Script" uid="uid://wg87ldl2wfso" path="res://scenes/player/ui/page.gd" id="1_kntid"]
-[ext_resource type="Script" uid="uid://ce863odmpyhlg" path="res://scenes/player/ui/page_admin/hide_unauthorized.gd" id="2_f5v1d"]
 [ext_resource type="Script" uid="uid://uied7mggt3k2" path="res://scenes/player/ui/page_admin/admin_object_search.gd" id="3_a1poi"]
 [ext_resource type="Script" uid="uid://7mikj42eomlu" path="res://scenes/player/ui/page_admin/admin_object_list.gd" id="4_bdqst"]
 [ext_resource type="Script" uid="uid://bowxnor8jpytb" path="res://scenes/player/ui/page_admin/admin_object_moderation_options.gd" id="5_kl7x3"]
@@ -23,9 +22,6 @@ tab_0/title = "Content Moderation"
 tab_1/title = "User Moderation"
 script = ExtResource("1_kntid")
 page_name = "Admin"
-
-[node name="Node" type="Node" parent="." unique_id=1167444555]
-script = ExtResource("2_f5v1d")
 
 [node name="ContentModeration" type="VBoxContainer" parent="." unique_id=415044366]
 layout_mode = 2
@@ -64,11 +60,11 @@ vertical_scroll_mode = 4
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-script = ExtResource("4_bdqst")
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 
 [node name="HBoxContainer" type="HBoxContainer" parent="ContentModeration/HBoxContainer" unique_id=654404279]
 layout_mode = 2
-script = ExtResource("5_kl7x3")
 
 [node name="Button" type="Button" parent="ContentModeration/HBoxContainer/HBoxContainer" unique_id=1770810416]
 layout_mode = 2
@@ -332,10 +328,9 @@ theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Submit"
 
-[connection signal="text_submitted" from="ContentModeration/HBoxContainer/HBoxContainer2/LineEdit" to="ContentModeration/HBoxContainer" method="_on_button_pressed"]
-[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer2/Button" to="ContentModeration/HBoxContainer" method="_on_button_pressed"]
-[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button" to="ContentModeration/HBoxContainer/HBoxContainer" method="_on_button_pressed"]
-[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button2" to="ContentModeration/HBoxContainer/HBoxContainer" method="_on_button_2_pressed"]
+[connection signal="text_submitted" from="ContentModeration/HBoxContainer/HBoxContainer2/LineEdit" to="ContentModeration/HBoxContainer" method="search"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button" to="ContentModeration/HBoxContainer" method="on_remove"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button2" to="ContentModeration/HBoxContainer" method="on_remove_and_moderate"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer2/Button" to="ContentModeration/HBoxContainer2" method="_on_button_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button2" to="ContentModeration/HBoxContainer3" method="_on_button_2_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button3" to="ContentModeration/HBoxContainer3" method="_on_button_3_pressed"]
