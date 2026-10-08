@@ -21,7 +21,7 @@ func on_generated(_token: UUID, object_id:UUID, creator:UUID) -> void:
 
 
 func _on_button_2_pressed() -> void:
-	if !confirm_modal.show("verify object with id %s?" % selected):
+	if !await confirm_modal.show("verify object with id %s?" % selected):
 		return
 	
 	var request:Dictionary[String, String] = {"target":selected.to_string(), "action":"Verify"}
@@ -41,7 +41,7 @@ func _on_button_2_pressed() -> void:
 
 
 func _on_button_3_pressed() -> bool:
-	if !confirm_modal.show("remove object with id %s?" % selected):
+	if !await confirm_modal.show("remove object with id %s?" % selected):
 		return false
 	
 	var request:Dictionary[String, String] = {"target":selected.to_string(), "action":"Remove"}

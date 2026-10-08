@@ -1,6 +1,6 @@
 extends Button
 
-@export var token:Label
+@export var token:LineEdit
 @export var token_ui:ObjectVerifyTokenUI
 
 func _ready() -> void:

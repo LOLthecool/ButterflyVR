@@ -15,24 +15,31 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_font_sizes/font_size = 32
 tab_alignment = 1
-current_tab = 1
+current_tab = 0
 tab_0/title = "Content Moderation"
 tab_1/title = "User Moderation"
 script = ExtResource("1_kntid")
 page_name = "Admin"
 
 [node name="ContentModeration" type="VBoxContainer" parent="." unique_id=415044366]
-visible = false
 layout_mode = 2
 metadata/_tab_index = 0
 metadata/_tab_name = "Content Moderation"
 
-[node name="HBoxContainer" type="VBoxContainer" parent="ContentModeration" unique_id=1062293951]
+[node name="HBoxContainer" type="VBoxContainer" parent="ContentModeration" unique_id=1062293951 node_paths=PackedStringArray("text", "results_container", "remove_button", "remove_and_ban_button", "user_ban_modal", "confirm_modal")]
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("3_a1poi")
+text = NodePath("HBoxContainer2/LineEdit")
+results_container = NodePath("PanelContainer/ScrollContainer/FlowContainer")
+remove_button = NodePath("HBoxContainer/Button")
+remove_and_ban_button = NodePath("HBoxContainer/Button2")
+user_ban_modal = NodePath("../../UserBanModal")
+confirm_modal = NodePath("../../ConfirmModal")
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="ContentModeration/HBoxContainer" unique_id=1432762705]
 layout_mode = 2
@@ -54,15 +61,12 @@ size_flags_vertical = 3
 
 [node name="ScrollContainer" type="ScrollContainer" parent="ContentModeration/HBoxContainer/PanelContainer" unique_id=44322430]
 layout_mode = 2
-horizontal_scroll_mode = 0
 vertical_scroll_mode = 4
 
-[node name="FlowContainer" type="FlowContainer" parent="ContentModeration/HBoxContainer/PanelContainer/ScrollContainer" unique_id=293110053]
+[node name="FlowContainer" type="VBoxContainer" parent="ContentModeration/HBoxContainer/PanelContainer/ScrollContainer" unique_id=1063010090]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
 
 [node name="HBoxContainer" type="HBoxContainer" parent="ContentModeration/HBoxContainer" unique_id=654404279]
 layout_mode = 2
@@ -86,9 +90,11 @@ text = "Remove And Moderate Author"
 layout_mode = 2
 theme_override_constants/separation = 32
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="ContentModeration" unique_id=1948267856]
+[node name="HBoxContainer2" type="HBoxContainer" parent="ContentModeration" unique_id=1948267856 node_paths=PackedStringArray("token_box", "generate_button")]
 layout_mode = 2
 script = ExtResource("6_3tyy0")
+token_box = NodePath("PanelContainer/HBoxContainer/ScrollContainer/LineEdit")
+generate_button = NodePath("Button")
 
 [node name="Button" type="Button" parent="ContentModeration/HBoxContainer2" unique_id=290471747]
 layout_mode = 2
@@ -123,17 +129,25 @@ editable = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Button" type="Button" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer" unique_id=1511872435]
+[node name="Button" type="Button" parent="ContentModeration/HBoxContainer2/PanelContainer/HBoxContainer" unique_id=1511872435 node_paths=PackedStringArray("token", "token_ui")]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Copy Token"
 script = ExtResource("7_ve8ik")
+token = NodePath("../ScrollContainer/LineEdit")
+token_ui = NodePath("../../..")
 
-[node name="HBoxContainer3" type="HBoxContainer" parent="ContentModeration" unique_id=1144630268]
+[node name="HBoxContainer3" type="HBoxContainer" parent="ContentModeration" unique_id=1144630268 node_paths=PackedStringArray("token_source", "confirm_modal", "user_ban_modal", "button1", "button2", "button3")]
 layout_mode = 2
 theme_override_constants/separation = 24
 script = ExtResource("8_c4hio")
+token_source = NodePath("../HBoxContainer2")
+confirm_modal = NodePath("../../ConfirmModal")
+user_ban_modal = NodePath("../../UserBanModal")
+button1 = NodePath("Button2")
+button2 = NodePath("Button3")
+button3 = NodePath("Button4")
 
 [node name="Button2" type="Button" parent="ContentModeration/HBoxContainer3" unique_id=1920308457]
 layout_mode = 2
@@ -153,9 +167,14 @@ theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Reject And Ban Author"
 
-[node name="UserModeration" type="VBoxContainer" parent="." unique_id=1702720460]
+[node name="UserModeration" type="VBoxContainer" parent="." unique_id=1702720460 node_paths=PackedStringArray("text", "results_container", "user_ban_modal", "moderate_button")]
+visible = false
 layout_mode = 2
 script = ExtResource("6_rqcrk")
+text = NodePath("HBoxContainer2/LineEdit")
+results_container = NodePath("PanelContainer/ScrollContainer/FlowContainer")
+user_ban_modal = NodePath("../UserBanModal")
+moderate_button = NodePath("HBoxContainer3/Button2")
 metadata/_tab_index = 1
 metadata/_tab_name = "User Moderation"
 
@@ -179,10 +198,9 @@ size_flags_vertical = 3
 
 [node name="ScrollContainer" type="ScrollContainer" parent="UserModeration/PanelContainer" unique_id=1593121555]
 layout_mode = 2
-horizontal_scroll_mode = 0
 vertical_scroll_mode = 4
 
-[node name="FlowContainer" type="FlowContainer" parent="UserModeration/PanelContainer/ScrollContainer" unique_id=92200789]
+[node name="FlowContainer" type="VBoxContainer" parent="UserModeration/PanelContainer/ScrollContainer" unique_id=1786153536]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -196,8 +214,14 @@ theme_override_font_sizes/font_size = 48
 disabled = true
 text = "Moderate"
 
-[node name="UserBanModal" type="Node" parent="." unique_id=1967349291]
+[node name="UserBanModal" type="Node" parent="." unique_id=1967349291 node_paths=PackedStringArray("target_text", "length_box", "type_box", "reason", "root", "submit_button")]
 script = ExtResource("9_1hgsn")
+target_text = NodePath("Panel/VBoxContainer/HBoxContainer3/Label2")
+length_box = NodePath("Panel/VBoxContainer/HBoxContainer/OptionButton")
+type_box = NodePath("Panel/VBoxContainer/HBoxContainer2/OptionButton")
+reason = NodePath("Panel/VBoxContainer/TextEdit")
+root = NodePath("Panel")
+submit_button = NodePath("Panel/VBoxContainer/Button")
 
 [node name="Panel" type="Panel" parent="UserBanModal" unique_id=86054936]
 visible = false
@@ -312,6 +336,7 @@ horizontal_alignment = 1
 layout_mode = 2
 size_flags_vertical = 3
 placeholder_text = "..."
+wrap_mode = 1
 
 [node name="Button" type="Button" parent="UserBanModal/Panel/VBoxContainer" unique_id=1515893073]
 layout_mode = 2
@@ -319,27 +344,24 @@ theme_override_font_sizes/font_size = 32
 disabled = true
 text = "Submit"
 
-[node name="ConfirmModal" type="Node" parent="." unique_id=762988664]
+[node name="ConfirmModal" type="Node" parent="." unique_id=762988664 node_paths=PackedStringArray("message", "root")]
 script = ExtResource("9_3tyy0")
+message = NodePath("Panel/VBoxContainer/Label")
+root = NodePath("Panel")
 
-[node name="Panel" type="Panel" parent="ConfirmModal" unique_id=285262288]
+[node name="Panel" type="PanelContainer" parent="ConfirmModal" unique_id=896872798]
 visible = false
 anchors_preset = -1
-anchor_left = 0.38697916
-anchor_top = 0.275
-anchor_right = 0.61302084
-anchor_bottom = 0.45277777
+anchor_left = 0.16145833
+anchor_top = 0.22962964
+anchor_right = 0.8385417
+anchor_bottom = 0.49814814
 grow_horizontal = 2
 grow_vertical = 2
 metadata/_edit_use_anchors_ = true
 
 [node name="VBoxContainer" type="VBoxContainer" parent="ConfirmModal/Panel" unique_id=441539387]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 
 [node name="Label" type="Label" parent="ConfirmModal/Panel/VBoxContainer" unique_id=1744153631]
 layout_mode = 2
@@ -363,7 +385,8 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 48
 text = "Confirm"
 
-[connection signal="text_submitted" from="ContentModeration/HBoxContainer/HBoxContainer2/LineEdit" to="ContentModeration/HBoxContainer" method="search"]
+[connection signal="text_submitted" from="ContentModeration/HBoxContainer/HBoxContainer2/LineEdit" to="ContentModeration/HBoxContainer" method="_on_line_edit_text_submitted"]
+[connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer2/Button" to="ContentModeration/HBoxContainer" method="_on_button_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button" to="ContentModeration/HBoxContainer" method="on_remove"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer/HBoxContainer/Button2" to="ContentModeration/HBoxContainer" method="on_remove_and_moderate"]
 [connection signal="token_generated" from="ContentModeration/HBoxContainer2" to="ContentModeration/HBoxContainer3" method="on_generated"]
@@ -371,5 +394,9 @@ text = "Confirm"
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button2" to="ContentModeration/HBoxContainer3" method="_on_button_2_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button3" to="ContentModeration/HBoxContainer3" method="_on_button_3_pressed"]
 [connection signal="pressed" from="ContentModeration/HBoxContainer3/Button4" to="ContentModeration/HBoxContainer3" method="_on_button_4_pressed"]
+[connection signal="pressed" from="UserModeration/HBoxContainer2/Button" to="UserModeration" method="_on_button_pressed"]
+[connection signal="pressed" from="UserModeration/HBoxContainer3/Button2" to="UserModeration" method="on_moderate"]
 [connection signal="pressed" from="UserBanModal/Panel/VBoxContainer/HBoxContainer3/HBoxContainer2/Button2" to="UserBanModal" method="cancel"]
 [connection signal="pressed" from="UserBanModal/Panel/VBoxContainer/Button" to="UserBanModal" method="submit"]
+[connection signal="pressed" from="ConfirmModal/Panel/VBoxContainer/HBoxContainer/Button" to="ConfirmModal" method="on_cancel"]
+[connection signal="pressed" from="ConfirmModal/Panel/VBoxContainer/HBoxContainer/Button2" to="ConfirmModal" method="on_confirm"]

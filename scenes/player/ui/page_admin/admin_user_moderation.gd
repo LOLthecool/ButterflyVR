@@ -1,15 +1,15 @@
 extends VBoxContainer
 
 const MODERATOR_SEARCH_ROUTE:String = "/api/v0/mod/search"
-const MODERATION_MODERATE_USER_ROUTE: String = "/api/v0/mod/moderate_user"
 
 @export var text:LineEdit
-@export var results_container:FlowContainer
+@export var results_container:VBoxContainer
 @export var user_ban_modal:UserBanModal
+@export var moderate_button:Button
 
 var selected:UUID
 
-func search(_x:String) -> void:
+func search() -> void:
 	var request:Dictionary[String, String] = {
 			"search_term":text.text, 
 			"search_type":"Users",}
@@ -38,44 +38,27 @@ func search(_x:String) -> void:
 		@warning_ignore("unsafe_call_argument")
 		MiscHelpers.log_request_error("error during search", result[1], result[2], result[3])
 	
-	for object:Dictionary in result[4]:
+	for user:Dictionary in result[4]["results"]:
 		var listing:Button = Button.new()
-		listing.add_theme_font_size_override("font_size", 32)
-		listing.text = "%s -- Creator ID: %s -- UUID: %s" % [object["name"], object["creator"], object["id"]]
+		listing.add_theme_font_size_override("font_size", 24)
+		listing.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		listing.text = "%s -- UUID: %s" % [user["name"], user["id"]]
 		@warning_ignore("unsafe_call_argument")
-		listing.pressed.connect(on_select.bind(UUID.from_String(object["id"]), UUID.from_String(object["creator"])))
+		listing.pressed.connect(on_select.bind(UUID.from_String(user["id"])))
 		results_container.add_child(listing)
 
-func on_select(id:UUID, creator:UUID) -> void:
-	remove_button.disabled = false
-	remove_and_ban_button.disabled = false
+func on_select(id:UUID) -> void:
+	moderate_button.disabled = false
 	selected = id
-	selected_creator = creator
 
-func on_remove() -> bool:
-	remove_button.disabled = true
-	remove_and_ban_button.disabled = true
-	
-	if !confirm_modal.show("remove object with id %s?" % selected):
-		return false
-	
-	var request:Dictionary[String, String] = {"target":selected.to_string(), "action":"Remove"}
-	
-	var response: Array[Variant] = await GlobalAPIHandler.make_request(
-		HTTPClient.METHOD_POST,
-		MODERATION_MODERATE_OBJECT_ROUTE,
-		PackedStringArray([GlobalAccountHandler.get_token_header()]),
-		JSON.stringify(request),
-	)
-	
-	if response[0] != 200:
-		@warning_ignore("unsafe_call_argument")
-		MiscHelpers.log_request_error("error while removing object", response[0], "", "")
-		return false
-	
-	return true
+func on_moderate() -> void:
+	moderate_button.disabled = true
+	user_ban_modal.open(selected)
 
 
-func on_remove_and_moderate() -> void:
-	if await on_remove():
-		user_ban_modal.open(selected_creator)
+func _on_button_pressed() -> void:
+	search()
+
+
+func _on_line_edit_text_submitted(_new_text: String) -> void:
+	search()
