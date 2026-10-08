@@ -1,7 +1,7 @@
 extends Button
 
 @export var details_page: AvatarDetailsPage
-@export var license_button:LicenseViewButton
+@export var license_button: LicenseViewButton
 
 
 func _pressed() -> void:

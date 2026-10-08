@@ -205,7 +205,7 @@ func decrypt_and_load_object(
 	var zero_bytes: int = 0
 	while decrypted_buffer[(decrypted_buffer.size() - zero_bytes) - 1] == 0:
 		zero_bytes += 1
-	
+
 	# remove all padding including 255
 	decrypted_buffer.resize(decrypted_buffer.size() - (zero_bytes + 1))
 	var decrypted: FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck")

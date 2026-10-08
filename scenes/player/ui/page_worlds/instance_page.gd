@@ -10,7 +10,7 @@ const OBJECT_INFO_ENDPOINT: String = "/api/v0/%s/%s"
 @export var details_creation_time: Label
 @export var details_update_time: Label
 @export var details_size: Label
-@export var details_license_view_button:LicenseViewButton
+@export var details_license_view_button: LicenseViewButton
 @export var details_tags: tags_list
 @export var details_world_image: TextureRect
 @export var instances_list: InstanceList
@@ -89,7 +89,7 @@ func show_details(short_world: Dictionary) -> void:
 			TypeHelper.ObjectType.world,
 		)
 	)
-	
+
 	details_license_view_button.hide_panel()
 	@warning_ignore("unsafe_cast")
 	details_license_view_button.license = world["license"] as String

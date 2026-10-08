@@ -1,12 +1,13 @@
 extends Node
 class_name ConfirmModal
 
-signal complete(continued:bool)
+signal complete(continued: bool)
 
-@export var message:Label
-@export var root:Control
+@export var message: Label
+@export var root: Control
 
-func show(msg:String) -> bool:
+
+func show(msg: String) -> bool:
 	message.text = msg
 	root.visible = true
 	return await complete

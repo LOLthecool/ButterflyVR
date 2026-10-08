@@ -1,6 +1,7 @@
 extends Node
 
-const MODERATION_ROUTE:String = "/api/v0/mod";
+const MODERATION_ROUTE: String = "/api/v0/mod"
+
 
 func _ready() -> void:
 	var response: Array[Variant] = await GlobalAPIHandler.make_request(
