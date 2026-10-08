@@ -46,7 +46,10 @@ func create_online_instance(
 		JSON.stringify(body_dict),
 	)
 
-	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+	@warning_ignore(
+		"unsafe_call_argument"
+	)
+	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
 		[200],
@@ -105,7 +108,10 @@ func join_instance(instance: UUID) -> bool:
 		PackedStringArray([GlobalAccountHandler.get_token_header()]),
 	)
 
-	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+	@warning_ignore(
+		"unsafe_call_argument"
+	)
+	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
 		[200],
@@ -124,9 +130,10 @@ func join_instance(instance: UUID) -> bool:
 
 	var ip: String = result[4]["ip"]
 	var port: int = result[4]["port"]
-	@warning_ignore("unsafe_cast") var identifier: PackedByteArray = PackedByteArray(
-		result[4]["identifier"] as Array
+	@warning_ignore(
+		"unsafe_cast"
 	)
+	var identifier: PackedByteArray = PackedByteArray(result[4]["identifier"] as Array)
 
 	assert(ip.split("/")[0].is_valid_ip_address())
 	assert(port > 0 and port < 65_535)

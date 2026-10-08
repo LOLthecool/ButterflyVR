@@ -10,12 +10,16 @@ func setup(
 ) -> void:
 	var handler: ObjectEventHandler = state.state["event_handler"]
 	@warning_ignore("unsafe_cast")
-	handler.register_trigger(ObjectEventHandler.VelocityTrigger.create(
+	handler.register_trigger(
+		ObjectEventHandler
+		.VelocityTrigger
+		.create(
 			state.state["player"] as Player,
 			values["active"] as bool,
 			values["custom_parameters"] as Array,
 			values["targets"] as Array[PackedByteArray],
-		))
+		)
+	)
 
 
 func perform_migrations(values: Dictionary[String, Variant]) -> Dictionary[String, Variant]:

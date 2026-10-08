@@ -10,14 +10,18 @@ func setup(
 ) -> void:
 	var handler: ObjectEventHandler = state.state["event_handler"]
 	@warning_ignore("unsafe_cast")
-	handler.register_action(ObjectEventHandler.EnableAction.create(
+	handler.register_action(
+		ObjectEventHandler
+		.EnableAction
+		.create(
 			values["action_id"] as PackedByteArray,
 			values["take_parameter"] as bool,
 			target,
 			values["target_property"] as int,
 			values["active"] as bool,
 			values["custom_parameters"] as Array,
-		))
+		)
+	)
 
 
 func perform_migrations(values: Dictionary[String, Variant]) -> Dictionary[String, Variant]:

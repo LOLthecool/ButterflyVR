@@ -28,7 +28,10 @@ func show_instances(world: Dictionary) -> void:
 		PackedStringArray([GlobalAccountHandler.get_token_header()]),
 		body,
 	)
-	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+	@warning_ignore(
+		"unsafe_call_argument"
+	)
+	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
 		[200],
@@ -50,11 +53,17 @@ func show_instances(world: Dictionary) -> void:
 	await get_tree().physics_frame
 
 	for instance: Dictionary in result[4]["instances"]:
-		@warning_ignore("unsafe_cast") var id: UUID = UUID.from_String(instance["id"] as String)
+		@warning_ignore(
+			"unsafe_cast"
+		)
+		var id: UUID = UUID.from_String(instance["id"] as String)
 		var instance_name: String = instance["name"]
 		var player_count: int = instance["current_players"]
 		var max_players: int = instance["max_players"]
-		@warning_ignore("unsafe_cast") var publicity: String = StringifyHelper.stringify_instance_publicity(
+		@warning_ignore(
+			"unsafe_cast"
+		)
+		var publicity: String = StringifyHelper.stringify_instance_publicity(
 			instance["publicity"] as int
 		)
 

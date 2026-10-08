@@ -18,7 +18,10 @@ func load_homeworld() -> void:
 		USER_INFO_ENDPOINT % await GlobalAccountHandler.get_uuid(),
 		PackedStringArray([GlobalAccountHandler.get_token_header()]),
 	)
-	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+	@warning_ignore(
+		"unsafe_call_argument"
+	)
+	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
 		[200],

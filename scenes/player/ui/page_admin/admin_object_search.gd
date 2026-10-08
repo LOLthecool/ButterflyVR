@@ -30,7 +30,10 @@ func search() -> void:
 		JSON.stringify(request),
 	)
 
-	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+	@warning_ignore(
+		"unsafe_call_argument"
+	)
+	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
 		[200],

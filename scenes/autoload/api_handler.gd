@@ -102,7 +102,10 @@ func handle_response(
 		if !expected_body_keys.is_empty():
 			success = false
 		return [success, response_code, error_code, error_message, response_values]
-	@warning_ignore("unsafe_cast") var data: Dictionary = decoder.data as Dictionary
+	@warning_ignore(
+		"unsafe_cast"
+	)
+	var data: Dictionary = decoder.data as Dictionary
 
 	if "error_code" in data:
 		success = false

@@ -1,6 +1,7 @@
 extends Node
 class_name ObjectEventHandler
 
+
 #region ActionDefs
 
 @abstract
@@ -262,6 +263,7 @@ class AnimationSetAction extends BaseAction:
 		target_path = ""
 #endregion
 
+
 #region TriggerDefs
 
 @abstract
@@ -424,6 +426,7 @@ class VelocityTrigger extends BaseTrigger:
 			handler.new_event(handler.actions[target], parameters)
 
 #endregion
+
 
 class Event:
 	var target: BaseAction

@@ -13,10 +13,9 @@ func setup(
 
 	if state.state["player"].is_local:
 		@warning_ignore("unsafe_cast")
-		(target as Skeleton3D).set_bone_pose_scale(
-			values["head_bone"] as int,
-			Vector3(0.001, 0.001, 0.001),
-		)
+		(
+			target as Skeleton3D
+		).set_bone_pose_scale(values["head_bone"] as int, Vector3(0.001, 0.001, 0.001))
 
 	var head_look_controller: LookAtModifier3D = LookAtModifier3D.new()
 	var head_target: Node3D = Node3D.new()
@@ -54,7 +53,10 @@ func setup(
 	head_twist_propogater.set_joint_twist_amount.call_deferred(0, 1, 0.5)
 
 	# todo: ik nodes for vr controls
-	@warning_ignore("unsafe_cast") var state_values: Dictionary[String, Variant] = {
+	@warning_ignore(
+		"unsafe_cast"
+	)
+	var state_values: Dictionary[String, Variant] = {
 		"head_target": head_target,
 		"head_view": (values["head_view"] as Vector3) - head_target.position,
 	}

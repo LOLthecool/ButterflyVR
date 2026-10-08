@@ -220,14 +220,11 @@ func _on_login() -> void:
 	var client_salt: String = PASSWORD_SALT_CONST_HALF + email
 
 	var thread: Thread = Thread.new()
-	thread.start(Argon2Hasher.hash.bind(
-			MEMORY,
-			ITERATIONS,
-			PARALLELISM,
-			password,
-			client_salt,
-			OUTPUT_LENGTH,
-		))
+	thread.start(
+		Argon2Hasher
+		.hash
+		.bind(MEMORY, ITERATIONS, PARALLELISM, password, client_salt, OUTPUT_LENGTH)
+	)
 
 	while thread.is_alive():
 		await get_tree().physics_frame

@@ -11,9 +11,10 @@ func setup(
 	@warning_ignore("unsafe_cast")
 	if !PathHelper.is_path_good(target, root, values["hitbox"] as String):
 		return
-	@warning_ignore("unsafe_cast") var hitbox: CollisionObject3D = target.get_node(
-		values["hitbox"] as String
+	@warning_ignore(
+		"unsafe_cast"
 	)
+	var hitbox: CollisionObject3D = target.get_node(values["hitbox"] as String)
 	hitbox.collision_layer = hitbox.collision_layer | 2
 
 	var collider_values: Dictionary[String, Variant] = { }
@@ -34,9 +35,10 @@ func setup(
 		if !PathHelper.is_path_good(target, root, values["highlight_mesh"] as String):
 			return
 
-		@warning_ignore("unsafe_cast") var highlight_mesh: MeshInstance3D = target.get_node(
-			values["highlight_mesh"] as String
+		@warning_ignore(
+			"unsafe_cast"
 		)
+		var highlight_mesh: MeshInstance3D = target.get_node(values["highlight_mesh"] as String)
 
 		var new_node: Highlighter = Highlighter.new()
 		highlight_mesh.add_child(new_node)

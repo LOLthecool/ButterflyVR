@@ -35,7 +35,10 @@ func get_and_show_avatars(search_string: String, filters: Dictionary[String, Str
 		child.queue_free()
 	await get_tree().physics_frame
 
-	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+	@warning_ignore(
+		"unsafe_call_argument"
+	)
+	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
 		[200],

@@ -12,13 +12,17 @@ func setup(
 		return
 	var handler: ObjectEventHandler = state.state["event_handler"]
 	@warning_ignore("unsafe_cast")
-	handler.register_action(ObjectEventHandler.DisplayAction.create(
+	handler.register_action(
+		ObjectEventHandler
+		.DisplayAction
+		.create(
 			values["action_id"] as PackedByteArray,
 			values["text"] as String,
 			target as Label3D,
 			values["active"] as bool,
 			values["custom_parameters"] as Array,
-		))
+		)
+	)
 
 
 func perform_migrations(values: Dictionary[String, Variant]) -> Dictionary[String, Variant]:

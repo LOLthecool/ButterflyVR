@@ -33,7 +33,10 @@ func _get_value_type(_previous_value: Variant, idx: int) -> TypeHelper.Networked
 func _process_message(values: Array) -> void:
 	var target: Node = get_tree().root
 	if values[1] != []:
-		@warning_ignore("unsafe_cast") var indexes: Array[int] = (values[1] as Array[int])
+		@warning_ignore(
+			"unsafe_cast"
+		)
+		var indexes: Array[int] = (values[1] as Array[int])
 		indexes.reverse()
 		# scene tree could be desynced for us so dont blindly trust the path
 		for idx: int in values[1]:

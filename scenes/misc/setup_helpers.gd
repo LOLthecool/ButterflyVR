@@ -281,7 +281,9 @@ static func setup_avatar(root: Node, player: Player) -> void:
 
 	# godot dosent let us create invalid capsule shapes even temporarily so we need to modify in the correct order
 	# there is also no way to construct a capsule shape in one go
-	if maxf(combined_aabb.size.x, combined_aabb.size.z) > (player.collider.shape as CapsuleShape3D).height / 2:
+	if maxf(combined_aabb.size.x, combined_aabb.size.z) > (
+		player.collider.shape as CapsuleShape3D
+	).height / 2:
 		(player.collider.shape as CapsuleShape3D).height = combined_aabb.size.y
 		(player.collider.shape as CapsuleShape3D).radius = maxf(
 			combined_aabb.size.x,

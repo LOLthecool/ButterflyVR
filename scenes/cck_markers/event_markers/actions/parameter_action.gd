@@ -14,13 +14,17 @@ func setup(
 
 	var handler: ObjectEventHandler = state.state["event_handler"]
 	@warning_ignore("unsafe_cast")
-	handler.register_action(ObjectEventHandler.ParameterAction.create(
+	handler.register_action(
+		ObjectEventHandler
+		.ParameterAction
+		.create(
 			values["action_id"] as PackedByteArray,
 			target.get_node(values["target"] as String) as AnimationTree,
 			values["parameter"] as String,
 			values["active"] as bool,
 			values["custom_parameters"] as Array,
-		))
+		)
+	)
 
 
 func perform_migrations(values: Dictionary[String, Variant]) -> Dictionary[String, Variant]:

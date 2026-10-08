@@ -45,7 +45,10 @@ func _physics_process(delta: float) -> void:
 			IDENTIFIER_VERIFY_ENDPOINT % client_id.hex_encode(),
 			PackedStringArray([GlobalAccountHandler.get_token_header()]),
 		)
-		@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+		@warning_ignore(
+			"unsafe_call_argument"
+		)
+		var result: Array[Variant] = GlobalAPIHandler.handle_response(
 			response[0],
 			response[2],
 			[200],
@@ -152,11 +155,15 @@ func start(
 
 		var port: int = agones_response["ports"]["default"]
 
-		@warning_ignore("unsafe_cast") var world: UUID = UUID.from_String(
-			agones_response["labels"]["world"] as String
+		@warning_ignore(
+			"unsafe_cast"
 		)
+		var world: UUID = UUID.from_String(agones_response["labels"]["world"] as String)
 
-		@warning_ignore("unsafe_cast") var instance_token: PackedByteArray = (
+		@warning_ignore(
+			"unsafe_cast"
+		)
+		var instance_token: PackedByteArray = (
 			agones_response["annotations"]["token"] as String
 		).hex_decode()
 
@@ -171,7 +178,10 @@ func start(
 			IDENTIFIER_ID_ENDPOINT,
 			PackedStringArray([GlobalAccountHandler.get_token_header()]),
 		)
-		@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+		@warning_ignore(
+			"unsafe_call_argument"
+		)
+		var result: Array[Variant] = GlobalAPIHandler.handle_response(
 			response[0],
 			response[2],
 			[200],

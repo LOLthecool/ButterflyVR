@@ -54,7 +54,10 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 		OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
 		PackedStringArray([GlobalAccountHandler.get_token_header()]),
 	)
-	@warning_ignore("unsafe_call_argument") var result: Array[Variant] = GlobalAPIHandler.handle_response(
+	@warning_ignore(
+		"unsafe_call_argument"
+	)
+	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
 		[200],
@@ -90,7 +93,10 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 	await MiscHelpers.await_lock_mutex(cache_lock)
 
 	var file: FileAccess = FileAccess.open(object_file_path % [id], FileAccess.READ)
-	@warning_ignore("unsafe_cast") var object: PackedScene = await decrypt_and_load_object(
+	@warning_ignore(
+		"unsafe_cast"
+	)
+	var object: PackedScene = await decrypt_and_load_object(
 		file,
 		type,
 		id,
