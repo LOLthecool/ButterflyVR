@@ -31,6 +31,7 @@ func _on_button_pressed() -> void:
 	if !result[0]:
 		generate_button.disabled = false
 		if result[1] == 404 and result[2] == "DosentExist":
+			push_warning("no objects available")
 			return # no objects available to verify
 		@warning_ignore("unsafe_call_argument")
 		MiscHelpers.log_request_error(

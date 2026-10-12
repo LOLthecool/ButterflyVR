@@ -190,32 +190,33 @@ func decrypt_and_load_object(
 
 	object.seek(0)
 
-	var decrypted_buffer: PackedByteArray = PackedByteArray()
+	var decrypted: FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck")
 
 	while object.get_position() + (1024 * 1024) < object.get_length():
-		decrypted_buffer += aes.update(object.get_buffer(1024 * 1024))
+		decrypted.store_buffer(aes.update(object.get_buffer(1024 * 1024)))
 
 	# encrypted files should always be a multiple of 16 bytes long
-	decrypted_buffer += aes.update(object.get_buffer(object.get_length() - object.get_position()))
+	decrypted.store_buffer(aes.update(object.get_buffer(object.get_length() - object.get_position())))
 
 	object.close()
 	aes.finish()
 
-	if decrypted_buffer.size() == 0:
+	if decrypted.get_length() == 0:
 		push_error("got empty object from server")
 		return null
-
+	
+	decrypted.seek(decrypted.get_length() - 1)
+	
 	# trim pading bytes
 	# padding bytes are 255 followed by 0s
 	# there is always at least 1 padding byte (255)
 	var zero_bytes: int = 0
-	while decrypted_buffer[(decrypted_buffer.size() - zero_bytes) - 1] == 0:
+	while decrypted.get_8() == 0:
 		zero_bytes += 1
+		decrypted.seek(decrypted.get_length() - (zero_bytes + 1))
 
 	# remove all padding including 255
-	decrypted_buffer.resize(decrypted_buffer.size() - (zero_bytes + 1))
-	var decrypted: FileAccess = FileAccess.create_temp(FileAccess.READ_WRITE, "object", ".pck")
-	decrypted.store_buffer(decrypted_buffer)
+	decrypted.resize(decrypted.get_length() - (zero_bytes + 1))
 	decrypted.flush()
 	var decrypted_path: String = decrypted.get_path()
 
