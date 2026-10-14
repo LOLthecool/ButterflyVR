@@ -231,11 +231,9 @@ func decrypt_and_load_object(
 
 	var load_thread: Thread = Thread.new()
 
-	# PCKChecker checks all files are within _loaded_content/object_type/uuid
-	# so overwriting is safe.
 	load_thread.start(
 		func() -> bool:
-			return ProjectSettings.load_resource_pack(new_object),
+			return ProjectSettings.load_resource_pack(new_object, false),
 	)
 
 	while load_thread.is_alive():
