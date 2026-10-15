@@ -98,9 +98,7 @@ func get_uuid(use_cached_value: bool = true) -> UUID:
 		TOKEN_USER_ENDPOINT,
 		token_header,
 	)
-	@warning_ignore(
-		"unsafe_call_argument"
-	)
+	@warning_ignore("unsafe_call_argument")
 	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
@@ -172,9 +170,7 @@ func on_token_request(
 		push_error("server error when renewing token. code: ", response_code)
 		return
 	var body_json: Dictionary = JSON.parse_string(body)
-	@warning_ignore(
-		"unsafe_cast"
-	)
+	@warning_ignore("unsafe_cast")
 	var response_token: Array[int] = []
 	@warning_ignore("unsafe_cast")
 	response_token.assign(body_json["token"] as Array)

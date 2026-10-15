@@ -42,6 +42,13 @@ func _init() -> void:
 func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 	var id: String = uuid.to_string()
 
+	if ResourceLoader.exists("res://_loaded_content/%s/%s/root.tscn" % [type, uuid], "PackedScene"):
+		return ResourceLoader.load(
+			"res://_loaded_content/%s/%s/root.tscn" % [type, uuid],
+			"PackedScene",
+			ResourceLoader.CACHE_MODE_IGNORE_DEEP,
+		) as PackedScene
+
 	var object_type_string: String = "UNNAMED"
 	match type:
 		TypeHelper.ObjectType.world:
@@ -54,9 +61,7 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 		OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
 		PackedStringArray([GlobalAccountHandler.get_token_header()]),
 	)
-	@warning_ignore(
-		"unsafe_call_argument"
-	)
+	@warning_ignore("unsafe_call_argument")
 	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
@@ -93,9 +98,7 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> PackedScene:
 	await MiscHelpers.await_lock_mutex(cache_lock)
 
 	var file: FileAccess = FileAccess.open(object_file_path % [id], FileAccess.READ)
-	@warning_ignore(
-		"unsafe_cast"
-	)
+	@warning_ignore("unsafe_cast")
 	var object: PackedScene = await decrypt_and_load_object(
 		file,
 		type,
@@ -196,7 +199,9 @@ func decrypt_and_load_object(
 		decrypted.store_buffer(aes.update(object.get_buffer(1024 * 1024)))
 
 	# encrypted files should always be a multiple of 16 bytes long
-	decrypted.store_buffer(aes.update(object.get_buffer(object.get_length() - object.get_position())))
+	decrypted.store_buffer(
+		aes.update(object.get_buffer(object.get_length() - object.get_position()))
+	)
 
 	object.close()
 	aes.finish()
@@ -204,9 +209,9 @@ func decrypt_and_load_object(
 	if decrypted.get_length() == 0:
 		push_error("got empty object from server")
 		return null
-	
+
 	decrypted.seek(decrypted.get_length() - 1)
-	
+
 	# trim pading bytes
 	# padding bytes are 255 followed by 0s
 	# there is always at least 1 padding byte (255)
@@ -233,7 +238,9 @@ func decrypt_and_load_object(
 
 	load_thread.start(
 		func() -> bool:
-			return ProjectSettings.load_resource_pack(new_object, false),
+			# PCKChecker checks all files are within _loaded_content/object_type/uuid
+			# so overwriting is safe.
+			return ProjectSettings.load_resource_pack(new_object, true),
 	)
 
 	while load_thread.is_alive():

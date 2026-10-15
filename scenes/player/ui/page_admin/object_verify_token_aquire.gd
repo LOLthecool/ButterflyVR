@@ -18,9 +18,7 @@ func _on_button_pressed() -> void:
 		PackedStringArray([GlobalAccountHandler.get_token_header()]),
 	)
 
-	@warning_ignore(
-		"unsafe_call_argument"
-	)
+	@warning_ignore("unsafe_call_argument")
 	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],

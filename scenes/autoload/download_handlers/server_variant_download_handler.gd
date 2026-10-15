@@ -11,6 +11,7 @@ func _init() -> void:
 	backing_cache = LruCache.new_cache(cache_size, on_save, on_load, on_destroy)
 	backing_cache.load()
 
+
 func decrypt_and_load_object(
 	object: FileAccess,
 	object_type: TypeHelper.ObjectType,
@@ -34,7 +35,9 @@ func decrypt_and_load_object(
 		decrypted.store_buffer(aes.update(object.get_buffer(1024 * 1024)))
 
 	# encrypted files should always be a multiple of 16 bytes long
-	decrypted.store_buffer(aes.update(object.get_buffer(object.get_length() - object.get_position())))
+	decrypted.store_buffer(
+		aes.update(object.get_buffer(object.get_length() - object.get_position()))
+	)
 
 	object.close()
 	aes.finish()
@@ -43,9 +46,9 @@ func decrypt_and_load_object(
 		push_warning("got empty server variant from server")
 		push_warning("falling back to base variant")
 		return await GlobalDownloadHandler.get_object(UUID.from_String(uuid), object_type)
-	
+
 	decrypted.seek(decrypted.get_length() - 1)
-	
+
 	# trim pading bytes
 	# padding bytes are 255 followed by 0s
 	# there is always at least 1 padding byte (255)

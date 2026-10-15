@@ -26,9 +26,7 @@ func _ready() -> void:
 			USER_INFO_ENDPOINT % await GlobalAccountHandler.get_uuid(),
 			PackedStringArray([GlobalAccountHandler.get_token_header()]),
 		)
-		@warning_ignore(
-			"unsafe_call_argument"
-		)
+		@warning_ignore("unsafe_call_argument")
 		var result: Array[Variant] = GlobalAPIHandler.handle_response(
 			response[0],
 			response[2],
@@ -50,9 +48,7 @@ func _ready() -> void:
 			)
 			return
 
-		@warning_ignore(
-			"unsafe_call_argument"
-		)
+		@warning_ignore("unsafe_call_argument")
 		var avatar_uuid: UUID = UUID.from_String(result[4]["avatar"])
 
 		GlobalWorldHandler.current_world.avatar_change_handler.send_message(owner_id, avatar_uuid)
@@ -95,9 +91,7 @@ func change_avatar(target_player: PackedByteArray, avatar: UUID) -> void:
 			PackedStringArray([GlobalAccountHandler.get_token_header()]),
 			JSON.stringify({ "uuid": avatar.to_string() }),
 		)
-		@warning_ignore(
-			"unsafe_call_argument"
-		)
+		@warning_ignore("unsafe_call_argument")
 		var result: Array[Variant] = GlobalAPIHandler.handle_response(
 			response[0],
 			response[2],

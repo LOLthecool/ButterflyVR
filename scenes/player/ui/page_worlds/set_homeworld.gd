@@ -12,9 +12,7 @@ func _pressed() -> void:
 		PackedStringArray([GlobalAccountHandler.get_token_header()]),
 		JSON.stringify({ "uuid": instance_page.world_uuid.to_string() }),
 	)
-	@warning_ignore(
-		"unsafe_call_argument"
-	)
+	@warning_ignore("unsafe_call_argument")
 	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],

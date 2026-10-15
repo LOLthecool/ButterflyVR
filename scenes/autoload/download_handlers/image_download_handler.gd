@@ -55,9 +55,7 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> Image:
 		OBJECT_INFO_ENDPOINT % [object_type_string, uuid],
 		PackedStringArray([GlobalAccountHandler.get_token_header()]),
 	)
-	@warning_ignore(
-		"unsafe_call_argument"
-	)
+	@warning_ignore("unsafe_call_argument")
 	var result: Array[Variant] = GlobalAPIHandler.handle_response(
 		response[0],
 		response[2],
