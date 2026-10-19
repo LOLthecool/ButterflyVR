@@ -34,7 +34,15 @@ unsafe impl DirectlyReadable for u32 {}
 unsafe impl DirectlyReadable for u64 {}
 
 const VERSION: &[u32] = &[3, 4, 6];
-const BAD_EXTENSIONS: &[&str] = &[".res", ".tres", ".gd", ".gdc", ".remap", ".import"];
+const BAD_EXTENSIONS: &[&str] = &[
+    ".res",
+    ".tres",
+    ".gd",
+    ".gdc",
+    ".remap",
+    ".import",
+    ".gdextension",
+];
 const UNSUPPORTED_EXTENSIONS: &[&str] = &[".scn", ".escn"];
 const PARSE_CHUNK_SIZE: usize = 64;
 const MAX_PARSE_CHUNK_SIZE: usize = 8 * 1024 * 1024;
@@ -255,6 +263,7 @@ enum ObjectParseError {
     BadKey,
     BadValue,
     InlineOjectValue,
+    InlineResourceValue,
     BadResource,
     GenericError,
 }
@@ -456,6 +465,10 @@ fn parse_variant(reader: &mut BufReader<File>) -> Result<(), ObjectParseError> {
             | Err(Err::Failure(VariantError::InlineObject)) => {
                 return Err(ObjectParseError::InlineOjectValue);
             }
+            Err(Err::Error(VariantError::InlineResource))
+            | Err(Err::Failure(VariantError::InlineResource)) => {
+                return Err(ObjectParseError::InlineResourceValue);
+            }
             Err(Err::Error(_)) | Err(Err::Failure(_)) => {
                 return Err(ObjectParseError::BadValue);
             }
@@ -494,6 +507,7 @@ fn parse_variant(reader: &mut BufReader<File>) -> Result<(), ObjectParseError> {
 enum VariantError {
     Syntax,
     InlineObject,
+    InlineResource,
 }
 
 impl<I> ParseError<I> for VariantError {
@@ -631,11 +645,17 @@ fn named(i: &[u8]) -> PResult<'_> {
     match probe.first() {
         None => Err(Err::Incomplete(Needed::new(1))),
         Some(b'(') => {
+            // `Failure` is unrecoverable in nom, so no enclosing `alt`,
+            // `opt` or `separated_list0` can backtrack over it. That is what
+            // makes nested inline objects impossible to miss.
             if name == b"Object" {
-                // `Failure` is unrecoverable in nom, so no enclosing `alt`,
-                // `opt` or `separated_list0` can backtrack over it. That is what
-                // makes nested inline objects impossible to miss.
                 return Err(Err::Failure(VariantError::InlineObject));
+            }
+            if name == b"Resource" {
+                return Err(Err::Failure(VariantError::InlineResource));
+            }
+            if name == b"ExtResource" {
+                return Err(Err::Failure(VariantError::InlineResource));
             }
             if PACKED_ARRAYS.contains(&name) {
                 return packed_array(probe);
