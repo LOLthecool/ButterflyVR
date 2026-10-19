@@ -20,8 +20,10 @@ func decrypt_and_load_object(
 	iv: PackedByteArray,
 ) -> PackedScene:
 	if !object:
-		push_error("object %s was requested but did not exist in cache" % uuid)
+		push_error("object %s was requested but did not exist in server cache" % uuid)
 		backing_cache.pop(uuid)
+		push_warning("falling back to base variant")
+		return await GlobalDownloadHandler.get_object(UUID.from_String(uuid), object_type)
 		return null
 
 	var aes: AESContext = AESContext.new()
@@ -75,7 +77,7 @@ func decrypt_and_load_object(
 
 	load_thread.start(
 		func() -> bool:
-			return ProjectSettings.load_resource_pack(new_object, false),
+			return ProjectSettings.load_resource_pack(new_object, true),
 	)
 
 	while load_thread.is_alive():
