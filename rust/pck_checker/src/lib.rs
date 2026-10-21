@@ -17,6 +17,7 @@ use std::{
 };
 use strum::IntoEnumIterator;
 
+mod parser;
 mod resources;
 
 struct MyExtension;
@@ -34,6 +35,7 @@ unsafe impl DirectlyReadable for u32 {}
 unsafe impl DirectlyReadable for u64 {}
 
 const VERSION: &[u32] = &[3, 4, 6];
+// todo: consider replacing this with a whitelist
 const BAD_EXTENSIONS: &[&str] = &[
     ".res",
     ".tres",
@@ -42,13 +44,15 @@ const BAD_EXTENSIONS: &[&str] = &[
     ".remap",
     ".import",
     ".gdextension",
+    ".escn",
 ];
-const UNSUPPORTED_EXTENSIONS: &[&str] = &[".scn", ".escn"];
+const UNSUPPORTED_EXTENSIONS: &[&str] = &[".scn"];
 const PARSE_CHUNK_SIZE: usize = 64;
 const MAX_PARSE_CHUNK_SIZE: usize = 8 * 1024 * 1024;
 const MAX_VARIANT_SIZE: usize = 512 * 1024 * 1024;
 const PARSER_SENTINEL: u8 = 0;
 
+#[macro_export]
 macro_rules! unwrap_or_return {
     ($expr:expr, $default:expr, Result) => {
         match $expr {
@@ -79,12 +83,7 @@ struct PCKChecker {
 #[godot_api]
 impl PCKChecker {
     #[func]
-    fn is_pck_good(
-        &self,
-        pck_path: String,
-        object_type_string: String,
-        uuid_string: String,
-    ) -> bool {
+    fn is_pck_good(pck_path: String, object_type_string: String, uuid_string: String) -> bool {
         let mut pck = BufReader::new(unwrap_or_return!(File::open(pck_path), false, Result));
 
         // no offset support, shouldnt be an issue
@@ -95,6 +94,7 @@ impl PCKChecker {
             return false;
         }
 
+        // VERSION is singular, we check for a specific version using multiple reads not multiple versions
         for v in VERSION {
             let version: u32 = read_value(&mut pck);
             if version != *v {
@@ -112,8 +112,6 @@ impl PCKChecker {
         unwrap_or_return!(pck.seek(SeekFrom::Start(dir_offset)), false, Result);
 
         let file_count: u32 = read_value(&mut pck);
-
-        let mut tscn_files: Vec<PCKFile> = Vec::with_capacity(file_count as usize);
 
         for _ in 0..file_count {
             let length_hint: u32 = read_value(&mut pck);
@@ -151,6 +149,7 @@ impl PCKChecker {
                 return false;
             }
 
+            // todo: binary scene parser
             if UNSUPPORTED_EXTENSIONS
                 .iter()
                 .any(|ext| path.to_ascii_lowercase().ends_with(ext))
@@ -165,42 +164,35 @@ impl PCKChecker {
             // skip md5 hash and flags
             unwrap_or_return!(pck.seek_relative(20), false, Result);
 
-            if path.ends_with(".tscn") {
-                tscn_files.push(PCKFile {
-                    path,
-                    absolute_offset: file_base + offset,
-                    size,
-                });
-            }
-        }
-
-        for file in &tscn_files {
-            if !self.check_tscn(file, &mut pck) {
-                return false;
+            // this should be the only 'important' file type
+            if path.to_lowercase().ends_with(".tscn") {
+                if !parser::check_tscn(file_base + offset, size, &mut pck) {
+                    godot_warn!("failed to parse tscn at path {:?}", path);
+                    return false;
+                }
             }
         }
 
         true
     }
 
-    fn check_tscn(&self, file: &PCKFile, pck: &mut BufReader<File>) -> bool {
-        unwrap_or_return!(
-            pck.seek(SeekFrom::Start(file.absolute_offset)),
-            false,
-            Result
-        );
+    fn check_tscn(
+        path: String,
+        absolute_offset: u64,
+        size: u64,
+        pck: &mut BufReader<File>,
+    ) -> bool {
+        unwrap_or_return!(pck.seek(SeekFrom::Start(absolute_offset)), false, Result);
 
         let mut buffer: Vec<u8> = vec![0; 19];
         unwrap_or_return!(pck.read_exact(&mut buffer), false, Result);
         let buffer = unwrap_or_return!(String::from_utf8(buffer), false, Result);
         if buffer != "[gd_scene format=4]" && buffer != "[gd_scene format=3]" {
-            godot_error!("invalid header in scene {:?}. got {:?}", file.path, buffer);
+            godot_error!("invalid header in scene {:?}. got {:?}", path, buffer);
             return false;
         }
 
-        while unwrap_or_return!(pck.stream_position(), false, Result)
-            < file.absolute_offset + file.size
-        {
+        while unwrap_or_return!(pck.stream_position(), false, Result) < absolute_offset + size {
             let next: u8 = read_value(pck);
 
             if next <= 32 {
@@ -211,7 +203,7 @@ impl PCKChecker {
                 godot_error!(
                     "invalid character {:?} in scene {:?} at pos {:?}, expected '['",
                     next as char,
-                    file.path,
+                    path,
                     pck.stream_position()
                 );
                 return false;
@@ -219,8 +211,8 @@ impl PCKChecker {
 
             match parse_header(pck) {
                 Ok(object_type) => {
-                    if let Err(e) = parse_object(pck, object_type, file) {
-                        godot_error!("object parse error in scene {:?}: {:?}", file.path, e);
+                    if let Err(e) = parse_object(pck, object_type, absolute_offset, size) {
+                        godot_error!("object parse error in scene {:?}: {:?}", path, e);
                         let mut buffer = vec![0u8; 50];
                         let _ = pck.seek_relative(-45);
                         let _ = pck.read_exact(&mut buffer);
@@ -230,7 +222,7 @@ impl PCKChecker {
                     continue;
                 }
                 Err(e) => {
-                    godot_error!("header parse error in scene {:?}: {:?}", file.path, e);
+                    godot_error!("header parse error in scene {:?}: {:?}", path, e);
                     let mut buffer = vec![0u8; 50];
                     let _ = pck.seek_relative(-45);
                     let _ = pck.read_exact(&mut buffer);
@@ -299,10 +291,11 @@ fn parse_header(pck: &mut BufReader<File>) -> Result<ObjectType, HeaderParseErro
 fn parse_object(
     pck: &mut BufReader<File>,
     object_type: ObjectType,
-    file: &PCKFile,
+    absolute_offset: u64,
+    size: u64,
 ) -> Result<(), ObjectParseError> {
     match object_type {
-        ObjectType::Node => parse_node(pck, file),
+        ObjectType::Node => parse_node(pck, absolute_offset, size),
         ObjectType::SubResource => {
             let mut buffer: Vec<u8> = Vec::with_capacity(6);
             unwrap_or_return!(
@@ -363,7 +356,7 @@ fn parse_object(
                     pck.stream_position(),
                     Err(ObjectParseError::GenericError),
                     Result
-                ) > file.size + file.absolute_offset
+                ) > size + absolute_offset
                 {
                     return Ok(());
                 }
@@ -376,7 +369,11 @@ fn parse_object(
     }
 }
 
-fn parse_node(pck: &mut BufReader<File>, file: &PCKFile) -> Result<(), ObjectParseError> {
+fn parse_node(
+    pck: &mut BufReader<File>,
+    absolute_offset: u64,
+    size: u64,
+) -> Result<(), ObjectParseError> {
     unwrap_or_return!(
         pck.skip_until(']' as u8),
         Err(ObjectParseError::GenericError),
@@ -405,7 +402,7 @@ fn parse_node(pck: &mut BufReader<File>, file: &PCKFile) -> Result<(), ObjectPar
             pck.stream_position(),
             Err(ObjectParseError::GenericError),
             Result
-        ) > file.size + file.absolute_offset
+        ) > size + absolute_offset
         {
             return Ok(());
         }
@@ -799,13 +796,6 @@ fn ident(i: &[u8]) -> PResult<'_, &[u8]> {
 }
 
 // end of ai generated code
-
-#[derive(Debug)]
-struct PCKFile {
-    path: String,
-    absolute_offset: u64,
-    size: u64,
-}
 
 // this is not very portable but it works on my machine and it can always be replaced later
 // machines with a different endianness will error out at the magic number check
