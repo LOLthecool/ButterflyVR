@@ -1,14 +1,29 @@
 use godot::global::{godot_error, godot_warn};
+use nom::bytes::streaming;
 use nom::{self, IResult};
+use nom::{Parser, sequence};
+use nom::{branch, combinator};
+use std::cell::Cell;
 use std::{
     fs::File,
     io::{BufReader, Read, Seek, SeekFrom},
 };
+use strum::IntoEnumIterator;
 
-use crate::unwrap_or_return;
+use crate::{resources, unwrap_or_return};
 
 const PARSE_CHUNK_SIZE: usize = 1024 * 1024 * 10;
 const MAX_PARSE_CHUNK_SIZE: usize = 1024 * 1024 * 1024;
+
+macro_rules! handle_incomplete {
+    ($result:expr) => {
+        match $result {
+            Ok(x) => x,
+            Err(nom::Err::Incomplete(_)) => return None,
+            Err(_) => return Some(false),
+        }
+    };
+}
 
 #[derive(Debug, Clone, PartialEq, Default)]
 enum ParserState {
@@ -80,9 +95,9 @@ impl TSCNParser {
             return Some(false);
         };
 
-        let result: IResult<&str, &str> = nom::branch::alt((
-            nom::bytes::streaming::tag("[gd_scene format=4]"),
-            nom::bytes::streaming::tag("[gd_scene format=3]"),
+        let result: IResult<&str, &str> = branch::alt((
+            streaming::tag("[gd_scene format=4]"),
+            streaming::tag("[gd_scene format=3]"),
         ))(str_slice);
 
         match result {
@@ -95,8 +110,98 @@ impl TSCNParser {
             Err(_) => Some(false),
         }
     }
-    fn parse_object_header(slice: &mut &[u8], state: &mut ParserState) -> Option<bool> {}
+    fn parse_object_header(slice: &mut &[u8], state: &mut ParserState) -> Option<bool> {
+        let Ok(str_slice) = str::from_utf8(&slice) else {
+            return Some(false);
+        };
+
+        let (str_slice, _) = handle_incomplete!(Self::match_whitespace(str_slice));
+
+        let (str_slice, object_type) = handle_incomplete!(branch::alt((
+            streaming::tag::<&str, &str, nom::error::Error<_>>("[sub_resource"),
+            streaming::tag("[node"),
+        ))(str_slice));
+
+        loop {
+            match branch::alt((
+                Self::parse_header_kv,
+                streaming::tag("]").map(|x: &str| x.to_string()),
+            ))(str_slice)
+            {
+                Ok((_, taken))
+                    if !taken.is_empty() && taken != "]" && object_type == "[sub_resource" =>
+                {
+                    if !resources::ResourceWhitelist::iter()
+                        .any(|x| taken == x.to_string().as_str())
+                    {
+                        return Some(false);
+                    }
+                    *state = ParserState::ObjectValue;
+                    *slice = &slice[1..];
+                    return Some(true);
+                }
+                Ok((_, taken)) if taken == "]" => {
+                    *state = ParserState::ObjectValue;
+                    *slice = &slice[1..];
+                    return Some(true);
+                }
+                Ok((_, taken)) => {
+                    *slice = &slice[taken.len()..];
+                    continue;
+                }
+                Err(nom::Err::Incomplete(_)) => return None,
+                Err(_) => return Some(false),
+            }
+        }
+    }
     fn parse_object_value(slice: &mut &[u8], state: &mut ParserState) -> Option<bool> {}
+
+    fn match_whitespace(slice: &str) -> IResult<&str, &str> {
+        streaming::take_till(|x| x as u8 > 32)(slice)
+    }
+    fn parse_header_kv(slice: &str) -> IResult<&str, String> {
+        let last = Cell::new(' ');
+        let return_value = Cell::new(String::new());
+        combinator::value(
+            return_value.take(),
+            branch::alt((
+                sequence::delimited(
+                    streaming::tag(" type=\""),
+                    streaming::take_till(|x: char| {
+                        return_value.set(return_value.take() + &x.to_string());
+                        if x == '"' && last.get() != '\\' {
+                            last.set(' ');
+                            return true;
+                        }
+                        last.set(x);
+                        false
+                    }),
+                    streaming::tag("\""),
+                ),
+                sequence::delimited(
+                    branch::alt((
+                        streaming::tag(" name=\""),
+                        streaming::tag(" parent=\""),
+                        streaming::tag(" id=\""),
+                    )),
+                    streaming::take_till(|x| {
+                        if x == '"' && last.get() != '\\' {
+                            last.set(' ');
+                            return true;
+                        }
+                        last.set(x);
+                        false
+                    }),
+                    streaming::tag("\""),
+                ),
+                sequence::preceded(
+                    streaming::tag(" unique_id="),
+                    nom::character::streaming::digit1,
+                ),
+            )),
+        )(slice)
+    }
+
     fn parsing_completed(&mut self) -> bool {
         let result = self.buffer.is_empty();
         self.buffer.clear();
