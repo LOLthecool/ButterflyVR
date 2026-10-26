@@ -17,14 +17,14 @@ func setup() -> void:
 	highlight_geometry.visible = false
 
 	highlight_geometry.mesh = geometry.mesh
-	
+
 	if (!highlight_geometry.mesh) or highlight_geometry.mesh.get_surface_count() == 0:
 		return
 
 	mat.albedo_color = Color(0.0, 0.0, 1.0)
 	mat.cull_mode = BaseMaterial3D.CULL_FRONT
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	
+
 	highlight_geometry.set_surface_override_material(0, mat)
 
 	highlight_geometry.scale = Vector3(1.05, 1.05, 1.05)
