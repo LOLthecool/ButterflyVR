@@ -62,14 +62,14 @@ macro_rules! unwrap_or_return {
 
 #[derive(GodotClass)]
 #[class(init, singleton)]
-struct PCKChecker {
+pub struct PCKChecker {
     base: Base<Object>,
 }
 
 #[godot_api]
 impl PCKChecker {
     #[func]
-    fn is_pck_good(pck_path: String, object_type_string: String, uuid_string: String) -> bool {
+    pub fn is_pck_good(pck_path: String, object_type_string: String, uuid_string: String) -> bool {
         let mut pck = BufReader::new(unwrap_or_return!(File::open(pck_path), false, Result));
 
         // no offset support, shouldnt be an issue

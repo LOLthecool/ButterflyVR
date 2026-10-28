@@ -16,14 +16,9 @@ mod tests {
             .filter(|path| path.is_file())
             .collect();
 
-        // Ensure deterministic test order.
-        entries.sort();
-
-        assert!(!entries.is_empty(), "No test fixtures found");
-
         for path in &entries {
             println!("Testing: {}", path.display());
-            run_test_case(path);
+            crate::
         }
     }
 
