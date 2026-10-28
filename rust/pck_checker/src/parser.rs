@@ -1,7 +1,7 @@
 use godot::global::{godot_error, godot_warn};
 use nom::bytes::streaming;
+use nom::sequence;
 use nom::{self, IResult, character};
-use nom::{Parser, sequence};
 use nom::{branch, combinator};
 use std::cell::Cell;
 use std::{
@@ -181,17 +181,20 @@ impl TSCNParser {
             Err(_) => {}
         };
 
-        let (str_slice, _) = handle_incomplete!(sequence::terminated(
-            nom::multi::many1_count(branch::alt((
-                character::streaming::alpha1::<&str, nom::error::Error<&str>>,
-                character::streaming::char('_').map(|_| "")
-            ))),
-            sequence::delimited(
+        let (str_slice, _) = handle_incomplete!(combinator::recognize(sequence::terminated(
+            branch::alt((
+                combinator::recognize(nom::multi::many1(branch::alt((
+                    character::streaming::alphanumeric1::<&str, nom::error::Error<&str>>,
+                    combinator::recognize(character::streaming::char('_'))
+                )))),
+                combinator::recognize(Self::parse_string)
+            )),
+            combinator::recognize(sequence::delimited(
                 character::streaming::multispace0,
                 streaming::tag("="),
                 character::streaming::multispace0,
-            ),
-        )(str_slice));
+            )),
+        ),)(str_slice));
 
         let (str_slice, _) = handle_incomplete!(sequence::terminated(
             Self::parse_value,
@@ -230,27 +233,49 @@ impl TSCNParser {
         )(slice)
     }
 
-    fn parse_container(slice: &str) -> IResult<&str, &str> {}
+    fn parse_container(slice: &str) -> IResult<&str, &str> {
+        branch::alt((Self::parse_array, Self::parse_dictionary))(slice)
+    }
+
+    fn parse_array(slice: &str) -> IResult<&str, &str> {
+        combinator::recognize(sequence::delimited(
+            streaming::tag("["),
+            nom::multi::separated_list0(streaming::tag(", "), Self::parse_value),
+            streaming::tag("]"),
+        ))(slice)
+    }
+
+    fn parse_dictionary(slice: &str) -> IResult<&str, &str> {
+        combinator::recognize(sequence::delimited(
+            streaming::tag("{"),
+            nom::multi::separated_list0(
+                streaming::tag(", "),
+                sequence::separated_pair(
+                    Self::parse_value,
+                    streaming::tag(": "),
+                    Self::parse_value,
+                ),
+            ),
+            streaming::tag("}"),
+        ))(slice)
+    }
 
     fn parse_number_literal(slice: &str) -> IResult<&str, &str> {
         branch::alt((
-            character::streaming::digit1,
-            sequence::tuple((
-                combinator::opt(streaming::tag("-")),
-                character::streaming::digit1,
-                streaming::tag("."),
-                character::streaming::digit1,
-            ))
-            .map(|(_, a, _, _)| a),
+            combinator::recognize(sequence::tuple((
+                combinator::recognize(combinator::opt(streaming::tag("-"))),
+                branch::alt((streaming::tag("inf"), streaming::tag("nan"))),
+            ))),
+            nom::number::streaming::recognize_float,
         ))(slice)
     }
 
     fn parse_identifier(slice: &str) -> IResult<&str, &str> {
         branch::alt((
+            streaming::tag("null"),
             Self::parse_bool_literal,
-            Self::parse_named_number_literal,
+            Self::parse_typed_container,
             Self::parse_constructor,
-            Self::parse_constant,
         ))(slice)
     }
 
@@ -258,17 +283,64 @@ impl TSCNParser {
         branch::alt((streaming::tag("true"), streaming::tag("false")))(slice)
     }
 
-    fn parse_named_number_literal(slice: &str) -> IResult<&str, &str> {
-        sequence::tuple((
-            combinator::opt(streaming::tag("-")).map(|_| ""),
-            branch::alt((streaming::tag("inf"), streaming::tag("nan"))),
+    fn parse_typed_container(slice: &str) -> IResult<&str, &str> {
+        branch::alt((
+            combinator::recognize(sequence::tuple((
+                streaming::tag("Array"),
+                sequence::delimited(
+                    streaming::tag("["),
+                    nom::multi::many1_count(branch::alt((
+                        character::streaming::alphanumeric1::<&str, nom::error::Error<&str>>,
+                        combinator::recognize(character::streaming::char('_')),
+                    ))),
+                    streaming::tag("]"),
+                ),
+                Self::parse_array,
+            ))),
+            combinator::recognize(sequence::tuple((
+                streaming::tag("Dictionary"),
+                sequence::delimited(
+                    streaming::tag("["),
+                    sequence::separated_pair(
+                        nom::multi::many1_count(branch::alt((
+                            character::streaming::alphanumeric1::<&str, nom::error::Error<&str>>,
+                            combinator::recognize(character::streaming::char('_')),
+                        ))),
+                        streaming::tag(", "),
+                        nom::multi::many1_count(branch::alt((
+                            character::streaming::alphanumeric1::<&str, nom::error::Error<&str>>,
+                            combinator::recognize(character::streaming::char('_')),
+                        ))),
+                    ),
+                    streaming::tag("]"),
+                ),
+                Self::parse_dictionary,
+            ))),
         ))(slice)
-        .map(|_| ("", ""))
     }
 
-    fn parse_constructor(slice: &str) -> IResult<&str, &str> {}
-
-    fn parse_constant(slice: &str) -> IResult<&str, &str> {}
+    fn parse_constructor(slice: &str) -> IResult<&str, &str> {
+        let (str_slice, name) = character::streaming::alphanumeric1(slice)?;
+        match name {
+            "Object" | "Resource" | "ExtResource" => Err(nom::Err::Failure(
+                nom::error::Error::new(slice, nom::error::ErrorKind::AlphaNumeric),
+            )),
+            "PackedByteArray" => combinator::recognize(sequence::delimited(
+                streaming::tag("("),
+                nom::multi::many0_count(branch::alt((
+                    character::streaming::alphanumeric1,
+                    streaming::tag("+"),
+                    streaming::tag("/"),
+                ))),
+                streaming::tag(")"),
+            ))(str_slice),
+            _ => combinator::recognize(sequence::delimited(
+                streaming::tag("("),
+                nom::multi::separated_list0(streaming::tag(", "), Self::parse_value),
+                streaming::tag(")"),
+            ))(str_slice),
+        }
+    }
 
     fn parse_header_kv<'a>(
         slice: &'a str,
