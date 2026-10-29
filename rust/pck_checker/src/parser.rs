@@ -10,7 +10,7 @@ use std::{
 };
 use strum::IntoEnumIterator;
 
-use crate::{resources, unwrap_or_return};
+use crate::{objects, unwrap_or_return};
 
 const PARSE_CHUNK_SIZE: usize = 1024 * 1024 * 50;
 const MAX_PARSE_CHUNK_SIZE: usize = 1024 * 1024 * 1000;
@@ -148,7 +148,7 @@ impl TSCNParser {
             }
 
             if !resource_type.is_empty() && object_type == "[sub_resource" {
-                if !resources::ResourceWhitelist::iter()
+                if !objects::ObjectWhitelist::iter()
                     .any(|x| resource_type == x.to_string().as_str())
                 {
                     return Some(false);

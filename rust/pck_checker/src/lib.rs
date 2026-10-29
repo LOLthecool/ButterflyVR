@@ -6,8 +6,8 @@ use std::{
     mem::MaybeUninit,
 };
 
+mod objects;
 mod parser;
-mod resources;
 mod tests;
 
 struct MyExtension;
