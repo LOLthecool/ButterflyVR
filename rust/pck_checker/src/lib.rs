@@ -44,7 +44,12 @@ macro_rules! unwrap_or_return {
         match $expr {
             Ok(x) => x,
             Err(e) => {
-                godot_warn!("Error at line {:?}: {}", line!(), e);
+                godot_warn!(
+                    "Error at line {:?} in {:?}: {}",
+                    line!(),
+                    core::panic::Location::caller(),
+                    e
+                );
                 return $default;
             }
         }
@@ -53,7 +58,11 @@ macro_rules! unwrap_or_return {
         match $expr {
             Some(x) => x,
             None => {
-                godot_warn!("Error at line {:?}: unexpected None", line!());
+                godot_warn!(
+                    "Error at line {:?} in {:?}: unexpected None",
+                    line!(),
+                    core::panic::Location::caller()
+                );
                 return $default;
             }
         }
