@@ -92,12 +92,12 @@ func on_remove() -> bool:
 
 func on_remove_and_moderate() -> void:
 	if await on_remove():
-		user_ban_modal.open(selected_creator)
+		await user_ban_modal.open(selected_creator)
 
 
 func _on_line_edit_text_submitted(_new_text: String) -> void:
-	search()
+	await search()
 
 
 func _on_button_pressed() -> void:
-	search()
+	await search()

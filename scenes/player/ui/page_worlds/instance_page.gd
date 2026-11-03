@@ -97,4 +97,4 @@ func show_details(short_world: Dictionary) -> void:
 
 	details_tags.show_tags(world)
 
-	instances_list.show_instances(world)
+	await instances_list.show_instances(world)

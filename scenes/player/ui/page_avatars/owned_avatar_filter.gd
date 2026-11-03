@@ -4,7 +4,7 @@ extends Button
 
 
 func _pressed() -> void:
-	avatar_list.get_and_show_avatars(
+	await avatar_list.get_and_show_avatars(
 		"",
 		{ "creator": (await GlobalAccountHandler.get_uuid()).to_string() },
 	)

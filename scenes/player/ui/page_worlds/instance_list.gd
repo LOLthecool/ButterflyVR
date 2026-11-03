@@ -75,4 +75,4 @@ func show_instances(world: Dictionary) -> void:
 
 
 func on_join_button_pressed(instance: UUID) -> void:
-	GlobalWorldHandler.load_world(UUID.from_String(world_id), instance)
+	await GlobalWorldHandler.load_world(UUID.from_String(world_id), instance)

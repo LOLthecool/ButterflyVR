@@ -6,9 +6,9 @@ func setup(
 	values: Dictionary[String, Variant],
 	target: Node,
 	_state: SetupHelpers.SetupState,
-	root: Node,
+	_root: Node,
 ) -> void:
-	var material:ShaderMaterial = values["material"]
+	var material:ShaderMaterial = ShaderMaterial.new()
 	
 	var code:String = values["shader_code"]
 	if !code.begins_with("#pragma disable_preprocessor\n") or code.substr(1).contains("#"):
@@ -20,10 +20,14 @@ func setup(
 	material.shader = shader
 	
 	if !target.get_property_list().any(func(x:Dictionary) -> bool:
-		return x["name"] == values["target_property"] and x["class_name"] == "ShaderMaterial"):
+		return x["name"] == values["target_property"] and x["class_name"] == "Mesh"):
 			push_warning("couldnt find target property for ShaderMarker")
 			return
-	target[values["target_property"]] = material
+	
+	@warning_ignore("unsafe_cast")
+	if (target[values["target_property"]] as Mesh).get_surface_count() > values["surface_idx"]:
+		@warning_ignore("unsafe_cast")
+		(target[values["target_property"]] as Mesh).surface_set_material(values["surface_idx"] as int, material)
 
 
 func perform_migrations(values: Dictionary[String, Variant]) -> Dictionary[String, Variant]:

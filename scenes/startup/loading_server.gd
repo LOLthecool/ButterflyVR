@@ -51,4 +51,4 @@ static func start() -> void:
 				else:
 					push_error("expected a world UUID but got \"%s\"" % argument_value)
 
-	GlobalServerHandler.start(api_token, is_local, world, bind_port)
+	await GlobalServerHandler.start(api_token, is_local, world, bind_port)

@@ -7,7 +7,7 @@ const SEARCH_ENDPOINT: String = "/api/v0/search/%s"
 
 
 func _ready() -> void:
-	get_and_show_worlds("", { "sort": "weekly_uses" })
+	await get_and_show_worlds("", { "sort": "weekly_uses" })
 
 
 func get_and_show_worlds(search_string: String, filters_untyped: Dictionary) -> void:

@@ -60,6 +60,8 @@ var load_cancelled: bool = false
 
 func _init() -> void:
 	if OS.get_cmdline_args().has("--server") or OS.get_cmdline_args().has("--headless"):
+		# todo: awaiting this call breaks things and im not sure why
+		@warning_ignore("missing_await")
 		ServerLoader.start()
 		queue_free()
 
@@ -70,7 +72,7 @@ func _ready() -> void:
 
 	if await GlobalAccountHandler.check_token_valid():
 		loading_text.text = "Logging in with saved account..."
-		start()
+		await start()
 	else:
 		tab_container.current_tab = GREETER_TAB
 
@@ -84,7 +86,7 @@ func start() -> void:
 	if load_cancelled:
 		tab_container.current_tab = last_screen
 		return
-	GlobalWorldHandler.load_homeworld()
+	await GlobalWorldHandler.load_homeworld()
 
 
 func _on_register_selected() -> void:
@@ -258,12 +260,12 @@ func on_login_response(
 		@warning_ignore("unsafe_cast")
 		token.assign(data["token"] as Array)
 		@warning_ignore("unsafe_cast")
-		GlobalAccountHandler.set_token(
+		await GlobalAccountHandler.set_token(
 			token,
 			data["token_expires"] as int,
 			data["renewable"] as bool,
 		)
-		start()
+		await start()
 	else:
 		var response_code: int = result[1]
 		var error_code: String = result[2]
@@ -290,9 +292,9 @@ func _on_back_button_pressed() -> void:
 # todo: should probably make a generic popup handler and use that later
 func _on_link_clicked(meta: Variant) -> void:
 	if meta == "local.privacy":
-		show_popup(FileAccess.get_file_as_string(PRIVACYPOLICYLOCATION))
+		await show_popup(FileAccess.get_file_as_string(PRIVACYPOLICYLOCATION))
 	elif meta == "local.TOS":
-		show_popup(FileAccess.get_file_as_string(TOSLOCATION))
+		await show_popup(FileAccess.get_file_as_string(TOSLOCATION))
 	else:
 		push_warning("got link to unknown content: ", meta)
 

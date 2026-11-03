@@ -10,7 +10,7 @@ func setup(
 ) -> void:
 	var handler: ObjectEventHandler = state.state["event_handler"]
 	@warning_ignore("unsafe_cast")
-	handler.register_action(
+	await handler.register_action(
 		ObjectEventHandler
 		.EnableAction
 		.create(

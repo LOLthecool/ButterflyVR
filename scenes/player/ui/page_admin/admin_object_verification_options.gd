@@ -64,7 +64,7 @@ func _on_button_3_pressed() -> bool:
 
 func _on_button_4_pressed() -> void:
 	if await _on_button_3_pressed():
-		user_ban_modal.open(object_creator)
+		await user_ban_modal.open(object_creator)
 
 
 func start_reset() -> void:

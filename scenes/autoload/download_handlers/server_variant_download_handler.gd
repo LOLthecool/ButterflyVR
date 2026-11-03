@@ -24,7 +24,6 @@ func decrypt_and_load_object(
 		backing_cache.pop(uuid)
 		push_warning("falling back to base variant")
 		return await GlobalDownloadHandler.get_object(UUID.from_String(uuid), object_type)
-		return null
 
 	var aes: AESContext = AESContext.new()
 	aes.start(AESContext.MODE_CBC_DECRYPT, key, iv)

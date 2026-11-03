@@ -7,7 +7,7 @@ const SEARCH_ENDPOINT: String = "/api/v0/search/%s"
 
 
 func _ready() -> void:
-	get_and_show_avatars("", { })
+	await get_and_show_avatars("", { })
 
 
 func get_and_show_avatars(search_string: String, filters: Dictionary[String, String]) -> void:
@@ -64,4 +64,4 @@ func get_and_show_avatars(search_string: String, filters: Dictionary[String, Str
 		add_child(avatar_listing)
 		if first_entry:
 			first_entry = false
-			avatar_previewer.preview_avatar(avatar)
+			await avatar_previewer.preview_avatar(avatar)

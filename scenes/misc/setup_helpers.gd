@@ -317,7 +317,7 @@ static func setup_avatar(root: Node, player: Player) -> void:
 			(player.collider.shape as CapsuleShape3D).radius = radius
 			(player.collider.shape as CapsuleShape3D).height = height
 
-	player.collider.position = state.state["collider_values"]["position"]
-	player.collider.position.y += (player.collider.shape as CapsuleShape3D).height / 2
+		player.collider.position = state.state["collider_values"]["position"]
+		player.collider.position.y += (player.collider.shape as CapsuleShape3D).height / 2
 
 	player.position.y += (player.collider.shape as CapsuleShape3D).height / 2

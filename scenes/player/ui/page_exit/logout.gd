@@ -19,7 +19,7 @@ func _pressed() -> void:
 func on_confirm() -> void:
 	clean_popup()
 	await GlobalWorldHandler.disconnect_from_world(false)
-	GlobalAccountHandler.logout()
+	await GlobalAccountHandler.logout()
 	get_tree().change_scene_to_packed(preload("res://scenes/startup/loading.tscn"))
 
 

@@ -9,7 +9,7 @@ var current_world: WorldController
 
 func _physics_process(_delta: float) -> void:
 	if NetworkManager.has_disconnected():
-		disconnect_from_world(false)
+		await disconnect_from_world(false)
 
 
 func load_homeworld() -> void:
@@ -79,7 +79,7 @@ func load_world(world_id: UUID, instance_id: UUID = null) -> void:
 
 	if instance_id:
 		if !await GlobalInstanceHandler.join_instance(instance_id):
-			load_fallback_world()
+			await load_fallback_world()
 			return
 	else:
 		await GlobalInstanceHandler.create_and_join_offline_instance(world_id)
@@ -131,4 +131,4 @@ func disconnect_from_world(go_home: bool = true) -> void:
 	await get_tree().physics_frame
 
 	if go_home:
-		load_homeworld()
+		await load_homeworld()

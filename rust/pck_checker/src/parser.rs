@@ -20,7 +20,14 @@ macro_rules! handle_incomplete {
         match $result {
             Ok(x) => x,
             Err(nom::Err::Incomplete(_)) => return None,
-            Err(_) => return Some(false),
+            Err(e) => {
+                godot_warn!(
+                    "parse error at line {:?}: {:?}",
+                    line!(),
+                    e.map_input(|_| Option::<&str>::None)
+                );
+                return Some(false);
+            }
         }
     };
 }
@@ -45,7 +52,15 @@ pub fn check_tscn(absolute_offset: u64, size: u64, pck: &mut BufReader<File>) ->
             godot_error!("error while reading file");
             return false;
         };
+
         if bytes_read == 0 {
+            if !parser.parse_buffer() {
+                let _ = parser.parsing_completed();
+                godot_warn!("scene failed to parse!");
+                return false;
+            }
+
+            parser.clean_trailing_whitespace();
             if !parser.parsing_completed() {
                 godot_error!("reached end of file but failed to parse final value");
                 return false;
@@ -56,6 +71,7 @@ pub fn check_tscn(absolute_offset: u64, size: u64, pck: &mut BufReader<File>) ->
         parser.add_to_buffer(&buffer[..bytes_read]);
 
         if !parser.parse_buffer() {
+            let _ = parser.parsing_completed();
             godot_warn!("scene failed to parse!");
             return false;
         }
@@ -77,13 +93,33 @@ impl TSCNParser {
         }
         self.buffer.extend(addition);
     }
+
+    fn clean_trailing_whitespace(&mut self) {
+        self.buffer.retain(|&c| c >= 33);
+    }
+
     fn parse_buffer(&mut self) -> bool {
         if self.extend_failed {
+            godot_warn!("failed to extend buffer");
             return false;
+        }
+        if self.buffer.len() == 0 {
+            return true;
         }
 
         let mut slice = &*self.buffer;
+        let mut last_slice_len: usize = 0;
+        let mut last_state: ParserState = ParserState::SceneHeader;
+
         loop {
+            if slice.len() == last_slice_len && self.state == last_state {
+                godot_warn!(
+                    "infinite loop while parsing (did you forget to update the slice after consuming?)"
+                );
+                return false;
+            }
+            last_slice_len = slice.len();
+            last_state = self.state.clone();
             let result = match self.state {
                 ParserState::SceneHeader => Self::parse_scene_header(&mut slice, &mut self.state),
                 ParserState::ObjectHeader => Self::parse_object_header(&mut slice, &mut self.state),
@@ -92,18 +128,43 @@ impl TSCNParser {
                 }
             };
             match result {
-                Some(true) => continue,      // parsed without issue
-                Some(false) => return false, // failed to parse
+                Some(true) => continue, // parsed without issue
+                Some(false) => {
+                    const WIDE_TAIL_LENGTH: usize = 50;
+                    const WIDE_HEAD_LENGTH: usize = 50;
+                    const TAIL_LENGTH: usize = 10;
+                    const HEAD_LENGTH: usize = 10;
+                    godot_warn!(
+                        "parse error around\n{:?}\nat or near: {:?}\non char {:?}",
+                        String::from_utf8_lossy(
+                            &self.buffer[(self.buffer.len() - slice.len())
+                                .saturating_sub(WIDE_HEAD_LENGTH)
+                                ..((self.buffer.len() - slice.len()) + WIDE_TAIL_LENGTH)
+                                    .min(self.buffer.len())]
+                        ),
+                        String::from_utf8_lossy(
+                            &self.buffer[(self.buffer.len() - slice.len())
+                                .saturating_sub(HEAD_LENGTH)
+                                ..((self.buffer.len() - slice.len()) + TAIL_LENGTH)
+                                    .min(self.buffer.len())]
+                        ),
+                        String::from_utf8_lossy(&slice[..1])
+                    );
+                    return false;
+                }
                 None => {
+                    // reached end of buffer before finishing
                     self.buffer.drain(..self.buffer.len() - slice.len());
                     return true;
-                } // reached end of buffer before finishing
+                }
             }
         }
     }
     fn parse_scene_header(slice: &mut &[u8], state: &mut ParserState) -> Option<bool> {
         let Ok(str_slice) = str::from_utf8(&slice) else {
-            return Some(false);
+            // either file is malformed or a character got cut off at the end of the slice
+            // if malformed will error out once buffer is filled or file is fully read
+            return None;
         };
 
         let result: IResult<&str, &str> = branch::alt((
@@ -119,7 +180,9 @@ impl TSCNParser {
     }
     fn parse_object_header(slice: &mut &[u8], state: &mut ParserState) -> Option<bool> {
         let Ok(str_slice) = str::from_utf8(&slice) else {
-            return Some(false);
+            // either file is malformed or a character got cut off at the end of the slice
+            // if malformed will error out once buffer is filled or file is fully read
+            return None;
         };
 
         let (str_slice, _) = handle_incomplete!(character::streaming::multispace0::<
@@ -132,35 +195,43 @@ impl TSCNParser {
             streaming::tag("[node"),
         ))(str_slice));
 
-        loop {
-            let mut resource_type = String::new();
+        let mut str_slice = str_slice;
+        let mut resource_type = String::new();
 
-            let (str_slice, taken) = handle_incomplete!(branch::alt((
+        loop {
+            let result = handle_incomplete!(branch::alt((
                 |str_slice| Self::parse_header_kv(str_slice, &mut resource_type),
                 streaming::tag("]"),
             ))(str_slice));
 
-            *slice = &slice[slice.len() - str_slice.as_bytes().len()..];
+            str_slice = result.0;
+            let taken = result.1;
 
             if taken == "]" {
+                if object_type == "[sub_resource" {
+                    if resource_type.is_empty() {
+                        godot_warn!("found sub_resource with no type header");
+                        return Some(false);
+                    } else {
+                        if objects::ObjectWhitelist::iter()
+                            .all(|x| resource_type != x.to_string().as_str())
+                        {
+                            godot_warn!("found disallowed sub_resource type: {}", resource_type);
+                            return Some(false);
+                        }
+                    }
+                }
                 *state = ParserState::ObjectValue;
+                *slice = &slice[slice.len() - str_slice.as_bytes().len()..];
                 return Some(true);
             }
-
-            if !resource_type.is_empty() && object_type == "[sub_resource" {
-                if !objects::ObjectWhitelist::iter()
-                    .any(|x| resource_type == x.to_string().as_str())
-                {
-                    return Some(false);
-                }
-            }
-
-            continue;
         }
     }
     fn parse_object_key_value(slice: &mut &[u8], state: &mut ParserState) -> Option<bool> {
         let Ok(str_slice) = str::from_utf8(&slice) else {
-            return Some(false);
+            // either file is malformed or a character got cut off at the end of the slice
+            // if malformed will error out once buffer is filled or file is fully read
+            return None;
         };
 
         let (str_slice, _) = handle_incomplete!(character::streaming::multispace0::<
@@ -169,9 +240,9 @@ impl TSCNParser {
         >(str_slice));
 
         match streaming::tag::<&str, &str, nom::error::Error<&str>>("[")(str_slice) {
-            Ok((str_slice, _)) => {
+            // dont update str_slice since header parsing expects leading [
+            Ok((_, _)) => {
                 *state = ParserState::ObjectHeader;
-                // dont update str_slice length since header parsing expects leading [
                 *slice = &slice[slice.len() - str_slice.as_bytes().len()..];
                 return Some(true);
             }
@@ -185,21 +256,16 @@ impl TSCNParser {
             branch::alt((
                 combinator::recognize(nom::multi::many1(branch::alt((
                     character::streaming::alphanumeric1::<&str, nom::error::Error<&str>>,
-                    combinator::recognize(character::streaming::char('_'))
+                    streaming::tag("_"),
+                    streaming::tag("/"),
+                    streaming::tag("."),
                 )))),
                 combinator::recognize(Self::parse_string)
             )),
-            combinator::recognize(sequence::delimited(
-                character::streaming::multispace0,
-                streaming::tag("="),
-                character::streaming::multispace0,
-            )),
+            streaming::tag(" = "),
         ),)(str_slice));
 
-        let (str_slice, _) = handle_incomplete!(sequence::terminated(
-            Self::parse_value,
-            character::streaming::multispace1 // always at least 1 seperating newline
-        )(str_slice));
+        let (str_slice, _) = handle_incomplete!(Self::parse_value(str_slice));
 
         *slice = &slice[slice.len() - str_slice.as_bytes().len()..];
         return Some(true);
@@ -239,35 +305,39 @@ impl TSCNParser {
 
     fn parse_array(slice: &str) -> IResult<&str, &str> {
         combinator::recognize(sequence::delimited(
-            streaming::tag("["),
-            nom::multi::separated_list0(streaming::tag(", "), Self::parse_value),
-            streaming::tag("]"),
+            sequence::pair(streaming::tag("["), character::streaming::multispace0),
+            nom::multi::separated_list0(
+                sequence::pair(streaming::tag(","), character::streaming::multispace0),
+                Self::parse_value,
+            ),
+            sequence::pair(character::streaming::multispace0, streaming::tag("]")),
         ))(slice)
     }
 
     fn parse_dictionary(slice: &str) -> IResult<&str, &str> {
         combinator::recognize(sequence::delimited(
-            streaming::tag("{"),
+            sequence::pair(streaming::tag("{"), character::streaming::multispace0),
             nom::multi::separated_list0(
-                streaming::tag(", "),
+                sequence::pair(streaming::tag(","), character::streaming::multispace0),
                 sequence::separated_pair(
                     Self::parse_value,
-                    streaming::tag(": "),
+                    sequence::pair(streaming::tag(":"), character::streaming::multispace0),
                     Self::parse_value,
                 ),
             ),
-            streaming::tag("}"),
+            sequence::pair(character::streaming::multispace0, streaming::tag("}")),
         ))(slice)
     }
 
     fn parse_number_literal(slice: &str) -> IResult<&str, &str> {
-        branch::alt((
-            combinator::recognize(sequence::tuple((
-                combinator::recognize(combinator::opt(streaming::tag("-"))),
-                branch::alt((streaming::tag("inf"), streaming::tag("nan"))),
-            ))),
-            nom::number::streaming::recognize_float,
-        ))(slice)
+        combinator::recognize(sequence::tuple((
+            combinator::recognize(combinator::opt(streaming::tag("-"))),
+            branch::alt((
+                streaming::tag("inf"),
+                streaming::tag("nan"),
+                nom::number::streaming::recognize_float,
+            )),
+        )))(slice)
     }
 
     fn parse_identifier(slice: &str) -> IResult<&str, &str> {
@@ -295,7 +365,7 @@ impl TSCNParser {
                     ))),
                     streaming::tag("]"),
                 ),
-                Self::parse_array,
+                sequence::delimited(streaming::tag("("), Self::parse_array, streaming::tag(")")),
             ))),
             combinator::recognize(sequence::tuple((
                 streaming::tag("Dictionary"),
@@ -314,7 +384,11 @@ impl TSCNParser {
                     ),
                     streaming::tag("]"),
                 ),
-                Self::parse_dictionary,
+                sequence::delimited(
+                    streaming::tag("("),
+                    Self::parse_dictionary,
+                    streaming::tag(")"),
+                ),
             ))),
         ))(slice)
     }
@@ -322,21 +396,31 @@ impl TSCNParser {
     fn parse_constructor(slice: &str) -> IResult<&str, &str> {
         let (str_slice, name) = character::streaming::alphanumeric1(slice)?;
         match name {
-            "Object" | "Resource" | "ExtResource" => Err(nom::Err::Failure(
-                nom::error::Error::new(slice, nom::error::ErrorKind::AlphaNumeric),
-            )),
+            "Object" | "Resource" | "ExtResource" => {
+                godot_error!("found inline object during parse!");
+                Err(nom::Err::Failure(nom::error::Error::new(
+                    slice,
+                    nom::error::ErrorKind::Tag,
+                )))
+            }
             "PackedByteArray" => combinator::recognize(sequence::delimited(
-                streaming::tag("("),
+                streaming::tag("(\""),
                 nom::multi::many0_count(branch::alt((
                     character::streaming::alphanumeric1,
                     streaming::tag("+"),
                     streaming::tag("/"),
                 ))),
-                streaming::tag(")"),
+                sequence::pair(
+                    combinator::recognize(nom::multi::many0_count(streaming::tag("="))),
+                    streaming::tag("\")"),
+                ),
             ))(str_slice),
             _ => combinator::recognize(sequence::delimited(
                 streaming::tag("("),
-                nom::multi::separated_list0(streaming::tag(", "), Self::parse_value),
+                nom::multi::separated_list0(
+                    sequence::pair(streaming::tag(","), character::streaming::multispace0),
+                    Self::parse_value,
+                ),
                 streaming::tag(")"),
             ))(str_slice),
         }
@@ -352,11 +436,11 @@ impl TSCNParser {
             sequence::delimited(
                 streaming::tag(" type=\""),
                 streaming::take_till(|x: char| {
-                    resource_type_cell.replace(resource_type_cell.take() + &x.to_string());
                     if x == '"' && last.get() != '\\' {
                         last.set(' ');
                         return true;
                     }
+                    resource_type_cell.replace(resource_type_cell.take() + &x.to_string());
                     last.set(x);
                     false
                 }),
@@ -389,7 +473,16 @@ impl TSCNParser {
 
     fn parsing_completed(&mut self) -> bool {
         let result = self.buffer.is_empty();
-        self.buffer.clear();
+        if !result {
+            godot_warn!(
+                "parsing not complete, remaining: {:?}",
+                &self.buffer[..100.min(self.buffer.len())]
+                    .iter()
+                    .map(|x| *x as char)
+                    .collect::<String>()
+            );
+            self.buffer.clear();
+        }
         return result;
     }
 }
@@ -397,7 +490,7 @@ impl TSCNParser {
 impl Drop for TSCNParser {
     fn drop(&mut self) {
         if !self.parsing_completed() {
-            panic!("tried to drop parser but we never checked if parsing finished!")
+            godot_warn!("tried to drop parser but we never checked if parsing finished!")
         }
     }
 }

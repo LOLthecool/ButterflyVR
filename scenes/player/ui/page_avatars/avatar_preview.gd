@@ -55,7 +55,7 @@ func preview_avatar(avatar: Dictionary[String, Variant]) -> void:
 
 	self.avatar = avatar
 	@warning_ignore("unsafe_cast")
-	previewer.create_preview(UUID.from_String(avatar["id"] as String))
+	await previewer.create_preview(UUID.from_String(avatar["id"] as String))
 	avatar_name.text = avatar["name"]
 	@warning_ignore("unsafe_cast")
 	avatar_publicity.text = "publicity: %s" % StringifyHelper.stringify_object_publicity(

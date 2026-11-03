@@ -36,8 +36,8 @@ func _enter_tree() -> void:
 		false,
 	)
 	if await is_token_valid(saved_token, expiry):
-		set_token(saved_token, expiry, renewable)
-		check_renew()
+		await set_token(saved_token, expiry, renewable)
+		await check_renew()
 	token_checkable = true
 
 
@@ -59,7 +59,7 @@ func _ready() -> void:
 
 
 func logout() -> void:
-	set_token([], -1, false)
+	await set_token([], -1, false)
 	GlobalPersistanceHandler.set_value("user_login", "token", "token", [])
 	GlobalPersistanceHandler.set_value("user_login", "token", "expiry", -1)
 	GlobalPersistanceHandler.set_value("user_login", "token", "renewable", false)
@@ -152,7 +152,7 @@ func check_renew() -> void:
 		push_error(
 			"token expired! if this is a renewable token (remember me checked when signing in) this is a bug"
 		)
-		set_token([], -1, false)
+		await set_token([], -1, false)
 
 	if int(Time.get_unix_time_from_system()) + TOKEN_RENEWAL_THRESHOLD > token_expiry_utc:
 		var token_header: PackedStringArray = PackedStringArray([get_token_header()])
@@ -178,4 +178,4 @@ func on_token_request(
 		push_error("tried to renew token but server did not reply with one")
 		return
 	@warning_ignore("unsafe_cast")
-	set_token(response_token, body_json["token_expires"] as int, true)
+	await set_token(response_token, body_json["token_expires"] as int, true)

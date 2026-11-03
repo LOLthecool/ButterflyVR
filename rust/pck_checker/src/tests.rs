@@ -11,7 +11,7 @@ mod tests {
         let entries: Vec<_> = fs::read_dir(fixture_dir)
             .expect("Failed to read test data directory")
             .map(|entry| entry.expect("Failed to read directory entry").path())
-            .filter(|path| path.is_file() && path.ends_with(".pck"))
+            .filter(|path| path.is_file()) //&& path.ends_with(".pck"))
             .collect();
 
         for path in entries {

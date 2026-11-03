@@ -4,7 +4,7 @@ extends Button
 
 
 func _pressed() -> void:
-	world_list.get_and_show_worlds(
+	await world_list.get_and_show_worlds(
 		"",
 		{ "creator": (await GlobalAccountHandler.get_uuid()).to_string() },
 	)

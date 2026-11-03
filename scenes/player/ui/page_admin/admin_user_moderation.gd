@@ -55,12 +55,12 @@ func on_select(id: UUID) -> void:
 
 func on_moderate() -> void:
 	moderate_button.disabled = true
-	user_ban_modal.open(selected)
+	await user_ban_modal.open(selected)
 
 
 func _on_button_pressed() -> void:
-	search()
+	await search()
 
 
 func _on_line_edit_text_submitted(_new_text: String) -> void:
-	search()
+	await search()

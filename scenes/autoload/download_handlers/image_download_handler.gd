@@ -69,7 +69,7 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> Image:
 	var image: Dictionary[String, int] = { }
 	image.assign(backing_cache.get(id))
 
-	MiscHelpers.await_lock_mutex(cache_lock)
+	await MiscHelpers.await_lock_mutex(cache_lock)
 
 	if !image.is_empty():
 		if (!FileAccess.file_exists(IMAGE_FILE_PATH % [id])) or \
