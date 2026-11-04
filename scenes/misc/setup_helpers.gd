@@ -12,7 +12,7 @@ class SetupState:
 static func get_node_and_children_recursive(root: Node) -> Array[Node]:
 	var nodes: Array[Node]
 	nodes.append(root)
-	for node: Node in root.get_children():
+	for node: Node in root.get_children(true):
 		nodes.append_array(get_node_and_children_recursive(node))
 	return nodes
 
@@ -65,6 +65,7 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 				# whitelisted_item is type GDScriptNativeClass
 				return is_instance_of(node, whitelist_item),
 		):
+			node.get_parent().remove_child(node)
 			node.queue_free()
 			continue
 
@@ -292,6 +293,7 @@ static func setup_avatar(root: Node, player: Player) -> void:
 			func(blacklist_item: Variant) -> bool:
 				return is_instance_of(node, blacklist_item),
 		):
+			node.get_parent().remove_child(node)
 			node.queue_free()
 			continue
 

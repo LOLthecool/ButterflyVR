@@ -205,8 +205,6 @@ class AnimationSetAction extends BaseAction:
 	var from_parameter: bool
 	var animation: String
 	var target: AnimationPlayer
-	var path_start_point: Node
-	var target_path: String
 
 
 	@warning_ignore("shadowed_variable_base_class")
@@ -224,8 +222,7 @@ class AnimationSetAction extends BaseAction:
 		x.custom_parameters = custom_parameters
 		x.from_parameter = animation == "From Parameter"
 		x.animation = animation
-		x.path_start_point = path_start_point
-		x.target_path = target_path
+		x.target = path_start_point.get_node(target_path)
 		return x
 
 
@@ -258,9 +255,7 @@ class AnimationSetAction extends BaseAction:
 
 
 	func init(_handler: ObjectEventHandler) -> void:
-		target = path_start_point.get_node(target_path)
-		path_start_point = null
-		target_path = ""
+		return
 #endregion
 
 
