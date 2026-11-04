@@ -186,18 +186,20 @@ static func is_animation_good(node: AnimationMixer) -> bool:
 			var type: int = animation.track_get_type(track)
 			match type:
 				Animation.TrackType.TYPE_ANIMATION:
-					return true
+					continue
 				Animation.TrackType.TYPE_AUDIO:
-					return true
+					continue
 				Animation.TrackType.TYPE_BLEND_SHAPE:
-					return true
+					continue
 				Animation.TrackType.TYPE_POSITION_3D:
-					return true
+					continue
 				Animation.TrackType.TYPE_ROTATION_3D:
-					return true
+					continue
 				Animation.TrackType.TYPE_SCALE_3D:
-					return true
-	return false
+					continue
+				_:
+					return false
+	return true
 
 
 static func clean_anim_tree(untyped_node: AnimationRootNode, state:SetupState) -> void:
