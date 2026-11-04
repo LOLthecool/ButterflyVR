@@ -4,6 +4,8 @@ class_name SetupHelpers
 
 class SetupState:
 	var state: Dictionary[String, Variant]
+	var stages_started:int
+	var stages_completed:int
 
 
 # todo: replace with iterative callback version from cck
@@ -34,6 +36,7 @@ static func get_cck_markers() -> Array[CCKMarker]:
 # IMPORTANT: this must be called BEFORE the node is added to the scene tree, failing to do so
 # may allow path traversal attacks when marker setup is performed.
 static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupState) -> void:
+	state.stages_started += 1
 	var cck_markers: Array[CCKMarker] = get_cck_markers()
 
 	var event_handler: ObjectEventHandler = ObjectEventHandler.new()
@@ -48,9 +51,9 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 				node.queue_free()
 			else:
 				if node is AnimationTree:
-					clean_anim_tree((node as AnimationTree).tree_root)
+					clean_anim_tree((node as AnimationTree).tree_root, state)
 
-		clean_paths(node, root, node)
+		clean_paths(node, root, node, state)
 
 		for group: StringName in node.get_groups():
 			if !group.begins_with("cck_"):
@@ -71,6 +74,7 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 		for marker: CCKMarker in cck_markers:
 			if !marker.is_allowed_on(type):
 				continue
+				
 
 			if marker.supports_multiple_copies():
 				for meta_item: StringName in node.get_meta_list():
@@ -87,11 +91,12 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 					values.assign(node.get_meta(marker.get_name()) as Dictionary)
 					values = marker.perform_migrations(values)
 					marker.setup(values, node, state, root)
-
+	
+	state.stages_completed += 1
 	root.add_child(event_handler)
 
 
-static func clean_paths(object: Object, root: Node, original_node: Node) -> void:
+static func clean_paths(object: Object, root: Node, original_node: Node, state:SetupState) -> void:
 	for property: Dictionary in object.get_property_list():
 		if property["usage"] & PropertyUsageFlags.PROPERTY_USAGE_CATEGORY:
 			continue
@@ -120,6 +125,7 @@ static func clean_paths(object: Object, root: Node, original_node: Node) -> void
 					original_node,
 					root,
 					property["name"] as String,
+					state
 				)
 
 
@@ -129,7 +135,9 @@ static func clean_property(
 	original_node: Node,
 	root: Node,
 	property_name: String,
+	state:SetupState
 ) -> void:
+	state.stages_started += 1
 	# todo: check if any nodes take paths that arnt NodePaths
 	if property is NodePath:
 		if is_instance_of(object, Node):
@@ -152,21 +160,23 @@ static func clean_property(
 	elif is_instance_of(property, Object):
 		if property:
 			@warning_ignore("unsafe_cast")
-			clean_paths(property as Object, root, original_node)
+			clean_paths(property as Object, root, original_node, state)
 
 	elif property is Array:
 		@warning_ignore("unsafe_cast")
 		for sub: Variant in property as Array:
-			clean_property(sub, object, original_node, root, property_name)
+			clean_property(sub, object, original_node, root, property_name, state)
 
 	elif property is Dictionary:
 		@warning_ignore("unsafe_cast")
 		for sub: Variant in (property as Dictionary).keys():
-			clean_property(sub, object, original_node, root, property_name)
+			clean_property(sub, object, original_node, root, property_name, state)
 
 		@warning_ignore("unsafe_cast")
 		for sub: Variant in (property as Dictionary).values():
-			clean_property(sub, object, original_node, root, property_name)
+			clean_property(sub, object, original_node, root, property_name, state)
+	
+	state.stages_completed += 1
 
 
 static func is_animation_good(node: AnimationMixer) -> bool:
@@ -175,40 +185,46 @@ static func is_animation_good(node: AnimationMixer) -> bool:
 		for track: int in animation.get_track_count():
 			var type: int = animation.track_get_type(track)
 			match type:
-				Animation.TrackType.TYPE_BEZIER:
-					# bezier can modify arbitary float properties
-					return false
-				Animation.TrackType.TYPE_METHOD:
-					return false
-				Animation.TrackType.TYPE_VALUE:
-					return false
-	return true
+				Animation.TrackType.TYPE_ANIMATION:
+					return true
+				Animation.TrackType.TYPE_AUDIO:
+					return true
+				Animation.TrackType.TYPE_BLEND_SHAPE:
+					return true
+				Animation.TrackType.TYPE_POSITION_3D:
+					return true
+				Animation.TrackType.TYPE_ROTATION_3D:
+					return true
+				Animation.TrackType.TYPE_SCALE_3D:
+					return true
+	return false
 
 
-static func clean_anim_tree(untyped_node: AnimationRootNode) -> void:
+static func clean_anim_tree(untyped_node: AnimationRootNode, state:SetupState) -> void:
+	state.stages_started += 1
 	if untyped_node is AnimationNodeBlendSpace1D:
 		var node: AnimationNodeBlendSpace1D = untyped_node
 		for index: int in range(0, node.get_blend_point_count()):
-			clean_anim_tree(node.get_blend_point_node(index))
+			clean_anim_tree(node.get_blend_point_node(index), state)
 
 	elif untyped_node is AnimationNodeBlendSpace2D:
 		var node: AnimationNodeBlendSpace2D = untyped_node
 		for index: int in range(0, node.get_blend_point_count()):
-			clean_anim_tree(node.get_blend_point_node(index))
+			clean_anim_tree(node.get_blend_point_node(index), state)
 
 	elif untyped_node is AnimationNodeBlendTree:
 		var node: AnimationNodeBlendTree = untyped_node
 		for node_name: String in node.get_node_list():
 			var sub_node: AnimationNode = node.get_node(node_name)
 			if sub_node is AnimationRootNode:
-				clean_anim_tree(sub_node as AnimationRootNode)
+				clean_anim_tree(sub_node as AnimationRootNode, state)
 
 	elif untyped_node is AnimationNodeStateMachine:
 		var node: AnimationNodeStateMachine = untyped_node
 		for node_name: String in node.get_node_list():
 			var sub_node: AnimationNode = node.get_node(node_name) as AnimationNode
 			if sub_node is AnimationRootNode:
-				clean_anim_tree(sub_node as AnimationRootNode)
+				clean_anim_tree(sub_node as AnimationRootNode, state)
 		for index: int in range(0, node.get_transition_count()):
 			if node.get_transition(index).advance_expression != "":
 				print(
@@ -216,12 +232,17 @@ static func clean_anim_tree(untyped_node: AnimationRootNode) -> void:
 					% [node.get_transition(index).advance_expression, index, node]
 				)
 				node.get_transition(index).advance_expression = ""
+	state.stages_completed += 1
 
 
 static func setup_world(root: Node) -> WorldController:
 	var state: SetupState = SetupState.new()
+	state.stages_started += 1
 
 	setup_object(root, TypeHelper.ObjectType.world, state)
+	
+	state.stages_completed += 1
+	state.stages_started += 1
 
 	var world: WorldController
 	if state.state.has("spawnpoint"):
@@ -232,6 +253,11 @@ static func setup_world(root: Node) -> WorldController:
 		root.add_child(spawn_node)
 		world = WorldController.setup(spawn_node)
 	world.add_child(root)
+	
+	state.stages_completed += 1
+	if state.stages_started != state.stages_completed:
+		push_error("error while running world setup! started %s stages but only completed %s" % [state.stages_started, state.stages_completed])
+		return null
 
 	return world
 
@@ -245,11 +271,17 @@ static func setup_avatar(root: Node, player: Player) -> void:
 	]
 
 	var state: SetupState = SetupState.new()
+	
+	state.stages_started += 1
+	
 	var combined_aabb: AABB = AABB(Vector3.ZERO, Vector3.ZERO)
 
 	state.state["player"] = player
 
 	setup_object(root, TypeHelper.ObjectType.avatar, state)
+	
+	state.stages_completed += 1
+	state.stages_started += 1
 
 	var nodes: Array[Node] = get_node_and_children_recursive(root)
 	for node: Node in nodes:
@@ -321,3 +353,8 @@ static func setup_avatar(root: Node, player: Player) -> void:
 		player.collider.position.y += (player.collider.shape as CapsuleShape3D).height / 2
 
 	player.position.y += (player.collider.shape as CapsuleShape3D).height / 2
+	
+	state.stages_completed += 1
+	if state.stages_started != state.stages_completed:
+		push_error("error while running avatar setup! started %s stages but only completed %s" % [state.stages_started, state.stages_completed])
+		player.free()
