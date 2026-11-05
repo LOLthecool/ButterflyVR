@@ -37,11 +37,15 @@ func load_homeworld() -> void:
 		)
 		await load_fallback_world()
 		return
+	
+	@warning_ignore("unsafe_cast")
+	var homeworld:UUID = UUID.from_String(values["homeworld"] as String)
+	
+	GlobalPersistanceHandler.save_value("cache", "preload_objects", "cached_homeworld", homeworld)
 
 	# todo: get default instance type, if offline load_world(uuid),
 	# otherwise create instance then load
-	@warning_ignore("unsafe_cast")
-	await load_world(UUID.from_String(values["homeworld"] as String))
+	await load_world(homeworld)
 
 
 func load_fallback_world() -> void:

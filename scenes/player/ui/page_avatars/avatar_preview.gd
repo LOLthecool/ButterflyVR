@@ -77,9 +77,13 @@ func on_avatar_details() -> void:
 
 
 func on_avatar_equip() -> void:
-	var avatar_handler: AvatarChangeHandler = GlobalWorldHandler.current_world.avatar_change_handler
 	@warning_ignore("unsafe_cast")
+	var new_avatar:UUID = UUID.from_String(avatar["id"] as String)
+	
+	GlobalPersistanceHandler.save_value("cache", "preload_objects", "cached_avatar", new_avatar)
+	
+	var avatar_handler: AvatarChangeHandler = GlobalWorldHandler.current_world.avatar_change_handler
 	avatar_handler.send_message(
 		(await GlobalAccountHandler.get_uuid()).backing_storage,
-		UUID.from_String(avatar["id"] as String),
+		new_avatar,
 	)

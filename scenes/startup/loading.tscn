@@ -1,301 +1,166 @@
-[gd_scene format=3 uid="uid://dq0jh8bb6ohna"]
+[gd_scene format=3 uid="uid://b7mhldmhnwt7w"]
 
-[ext_resource type="Script" uid="uid://d3sv3rpa5pvwh" path="res://scenes/startup/loading.gd" id="1_1u0nn"]
-[ext_resource type="Script" uid="uid://422hm72ur4fm" path="res://scenes/startup/exit.gd" id="2_nvabl"]
+[ext_resource type="Script" uid="uid://cin58nwskcl6k" path="res://scenes/startup/loading.gd" id="1_1u0nn"]
+[ext_resource type="Script" uid="uid://iv255qrhjv0x" path="res://scenes/startup/greeter.gd" id="2_ay28i"]
+[ext_resource type="Script" uid="uid://d26pbc0ataicu" path="res://scenes/startup/register.gd" id="3_g2xyo"]
+[ext_resource type="Script" uid="uid://265ygw331nub" path="res://scenes/startup/sign_in.gd" id="4_y2wqf"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nvabl"]
-bg_color = Color(0.121569, 0.121569, 0.121569, 1)
+[sub_resource type="DPITexture" id="DPITexture_ay28i"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"14\" height=\"14\" x=\"1\" y=\"1\" fill=\"#fff\" fill-opacity=\".75\" rx=\"2.333\"/><path fill=\"#1a1a1a\" d=\"m11.5 3.75-5.6 5.6-1.7-1.7-1.5 1.5 3.2 3.2 7.1-7.1z\"/></svg>
+"
+base_scale = 4.0
 
-[node name="Loading" type="Control" unique_id=1077524711 node_paths=PackedStringArray("tab_container", "popup", "popup_text", "popup_button", "loading_text", "register_username", "register_email", "register_password", "register_password2", "register_tos", "register_acknowledge", "signin_email", "signin_password", "signin_remember")]
-layout_mode = 3
+[sub_resource type="DPITexture" id="DPITexture_g2xyo"]
+_source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"14\" height=\"14\" x=\"1\" y=\"1\" fill=\"#1a1a1a\" fill-opacity=\".5\" rx=\"2.333\"/></svg>
+"
+base_scale = 4.0
+
+[node name="Loading" type="TabContainer" unique_id=893396541]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_1u0nn")
-tab_container = NodePath("TabContainer")
-popup = NodePath("Popup")
-popup_text = NodePath("Popup/ScrollContainer/Label")
-popup_button = NodePath("Popup/Button")
-loading_text = NodePath("TabContainer/Loading/Label")
-register_username = NodePath("TabContainer/Register/VBoxContainer/LineEdit")
-register_email = NodePath("TabContainer/Register/VBoxContainer/LineEdit3")
-register_password = NodePath("TabContainer/Register/VBoxContainer/LineEdit2")
-register_password2 = NodePath("TabContainer/Register/VBoxContainer/LineEdit4")
-register_tos = NodePath("TabContainer/Register/VBoxContainer/HBoxContainer/CheckBox")
-register_acknowledge = NodePath("TabContainer/Register/VBoxContainer/HBoxContainer2/CheckBox")
-signin_email = NodePath("TabContainer/SignIn/VBoxContainer/LineEdit")
-signin_password = NodePath("TabContainer/SignIn/VBoxContainer/LineEdit2")
-signin_remember = NodePath("TabContainer/SignIn/VBoxContainer/CheckBox")
-
-[node name="TabContainer" type="TabContainer" parent="." unique_id=441108368]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 389.0
-offset_top = 219.0
-offset_right = -389.0
-offset_bottom = -219.0
-grow_horizontal = 2
-grow_vertical = 2
-current_tab = 0
+current_tab = 2
 tabs_visible = false
 
-[node name="Loading" type="VBoxContainer" parent="TabContainer" unique_id=47028079]
+[node name="Loading" type="VBoxContainer" parent="." unique_id=1402874641 node_paths=PackedStringArray("greeter", "loading_text")]
+visible = false
 layout_mode = 2
-alignment = 2
+script = ExtResource("1_1u0nn")
+greeter = NodePath("../Greeter")
+loading_text = NodePath("Label")
 metadata/_tab_index = 0
 
-[node name="Label" type="Label" parent="TabContainer/Loading" unique_id=497385147]
+[node name="Label" type="Label" parent="Loading" unique_id=393073123]
 layout_mode = 2
-theme_override_font_sizes/font_size = 64
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 96
 text = "Loading..."
 horizontal_alignment = 1
 vertical_alignment = 2
-metadata/_edit_use_anchors_ = true
 
-[node name="Button3" type="Button" parent="TabContainer/Loading" unique_id=1569058408]
+[node name="Button" type="Button" parent="Loading" unique_id=731338303]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 64
 text = "Cancel"
-metadata/_edit_use_anchors_ = true
 
-[node name="Greeter" type="Control" parent="TabContainer" unique_id=545229189]
+[node name="Greeter" type="VBoxContainer" parent="." unique_id=1171914057]
 visible = false
 layout_mode = 2
+alignment = 1
+script = ExtResource("2_ay28i")
 metadata/_tab_index = 1
 
-[node name="Button" type="Button" parent="TabContainer/Greeter" unique_id=1517433757]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.174256
-anchor_top = 0.0872274
-anchor_right = 0.825744
-anchor_bottom = 0.412773
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 64
-text = "Sign In"
-metadata/_edit_use_anchors_ = true
-
-[node name="Button2" type="Button" parent="TabContainer/Greeter" unique_id=1137082750]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.174256
-anchor_top = 0.531153
-anchor_right = 0.825744
-anchor_bottom = 0.856698
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 64
-text = "Sign Up"
-metadata/_edit_use_anchors_ = true
-
-[node name="Button3" type="Button" parent="TabContainer/Greeter" unique_id=120703733]
-layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.911215
-anchor_right = 0.165499
-anchor_bottom = 1.0
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 32
-text = "Exit"
-script = ExtResource("2_nvabl")
-metadata/_edit_use_anchors_ = true
-
-[node name="SignIn" type="Control" parent="TabContainer" unique_id=1332276129]
-visible = false
+[node name="SignUp" type="Button" parent="Greeter" unique_id=497174749]
 layout_mode = 2
+size_flags_vertical = 10
+theme_override_font_sizes/font_size = 128
+text = "Sign Up"
+
+[node name="SignIn" type="Button" parent="Greeter" unique_id=886373246]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_font_sizes/font_size = 128
+text = "Sign In"
+
+[node name="Exit" type="Button" parent="Greeter" unique_id=867743558]
+layout_mode = 2
+size_flags_vertical = 10
+theme_override_font_sizes/font_size = 128
+text = "Exit"
+
+[node name="Register" type="VBoxContainer" parent="." unique_id=895649744]
+layout_mode = 2
+script = ExtResource("3_g2xyo")
 metadata/_tab_index = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/SignIn" unique_id=1053961464]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.10683012
-anchor_top = 0.1105919
-anchor_right = 0.8896673
-anchor_bottom = 0.6635514
-metadata/_edit_use_anchors_ = true
-
-[node name="LineEdit" type="LineEdit" parent="TabContainer/SignIn/VBoxContainer" unique_id=86106584]
+[node name="LineEdit" type="LineEdit" parent="Register" unique_id=746245950]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
-placeholder_text = "Email"
-metadata/_edit_use_anchors_ = true
+theme_override_font_sizes/font_size = 64
+placeholder_text = "Username..."
 
-[node name="LineEdit2" type="LineEdit" parent="TabContainer/SignIn/VBoxContainer" unique_id=483410230]
+[node name="LineEdit2" type="LineEdit" parent="Register" unique_id=429197293]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
-placeholder_text = "Password"
+theme_override_font_sizes/font_size = 64
+placeholder_text = "Email..."
+
+[node name="LineEdit3" type="LineEdit" parent="Register" unique_id=1388200170]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+placeholder_text = "Password..."
 secret = true
-metadata/_edit_use_anchors_ = true
 
-[node name="CheckBox" type="CheckBox" parent="TabContainer/SignIn/VBoxContainer" unique_id=1056957839]
+[node name="LineEdit4" type="LineEdit" parent="Register" unique_id=1619810277]
 layout_mode = 2
-text = "Remember Me"
-metadata/_edit_use_anchors_ = true
-
-[node name="HSeparator" type="HSeparator" parent="TabContainer/SignIn/VBoxContainer" unique_id=1098213071]
-layout_mode = 2
-
-[node name="Button2" type="Button" parent="TabContainer/SignIn/VBoxContainer" unique_id=1335597578]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Login"
-metadata/_edit_use_anchors_ = true
-
-[node name="Button3" type="Button" parent="TabContainer/SignIn" unique_id=1098492819]
-layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.911215
-anchor_right = 0.165499
-anchor_bottom = 1.0
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 32
-text = "Back"
-metadata/_edit_use_anchors_ = true
-
-[node name="Register" type="Control" parent="TabContainer" unique_id=563437191]
-visible = false
-layout_mode = 2
-metadata/_tab_index = 3
-
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Register" unique_id=1553051212]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.049912434
-anchor_top = 0.0529595
-anchor_right = 0.94308233
-anchor_bottom = 0.88317746
-metadata/_edit_use_anchors_ = true
-
-[node name="LineEdit" type="LineEdit" parent="TabContainer/Register/VBoxContainer" unique_id=1305465144]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-placeholder_text = "Username"
-metadata/_edit_use_anchors_ = true
-
-[node name="LineEdit3" type="LineEdit" parent="TabContainer/Register/VBoxContainer" unique_id=874548086]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-placeholder_text = "Email"
-metadata/_edit_use_anchors_ = true
-
-[node name="LineEdit2" type="LineEdit" parent="TabContainer/Register/VBoxContainer" unique_id=769575305]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-placeholder_text = "Password"
+theme_override_font_sizes/font_size = 64
+placeholder_text = "Confirm Password..."
 secret = true
-metadata/_edit_use_anchors_ = true
 
-[node name="LineEdit4" type="LineEdit" parent="TabContainer/Register/VBoxContainer" unique_id=969887934]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-placeholder_text = "Confirm Password"
-secret = true
-metadata/_edit_use_anchors_ = true
-
-[node name="HBoxContainer" type="HBoxContainer" parent="TabContainer/Register/VBoxContainer" unique_id=1956619095]
+[node name="HBoxContainer" type="HBoxContainer" parent="Register" unique_id=1914044486]
 layout_mode = 2
 metadata/_edit_use_anchors_ = true
 
-[node name="CheckBox" type="CheckBox" parent="TabContainer/Register/VBoxContainer/HBoxContainer" unique_id=741889814]
+[node name="CheckBox" type="CheckBox" parent="Register/HBoxContainer" unique_id=448516364]
 layout_mode = 2
+theme_override_icons/checked = SubResource("DPITexture_ay28i")
+theme_override_icons/unchecked = SubResource("DPITexture_g2xyo")
 metadata/_edit_use_anchors_ = true
 
-[node name="RichTextLabel" type="RichTextLabel" parent="TabContainer/Register/VBoxContainer/HBoxContainer" unique_id=62974758]
+[node name="RichTextLabel" type="RichTextLabel" parent="Register/HBoxContainer" unique_id=697961894]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/normal_font_size = 24
+theme_override_font_sizes/normal_font_size = 48
 bbcode_enabled = true
 text = "I agree to the ButterflyVR [url=local.TOS]Terms Of Service[/url] and [url=local.privacy]Privacy Policy[/url]"
 fit_content = true
 metadata/_edit_use_anchors_ = true
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="TabContainer/Register/VBoxContainer" unique_id=181504720]
+[node name="HBoxContainer2" type="HBoxContainer" parent="Register" unique_id=707580039]
 layout_mode = 2
 
-[node name="CheckBox" type="CheckBox" parent="TabContainer/Register/VBoxContainer/HBoxContainer2" unique_id=970269821]
+[node name="CheckBox" type="CheckBox" parent="Register/HBoxContainer2" unique_id=264330519]
 layout_mode = 2
+theme_override_icons/checked = SubResource("DPITexture_ay28i")
+theme_override_icons/unchecked = SubResource("DPITexture_g2xyo")
 metadata/_edit_use_anchors_ = true
 
-[node name="RichTextLabel" type="RichTextLabel" parent="TabContainer/Register/VBoxContainer/HBoxContainer2" unique_id=376092418]
+[node name="RichTextLabel" type="RichTextLabel" parent="Register/HBoxContainer2" unique_id=847342532]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/normal_font_size = 24
+theme_override_font_sizes/normal_font_size = 48
 bbcode_enabled = true
 text = "I understand that ButterflyVR is in a Pre-Alpha state and as such the current state of the game is not representative of the final product. I understand some features may be missing or broken."
 fit_content = true
 metadata/_edit_use_anchors_ = true
 
-[node name="Button2" type="Button" parent="TabContainer/Register/VBoxContainer" unique_id=443619045]
+[node name="HBoxContainer3" type="HBoxContainer" parent="Register" unique_id=215269576]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Sign Up"
-metadata/_edit_use_anchors_ = true
+size_flags_vertical = 10
 
-[node name="Button3" type="Button" parent="TabContainer/Register" unique_id=1872751416]
-layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.911215
-anchor_right = 0.165499
-anchor_bottom = 1.0
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 32
-text = "Back"
-metadata/_edit_use_anchors_ = true
-
-[node name="Popup" type="Panel" parent="." unique_id=609853379]
-visible = false
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.317708
-anchor_top = 0.212963
-anchor_right = 0.682292
-anchor_bottom = 0.712037
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_nvabl")
-metadata/_edit_use_anchors_ = true
-
-[node name="Button" type="Button" parent="Popup" unique_id=678983926]
-layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.857401
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_font_sizes/font_size = 40
-text = "close"
-metadata/_edit_use_anchors_ = true
-
-[node name="ScrollContainer" type="ScrollContainer" parent="Popup" unique_id=1160668905]
-layout_mode = 1
-anchors_preset = -1
-anchor_right = 0.999998
-anchor_bottom = 0.857143
-grow_horizontal = 2
-metadata/_edit_use_anchors_ = true
-
-[node name="Label" type="RichTextLabel" parent="Popup/ScrollContainer" unique_id=87499466]
+[node name="Cancel" type="Button" parent="Register/HBoxContainer3" unique_id=676772035]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-bbcode_enabled = true
-text = "UNNAMED"
-fit_content = true
-horizontal_alignment = 1
-vertical_alignment = 1
-threaded = true
-progress_bar_delay = 500
-metadata/_edit_use_anchors_ = true
+theme_override_font_sizes/font_size = 96
+text = "Cancel"
 
-[connection signal="pressed" from="TabContainer/Loading/Button3" to="." method="_on_load_cancelled"]
-[connection signal="pressed" from="TabContainer/Greeter/Button" to="." method="_on_login_selected"]
-[connection signal="pressed" from="TabContainer/Greeter/Button2" to="." method="_on_register_selected"]
-[connection signal="pressed" from="TabContainer/SignIn/VBoxContainer/Button2" to="." method="_on_login"]
-[connection signal="pressed" from="TabContainer/SignIn/Button3" to="." method="_on_back_button_pressed"]
-[connection signal="meta_clicked" from="TabContainer/Register/VBoxContainer/HBoxContainer/RichTextLabel" to="." method="_on_link_clicked"]
-[connection signal="pressed" from="TabContainer/Register/VBoxContainer/Button2" to="." method="_on_register"]
-[connection signal="pressed" from="TabContainer/Register/Button3" to="." method="_on_back_button_pressed"]
+[node name="SignUp" type="Button" parent="Register/HBoxContainer3" unique_id=197593513]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 96
+text = "Sign Up"
+
+[node name="SignIn" type="VBoxContainer" parent="." unique_id=921397381]
+visible = false
+layout_mode = 2
+script = ExtResource("4_y2wqf")
+metadata/_tab_index = 3
+
+[connection signal="pressed" from="Loading/Button" to="Loading" method="_on_button_pressed"]
+[connection signal="pressed" from="Greeter/SignUp" to="Greeter" method="_on_sign_up_pressed"]
+[connection signal="pressed" from="Greeter/SignIn" to="Greeter" method="_on_sign_in_pressed"]
+[connection signal="pressed" from="Greeter/Exit" to="Greeter" method="_on_exit_pressed"]
+[connection signal="pressed" from="Register/HBoxContainer3/Cancel" to="Register" method="_on_cancel_pressed"]
+[connection signal="pressed" from="Register/HBoxContainer3/SignUp" to="Register" method="_on_sign_up_pressed"]

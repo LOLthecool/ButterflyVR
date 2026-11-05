@@ -1,6 +1,6 @@
 extends Node
 class_name PersistanceHandler
-# provides a homogenous ConfigFile style interface over multiple files containing persistant data
+## provides a homogenous ConfigFile style interface over multiple files containing persistant data
 
 const CONFIG_PATH: String = "user://config/%s.cfg"
 const CONFIG_DIR: String = "user://config/"
@@ -22,7 +22,7 @@ func _exit_tree() -> void:
 	flush_all()
 
 
-# gets a config value from the specified file, creating it with the default value if it dosent exist
+## gets a config value from the specified file, creating it with the default value if it dosent exist
 func register_value(
 	file_name: String,
 	catagory: String,
@@ -48,7 +48,7 @@ func register_value(
 	return default_value
 
 
-# falible version of register_value, requires that the specified value exists
+## falible version of register_value, requires that the specified value exists
 func get_value(file_name: String, catagory: String, key: String) -> Variant:
 	var file: String = CONFIG_PATH % file_name
 	return config_files[file].get_value(catagory, key)
@@ -79,8 +79,8 @@ func clear_catagory(file_name: String, catagory: String, flush: bool = true) -> 
 		config_files[file].save(file)
 
 
-# changes the value of an existing key
-# errors if the specified key does not exist (create with register_value)
+## changes the value of an existing key
+## errors if the specified key does not exist (create with register_value)
 func set_value(
 	file_name: String,
 	catagory: String,
@@ -95,7 +95,7 @@ func set_value(
 		config_files[file].save(file)
 
 
-# combined register + set value, sets the key to the value and creates it if it dosent exist
+## combined register + set value, sets the key to the value and creates it if it dosent exist
 func save_value(
 	file_name: String,
 	catagory: String,
