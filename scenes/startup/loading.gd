@@ -1,8 +1,8 @@
 extends VBoxContainer
 class_name LoadingMenu
+# todo: use when signing up / logging in
 
 @export var greeter:GreeterMenu
-@export var last_screen_idx:int = 0
 @export var loading_text:Label
 
 var canceled:bool = false
@@ -41,7 +41,7 @@ func start() -> void:
 	if canceled:
 		canceled = false
 		@warning_ignore("unsafe_property_access")
-		get_parent().get_child(last_screen_idx).visible = true
+		greeter.visible = true
 	else:
 		await GlobalWorldHandler.load_homeworld()
 
