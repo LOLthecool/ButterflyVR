@@ -5,6 +5,8 @@ class_name LoadingMenu
 @export var greeter:GreeterMenu
 @export var loading_text:Label
 
+@export var root:Node
+
 var canceled:bool = false
 
 func _init() -> void:
@@ -12,10 +14,11 @@ func _init() -> void:
 		# todo: awaiting this call breaks things and im not sure why
 		@warning_ignore("missing_await")
 		ServerLoader.start()
-		queue_free()
 
 func _ready() -> void:
 	if OS.get_cmdline_args().has("--server") or OS.get_cmdline_args().has("--headless"):
+		await root.ready
+		root.queue_free()
 		return
 
 	if await GlobalAccountHandler.check_token_valid():

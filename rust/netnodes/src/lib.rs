@@ -32,7 +32,6 @@
 
 mod client;
 mod common;
-mod message_manager;
 mod messages;
 mod net_nodes;
 mod networker;
@@ -45,7 +44,6 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use crate::client::NetNodeClient;
-use crate::message_manager::MessageManager;
 use crate::messages::MessageHandler;
 use crate::net_nodes::NetworkedNode;
 use crate::server::NetNodeServer;
@@ -284,14 +282,11 @@ impl NetNodeManager {
             return;
         };
 
-        let message_manager = MessageManager::new_alloc();
-        self.base_mut().add_child(&message_manager);
-
         self.inner = Inner::Client(NetNodeClient::new(
             SocketAddr::new(server_ip, server_port),
             uuid,
             identifier,
-            message_manager,
+            self.base().get_tree(),
         ));
     }
 

@@ -1,8 +1,8 @@
-use crate::common::{self, MessageAccess};
+use crate::common::{self, MESSAGE_HEADER_SIZE, decode_internal_message};
 use crate::common::{
     DGRAM_HEADER_SIZE, InternalMessage, OBJECT_HEADER_SIZE, generate_internal_message,
 };
-use crate::message_manager::MessageManager;
+use crate::messages::MessageHandler;
 use crate::net_nodes::NetworkedNode;
 use crate::networker::{ConnectionHandler, NetNodesError};
 use crate::serializer::NetworkedValueTypes;
@@ -10,6 +10,7 @@ use bitvec::prelude::*;
 use godot::prelude::*;
 use rand::SeedableRng;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, VecDeque};
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -29,9 +30,10 @@ pub struct NetNodeClient {
     unapplied_packets: BTreeMap<(i8, [u8; 16]), BitVec<u64, Lsb0>>,
     incomplete_messages: HashMap<u64, (Option<usize>, BitVec<u64, Lsb0>)>,
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
+    message_handlers: HashMap<u16, Gd<MessageHandler>>,
     server_tick_number: i8,
     current_tick: i8,
-    message_manager: Gd<MessageManager>,
+    tree: Gd<SceneTree>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,9 +71,7 @@ impl NetNodeClient {
     }
 
     pub fn unregister_message(&mut self, message_type: u16) {
-        self.message_manager
-            .bind_mut()
-            .unregister_message(message_type);
+        self.message_handlers.remove(&message_type);
     }
 
     pub fn get_networked_nodes(&self) -> &[Gd<NetworkedNode>] {
@@ -91,7 +91,7 @@ impl NetNodeClient {
         server_addr: SocketAddr,
         uuid: [u8; 16],
         identifier: [u8; 8],
-        message_manager: Gd<MessageManager>,
+        tree: Gd<SceneTree>,
     ) -> Self {
         Self {
             connected: ConnectionStatus::AwaitingConnection(identifier),
@@ -103,9 +103,10 @@ impl NetNodeClient {
             unapplied_packets: BTreeMap::new(),
             incomplete_messages: HashMap::new(),
             message_buffer: VecDeque::new(),
+            message_handlers: HashMap::new(),
             server_tick_number: 0,
             current_tick: 0,
-            message_manager,
+            tree,
         }
     }
     pub fn disconnect(&mut self) {
@@ -130,14 +131,53 @@ impl NetNodeClient {
 
         for stream in self.networker.get_readable_streams(server) {
             let (length, data) = self.incomplete_messages.entry(stream).or_default();
-            common::handle_stream(
-                stream,
-                server,
-                (length, data),
-                &mut self.networker,
-                &mut self.message_buffer,
-                MessageAccess::Manager(&mut self.message_manager),
-            )?;
+
+            let messages =
+                common::handle_stream(stream, server, (length, data), &mut self.networker)?;
+
+            let (internal_messages, messages): (Vec<_>, Vec<_>) = messages
+                .into_iter()
+                .partition(|(_, message_type)| *message_type == 0);
+
+            for (data, _) in internal_messages {
+                if let Ok(msg) =
+                    decode_internal_message(&data, &mut MESSAGE_HEADER_SIZE.clone(), &self.tree)
+                        .inspect_err(|e| godot_error!("failed to decode internal message: {e:?}"))
+                {
+                    match msg {
+                        InternalMessage::ClientId(_) => {
+                            unreachable!();
+                        }
+                        InternalMessage::NetNodeIdAssign((id, mut node)) => {
+                            node.bind_mut().objectid = id;
+                        }
+                        InternalMessage::MessageHandlerIdAssign((id, mut handler)) => {
+                            if let Entry::Vacant(x) = self.message_handlers.entry(id) {
+                                handler.bind_mut().message_id = id;
+                                x.insert(handler);
+                            } else {
+                                godot_warn!(
+                                    "tried to register duplicate handlers for message type {:#?}",
+                                    id
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (data, message_type) in messages {
+                if let Some(handler) = self.message_handlers.get_mut(&message_type) {
+                    let _ = handler.bind_mut().handle_message(
+                        &data,
+                        &mut MESSAGE_HEADER_SIZE.clone(),
+                        false,
+                        false,
+                    );
+                } else {
+                    godot_error!("received a message but had no handler for it: {message_type:?}");
+                }
+            }
         }
 
         common::handle_datagrams(
@@ -322,11 +362,5 @@ impl NetNodeClient {
         if let Err(e) = self.networker.update() {
             godot_error!("failed to update client networker: {e:?}");
         }
-    }
-}
-
-impl Drop for NetNodeClient {
-    fn drop(&mut self) {
-        self.message_manager.queue_free();
     }
 }

@@ -1,5 +1,5 @@
 use crate::common::{
-    BYTES2, DGRAM_HEADER_SIZE, InternalMessage, MessageAccess, NetNodesConnectionId,
+    BYTES2, DGRAM_HEADER_SIZE, InternalMessage, MESSAGE_HEADER_SIZE, NetNodesConnectionId,
     OBJECT_HEADER_SIZE, generate_internal_message,
 };
 use crate::net_nodes::NetworkedNode;
@@ -217,14 +217,39 @@ impl NetNodeServer {
                 ClientState::Connected(ref mut client) => {
                     for stream in self.networker.get_readable_streams(client_id) {
                         let (length, data) = client.incomplete_messages.entry(stream).or_default();
-                        common::handle_stream(
+                        let messages = common::handle_stream(
                             stream,
                             client_id,
                             (length, data),
                             &mut self.networker,
-                            &mut self.message_buffer,
-                            MessageAccess::Handlers(&mut self.message_handlers),
                         )?;
+
+                        for (data, handler) in messages {
+                            if handler == 0 {
+                                godot_error!("server got internal message after client_id");
+                            } else {
+                                if let Some(handler) = self.message_handlers.get_mut(&handler) {
+                                    let (values, types) = handler.bind_mut().handle_message(
+                                        &data,
+                                        &mut MESSAGE_HEADER_SIZE.clone(),
+                                        true,
+                                        true,
+                                    );
+                                    self.message_buffer.push_back((
+                                        MessageHandler::generate_packet(
+                                            &values,
+                                            &types,
+                                            handler.bind().message_id,
+                                        ),
+                                        stream,
+                                    ));
+                                } else {
+                                    godot_error!(
+                                        "received a message but had no handler for it: {handler:?}"
+                                    );
+                                }
+                            }
+                        }
                     }
 
                     common::handle_datagrams(

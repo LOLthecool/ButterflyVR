@@ -26,11 +26,12 @@ grow_vertical = 2
 current_tab = 0
 tabs_visible = false
 
-[node name="Loading" type="VBoxContainer" parent="." unique_id=1402874641 node_paths=PackedStringArray("greeter", "loading_text")]
+[node name="Loading" type="VBoxContainer" parent="." unique_id=1402874641 node_paths=PackedStringArray("greeter", "loading_text", "root")]
 layout_mode = 2
 script = ExtResource("1_1u0nn")
 greeter = NodePath("../Greeter")
 loading_text = NodePath("Label")
+root = NodePath("..")
 metadata/_tab_index = 0
 
 [node name="Label" type="Label" parent="Loading" unique_id=393073123]

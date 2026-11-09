@@ -1,5 +1,4 @@
 use crate::{
-    message_manager::MessageManager,
     messages::MessageHandler,
     net_nodes::NetworkedNode,
     networker::{ConnectionHandler, NetNodesError},
@@ -8,7 +7,7 @@ use bitvec::prelude::*;
 use godot::prelude::*;
 use rand::RngExt;
 use std::{
-    collections::{BTreeMap, HashMap, VecDeque},
+    collections::{BTreeMap, VecDeque},
     rc::Rc,
 };
 
@@ -46,22 +45,14 @@ impl From<NetNodesConnectionId> for quiche::ConnectionId<'_> {
     }
 }
 
-pub enum MessageAccess<'a> {
-    Handlers(&'a mut HashMap<u16, Gd<MessageHandler>>),
-    Manager(&'a mut Gd<MessageManager>),
-}
-
 pub fn handle_stream(
     stream: u64,
     peer: &NetNodesConnectionId,
     previous_data: (&mut Option<usize>, &mut BitVec<u64, Lsb0>),
     networker: &mut ConnectionHandler,
-    message_buffer: &mut VecDeque<(BitVec<u64, Lsb0>, u64)>,
-    // this function requires that message access corresponds to the peer being either a client or a server
-    // clients should use manager while servers should use handlers
-    mut message_access: MessageAccess,
-) -> Result<(), NetNodesError> {
+) -> Result<Vec<(BitVec<u64, Lsb0>, u16)>, NetNodesError> {
     let (previous_length_bytes, data) = previous_data;
+    let mut result = Vec::new();
 
     loop {
         if previous_length_bytes.is_none() {
@@ -74,7 +65,7 @@ pub fn handle_stream(
                 *previous_length_bytes = Some(data.load_le::<usize>());
                 data.clear();
             } else {
-                return Ok(());
+                return Ok(result);
             }
         }
 
@@ -86,47 +77,12 @@ pub fn handle_stream(
         data.extend_from_bitslice(&networker.recv_stream(peer, stream, remaining)?);
 
         if (data.len() / BYTE) != *length_bytes {
-            return Ok(());
+            return Ok(result);
         }
 
         let handler: u16 = data[0..MESSAGE_HEADER_SIZE].load_le();
-        let mut pointer = MESSAGE_HEADER_SIZE;
 
-        if handler == 0 {
-            if let MessageAccess::Manager(ref mut manager) = message_access {
-                let data = data.to_owned();
-                manager.run_deferred(|this| this.handle_internal_message(data));
-            } else {
-                godot_error!("server got internal message after client_id");
-            }
-        } else {
-            match message_access {
-                MessageAccess::Handlers(ref mut message_handlers) => {
-                    if let Some(handler) = message_handlers.get_mut(&handler) {
-                        let (values, types) =
-                            handler
-                                .bind_mut()
-                                .handle_message(data, &mut pointer, true, true);
-                        message_buffer.push_back((
-                            MessageHandler::generate_packet(
-                                &values,
-                                &types,
-                                handler.bind().message_id,
-                            ),
-                            stream,
-                        ));
-                    } else {
-                        godot_error!("received a message but had no handler for it: {handler:?}");
-                    }
-                }
-                MessageAccess::Manager(ref mut manager) => {
-                    let mut data = data.clone();
-                    manager.run_deferred(move |this| {
-                        this.handle_message(&mut data, handler, &mut pointer)
-                    });
-                }
-            }
-        }
+        result.push((data.clone(), handler));
 
         *previous_length_bytes = None;
         data.clear();
@@ -239,7 +195,7 @@ pub fn generate_internal_message(message: InternalMessage) -> BitVec<u64, Lsb0> 
 pub fn decode_internal_message(
     packet: &BitSlice<u64, Lsb0>,
     pointer: &mut usize,
-    scene_access: &Gd<Node>,
+    tree: &Gd<SceneTree>,
 ) -> Result<InternalMessage, NetNodesError> {
     if packet.len() < *pointer + 1 + BYTES2 + BYTES4 {
         return Err(NetNodesError::InvalidDatagramLength);
@@ -262,16 +218,16 @@ pub fn decode_internal_message(
             path.push_back(segment);
         }
 
-        let mut node: Option<Gd<Node>> = scene_access
-            .get_tree_or_null()
-            .and_then(|x| x.get_root())
-            .map(Gd::upcast);
+        let mut node: Option<Gd<Node>> = tree.get_root().map(Gd::upcast);
 
         while let Some(idx) = path.pop_front() {
             let Some(n) = node else {
                 return Err(NetNodesError::InvalidDatagram);
             };
             node = n.get_child_ex(idx).include_internal(true).done();
+            if node.is_none() {
+                godot_error!("path failed at node {:?}", n.get_path(),);
+            }
         }
 
         if let Some(Ok(node)) = node.clone().map(Gd::try_cast) {
@@ -293,10 +249,7 @@ pub fn decode_internal_message(
             path.push_back(segment);
         }
 
-        let mut node: Option<Gd<Node>> = scene_access
-            .get_tree_or_null()
-            .and_then(|x| x.get_root())
-            .map(Gd::upcast);
+        let mut node: Option<Gd<Node>> = tree.get_root().map(Gd::upcast);
 
         while let Some(idx) = path.pop_front() {
             let Some(n) = node else {
