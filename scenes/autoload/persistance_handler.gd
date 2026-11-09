@@ -21,6 +21,17 @@ func _init() -> void:
 func _exit_tree() -> void:
 	flush_all()
 
+func has_value(
+	file_name: String,
+	catagory: String,
+	key: String,
+) -> bool:
+	var file: String = CONFIG_PATH % file_name
+
+	if config_files.has(file):
+		if config_files[file].has_section_key(catagory, key):
+			return true
+	return false
 
 ## gets a config value from the specified file, creating it with the default value if it dosent exist
 func register_value(

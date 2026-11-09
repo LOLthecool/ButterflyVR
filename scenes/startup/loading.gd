@@ -32,8 +32,9 @@ func start() -> void:
 	loading_text.text = "Loading homeworld..."
 	
 	var t1:int = Time.get_ticks_msec()
-	var homeworld:UUID = GlobalPersistanceHandler.register_value("cache", "preload_objects", "cached_homeworld", null)
-	if homeworld:
+	if GlobalPersistanceHandler.has_value("preload_cache", "preload_objects", "cached_homeworld"):
+		@warning_ignore("unsafe_cast")
+		var homeworld:UUID = UUID.from_String(GlobalPersistanceHandler.get_value("preload_cache", "preload_objects", "cached_homeworld") as String)
 		# preload would just guarentee object is in cache, this loads the resource pack too
 		# todo: method for loading resource pack (split resourceloader call to own function?)
 		await GlobalDownloadHandler.get_object(homeworld, TypeHelper.ObjectType.world)
