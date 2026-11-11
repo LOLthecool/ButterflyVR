@@ -4,7 +4,7 @@ class_name APIHandler
 const MAX_RECONNECT_DELAY: float = 15.0
 const BASE_RECONNECT_DELAY: float = 0.1
 const RECONNECT_DELAY_RECOVERY_SECONDS: float = 5
-const REQUEST_TIMEOUT_SECONDS: float = 5
+const REQUEST_TIMEOUT_SECONDS: float = 15
 const PING_ENDPOINT: String = "/api/v0"
 # todo: make readonly once its available
 var headers: PackedStringArray = PackedStringArray(
