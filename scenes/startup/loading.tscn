@@ -274,18 +274,22 @@ size_flags_vertical = 3
 theme_override_font_sizes/font_size = 96
 text = "Sign Up"
 
-[node name="SignIn" type="VBoxContainer" parent="." unique_id=921397381 node_paths=PackedStringArray("greeter", "email", "password", "cancel_button", "continue_button", "invalid_email_error", "password_length_error", "incorrect_error", "generic_error_header", "generic_error_code", "generic_error_message")]
+[node name="SignIn" type="VBoxContainer" parent="." unique_id=921397381 node_paths=PackedStringArray("greeter", "loading_screen", "email", "password", "remember", "cancel_button", "continue_button", "invalid_email_error", "password_length_error", "incorrect_error", "rate_limit_error", "banned_error", "generic_error_header", "generic_error_code", "generic_error_message")]
 visible = false
 layout_mode = 2
 script = ExtResource("4_y2wqf")
 greeter = NodePath("../Greeter")
+loading_screen = NodePath("../Loading")
 email = NodePath("LineEdit2")
 password = NodePath("LineEdit3")
+remember = NodePath("HBoxContainer/CheckBox")
 cancel_button = NodePath("HBoxContainer3/Cancel")
 continue_button = NodePath("HBoxContainer3/SignUp")
 invalid_email_error = NodePath("ErrorEmailInvalid")
 password_length_error = NodePath("ErrorPasswordLength")
 incorrect_error = NodePath("ErrorUsernameEmailInvalid")
+rate_limit_error = NodePath("ErrorRateLimit")
+banned_error = NodePath("ErrorBanned")
 generic_error_header = NodePath("ErrorGeneric")
 generic_error_code = NodePath("ErrorGeneric2")
 generic_error_message = NodePath("ErrorGeneric3")
@@ -395,10 +399,11 @@ size_flags_vertical = 3
 theme_override_font_sizes/font_size = 96
 text = "Sign In"
 
-[node name="RegisterTransition" type="VBoxContainer" parent="." unique_id=1565329115]
+[node name="RegisterTransition" type="VBoxContainer" parent="." unique_id=1565329115 node_paths=PackedStringArray("sign_in")]
 visible = false
 layout_mode = 2
 script = ExtResource("6_y2wqf")
+sign_in = NodePath("../SignIn")
 metadata/_tab_index = 4
 
 [node name="Label" type="Label" parent="RegisterTransition" unique_id=1044468384]
