@@ -1,8 +1,8 @@
 extends Node
 
-const MAX_SERVER_DISAGREE: float = 0.5 # todo: tune this
+const MAX_SERVER_DISAGREE: float = 0.5
 const MAX_SERVER_DISAGREE_SQUARED: float = MAX_SERVER_DISAGREE * MAX_SERVER_DISAGREE # compare squared lengths
-const BASE_LATENCY: int = 10
+const BASE_LATENCY: int = 11
 
 @export var player_access: PlayerAccess
 

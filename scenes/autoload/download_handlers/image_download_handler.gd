@@ -1,6 +1,5 @@
 extends Node
 class_name ImageDownloadHandler
-#todo: still uses the .epck extension for these files even though they are just images
 
 const OBJECT_INFO_ENDPOINT: String = "/api/v0/%s/%s"
 const OBJECT_IMAGE_ENDPOINT: String = "/api/v0/%s/%s/image"
@@ -62,6 +61,11 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> Image:
 		[200],
 		["updated_at", "image_size"],
 	)
+	
+	if !result[0]:
+		@warning_ignore("unsafe_call_argument")
+		MiscHelpers.log_request_error("Error while retrieving image", result[1], result[2], result[3])
+		return
 
 	# todo: error handling
 	var response_values: Dictionary[String, Variant] = result[4]
@@ -79,6 +83,7 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> Image:
 		else:
 			if image.cache_time_utc >= response_values["updated_at"]:
 				backing_cache.save()
+				cache_lock.unlock()
 				return load_image(IMAGE_FILE_PATH % id)
 			else:
 				backing_cache.pop(id)
@@ -100,20 +105,25 @@ func get_object(uuid: UUID, type: TypeHelper.ObjectType) -> Image:
 
 
 func load_image(file: String) -> Image:
+	var png_signature:PackedByteArray = "89504E470D0A1A0A".hex_decode()
+	var jpg_signature:PackedByteArray = "FFD8FF".hex_decode()
+	var webp_signature:PackedByteArray = "52494646".hex_decode()
+	
 	var buffer: PackedByteArray = FileAccess.get_file_as_bytes(file)
 	var new_image: Image = Image.new()
 
-	# todo: stop these from emitting errors whenever we load an image
-	# theres probably a better general solution for this but i couldnt find it
-	if new_image.load_png_from_buffer(buffer) == OK:
-		return new_image
-	elif new_image.load_jpg_from_buffer(buffer) == OK:
-		return new_image
-	elif new_image.load_webp_from_buffer(buffer) == OK:
-		return new_image
-	else:
-		push_error("failed to parse image file.")
-		return null
+	if buffer.slice(0, png_signature.size()) == png_signature:
+		if new_image.load_png_from_buffer(buffer) == OK:
+			return new_image
+	if buffer.slice(0, jpg_signature.size()) == jpg_signature:
+		if new_image.load_jpg_from_buffer(buffer) == OK:
+			return new_image
+	if buffer.slice(0, webp_signature.size()) == webp_signature:
+		if new_image.load_webp_from_buffer(buffer) == OK:
+			return new_image
+	
+	push_error("failed to parse image file.")
+	return null
 
 
 func download_object(uuid: String, object_type: TypeHelper.ObjectType) -> void:

@@ -1,6 +1,5 @@
 extends VBoxContainer
 class_name LoadingMenu
-# todo: use when signing up / logging in
 
 @export var greeter:GreeterMenu
 @export var loading_text:Label

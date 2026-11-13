@@ -20,7 +20,7 @@ var token_renewable: bool = false
 var user_id: UUID = UUID.new()
 var renew_timer: Timer = Timer.new()
 var token_checkable: bool = false
-
+var server_mode:bool = false
 
 func _enter_tree() -> void:
 	var saved_token: Array[int] = []
@@ -64,6 +64,12 @@ func logout() -> void:
 	GlobalPersistanceHandler.set_value("user_login", "token", "expiry", -1)
 	GlobalPersistanceHandler.set_value("user_login", "token", "renewable", false)
 
+func set_server_token(api_token:PackedByteArray) -> void:
+	# todo: make it harder to mix up client only functions when using server mode
+	server_mode = true
+	GlobalAccountHandler.session_token = api_token
+	GlobalAccountHandler.token_expiry_utc = -1
+	GlobalAccountHandler.token_renewable = false
 
 func set_token(token: Array[int], expiry_utc: int, renewable: bool) -> void:
 	session_token = token

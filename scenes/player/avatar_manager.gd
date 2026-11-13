@@ -77,8 +77,7 @@ func change_avatar(target_player: PackedByteArray, avatar: UUID) -> void:
 		new_avatar = await GlobalDownloadHandler.get_object(avatar, TypeHelper.ObjectType.avatar)
 
 	if !new_avatar:
-		# todo: specific 'loading failed' avatar
-		new_avatar = preload("res://scenes/player/loading_avatar.tscn")
+		new_avatar = preload("res://scenes/player/error_avatar.tscn")
 
 	# set current avatar in api
 	if (

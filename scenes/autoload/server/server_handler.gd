@@ -106,11 +106,7 @@ func start(
 	if is_local:
 		print("binding to address: 127.0.0.1:%s" % local_bind_port)
 
-		# set_token assumes we are a client
-		# todo: some way to switch account handler 'mode' between client and server
-		GlobalAccountHandler.session_token = api_token
-		GlobalAccountHandler.token_expiry_utc = -1
-		GlobalAccountHandler.token_renewable = false
+		GlobalAccountHandler.set_server_token(api_token)
 		print("set token to %s" % api_token)
 
 		instance_id = UUID.new()
@@ -120,11 +116,7 @@ func start(
 		print("starting remote server")
 		is_gameserver = true
 
-		# since we are inside cluster we need to target internal ip + port
-		# todo: this should be a single function call
-		GlobalAPIHandler.target_port = 80
-		GlobalAPIHandler.target_host = "butterfly-api.butterfly-api"
-		GlobalAPIHandler.restart_requested = true
+		GlobalAPIHandler.activate_server_mode()
 
 		agones_sdk = AgonesSDK.new()
 		add_child(agones_sdk)

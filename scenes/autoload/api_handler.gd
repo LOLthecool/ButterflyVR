@@ -6,7 +6,7 @@ const BASE_RECONNECT_DELAY: float = 0.1
 const RECONNECT_DELAY_RECOVERY_SECONDS: float = 5
 const REQUEST_TIMEOUT_SECONDS: float = 15
 const PING_ENDPOINT: String = "/api/v0"
-# todo: make readonly once its available
+
 var headers: PackedStringArray = PackedStringArray(
 	["User-Agent: Pirulo/1.0 (Godot)", "Accept: */*"]
 )
@@ -57,7 +57,6 @@ var reconnect_delay: float = BASE_RECONNECT_DELAY
 var timeout_progress: float = 0
 var time_without_request: float = 0
 @onready var tree: SceneTree = get_tree()
-
 
 # makes a request for the handler to process, requests are handled sequentially.
 # returns a signal that can be awaited to get the response (if it is received).
@@ -119,6 +118,11 @@ func handle_response(
 			success = false
 	return [success, response_code, error_code, error_message, response_values]
 
+
+func activate_server_mode() -> void:
+	GlobalAPIHandler.target_port = 80
+	GlobalAPIHandler.target_host = "butterfly-api.butterfly-api"
+	GlobalAPIHandler.restart_requested = true
 
 # request handler, runs forever.
 # will call itself deferred to recreate the connection if it errors out
