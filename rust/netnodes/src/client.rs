@@ -29,6 +29,8 @@ pub struct NetNodeClient {
     // the array here is to make each key unique
     unapplied_packets: BTreeMap<(i8, [u8; 16]), BitVec<u64, Lsb0>>,
     incomplete_messages: HashMap<u64, (Option<usize>, BitVec<u64, Lsb0>)>,
+    waiting_messages: Vec<(BitVec<u64, Lsb0>, u16, u64)>,
+    waiting_internal_messages: Vec<(BitVec<u64, Lsb0>, u64)>,
     message_buffer: VecDeque<(BitVec<u64, Lsb0>, u64)>,
     message_handlers: HashMap<u16, Gd<MessageHandler>>,
     server_tick_number: i8,
@@ -102,6 +104,8 @@ impl NetNodeClient {
             bandwidth_budget_per_tick: 0,
             unapplied_packets: BTreeMap::new(),
             incomplete_messages: HashMap::new(),
+            waiting_messages: Vec::new(),
+            waiting_internal_messages: Vec::new(),
             message_buffer: VecDeque::new(),
             message_handlers: HashMap::new(),
             server_tick_number: 0,
@@ -140,28 +144,29 @@ impl NetNodeClient {
                 .partition(|(_, message_type)| *message_type == 0);
 
             for (data, _) in internal_messages {
-                if let Ok(msg) =
-                    decode_internal_message(&data, &mut MESSAGE_HEADER_SIZE.clone(), &self.tree)
-                        .inspect_err(|e| godot_error!("failed to decode internal message: {e:?}"))
-                {
-                    match msg {
-                        InternalMessage::ClientId(_) => {
-                            unreachable!();
+                let msg =
+                    decode_internal_message(&data, &mut MESSAGE_HEADER_SIZE.clone(), &self.tree);
+
+                match msg {
+                    Ok(InternalMessage::ClientId(_)) => {
+                        unreachable!();
+                    }
+                    Ok(InternalMessage::NetNodeIdAssign((id, mut node))) => {
+                        node.bind_mut().objectid = id;
+                    }
+                    Ok(InternalMessage::MessageHandlerIdAssign((id, mut handler))) => {
+                        if let Entry::Vacant(x) = self.message_handlers.entry(id) {
+                            handler.bind_mut().message_id = id;
+                            x.insert(handler);
+                        } else {
+                            godot_warn!(
+                                "tried to register duplicate handlers for message type {:#?}",
+                                id
+                            );
                         }
-                        InternalMessage::NetNodeIdAssign((id, mut node)) => {
-                            node.bind_mut().objectid = id;
-                        }
-                        InternalMessage::MessageHandlerIdAssign((id, mut handler)) => {
-                            if let Entry::Vacant(x) = self.message_handlers.entry(id) {
-                                handler.bind_mut().message_id = id;
-                                x.insert(handler);
-                            } else {
-                                godot_warn!(
-                                    "tried to register duplicate handlers for message type {:#?}",
-                                    id
-                                );
-                            }
-                        }
+                    }
+                    Err(_) => {
+                        self.waiting_internal_messages.push((data, 0));
                     }
                 }
             }
@@ -172,12 +177,72 @@ impl NetNodeClient {
                         &data,
                         &mut MESSAGE_HEADER_SIZE.clone(),
                         false,
+                        true,
+                    );
+                } else {
+                    self.waiting_messages.push((data, message_type, 0));
+                }
+            }
+
+            let mut new_waiting_messages = Vec::new();
+
+            for (data, message_type, attempts) in self.waiting_messages.drain(..) {
+                if let Some(handler) = self.message_handlers.get_mut(&message_type) {
+                    let _ = handler.bind_mut().handle_message(
+                        &data,
+                        &mut MESSAGE_HEADER_SIZE.clone(),
+                        false,
                         false,
                     );
                 } else {
-                    godot_error!("received a message but had no handler for it: {message_type:?}");
+                    if attempts == 50 {
+                        godot_warn!(
+                            "message with id {:?} has spent a long time waiting for handler",
+                            message_type
+                        );
+                    }
+                    new_waiting_messages.push((data, message_type, attempts + 1));
                 }
             }
+
+            self.waiting_messages = new_waiting_messages;
+
+            let mut new_waiting_internal_messages = Vec::new();
+
+            for (data, attempts) in self.waiting_internal_messages.drain(..) {
+                let msg =
+                    decode_internal_message(&data, &mut MESSAGE_HEADER_SIZE.clone(), &self.tree);
+
+                match msg {
+                    Ok(InternalMessage::ClientId(_)) => {
+                        unreachable!();
+                    }
+                    Ok(InternalMessage::NetNodeIdAssign((id, mut node))) => {
+                        node.bind_mut().objectid = id;
+                    }
+                    Ok(InternalMessage::MessageHandlerIdAssign((id, mut handler))) => {
+                        if let Entry::Vacant(x) = self.message_handlers.entry(id) {
+                            handler.bind_mut().message_id = id;
+                            x.insert(handler);
+                        } else {
+                            godot_warn!(
+                                "tried to register duplicate handlers for message type {:#?}",
+                                id
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        if attempts > 50 {
+                            godot_warn!(
+                                "internal message has spent a long time waiting for handler. last error: {:?}",
+                                e
+                            );
+                        }
+                        new_waiting_internal_messages.push((data, attempts + 1));
+                    }
+                }
+            }
+            self.waiting_internal_messages = new_waiting_internal_messages;
         }
 
         common::handle_datagrams(

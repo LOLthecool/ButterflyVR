@@ -26,7 +26,9 @@ use rand::TryRng;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::collections::hash_map::Entry;
+use std::error::Error;
 use std::fmt::Debug;
+use std::fmt::Display;
 use std::io::ErrorKind;
 use std::mem;
 use std::net::{SocketAddr, UdpSocket};
@@ -54,6 +56,14 @@ pub enum NetNodesError {
     ThreadPanic,
     QuicheError(quiche::Error),
     SocketError(std::io::Error),
+}
+
+impl Error for NetNodesError {}
+
+impl Display for NetNodesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl PartialEq for NetNodesError {

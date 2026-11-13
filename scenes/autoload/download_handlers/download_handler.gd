@@ -232,6 +232,7 @@ func decrypt_and_load_object(
 
 	if !PCKChecker.is_pck_good(new_object, str(object_type), uuid):
 		push_error("object %s failed verification, aborting load." % uuid)
+		backing_cache.pop(uuid)
 		return null
 
 	var load_thread: Thread = Thread.new()

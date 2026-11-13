@@ -25,6 +25,13 @@ func decrypt_and_load_object(
 		push_warning("falling back to base variant")
 		return await GlobalDownloadHandler.get_object(UUID.from_String(uuid), object_type)
 
+
+	if object.get_length() == 0:
+		push_warning("got empty server variant from server")
+		push_warning("falling back to base variant")
+		return await GlobalDownloadHandler.get_object(UUID.from_String(uuid), object_type)
+
+
 	var aes: AESContext = AESContext.new()
 	aes.start(AESContext.MODE_CBC_DECRYPT, key, iv)
 
@@ -42,11 +49,6 @@ func decrypt_and_load_object(
 
 	object.close()
 	aes.finish()
-
-	if decrypted.get_length() == 0:
-		push_warning("got empty server variant from server")
-		push_warning("falling back to base variant")
-		return await GlobalDownloadHandler.get_object(UUID.from_String(uuid), object_type)
 
 	decrypted.seek(decrypted.get_length() - 1)
 
@@ -70,6 +72,7 @@ func decrypt_and_load_object(
 
 	if !PCKChecker.is_pck_good(new_object, str(object_type), uuid):
 		push_error("object %s failed verification, aborting load." % uuid)
+		backing_cache.pop(uuid)
 		return null
 
 	var load_thread: Thread = Thread.new()

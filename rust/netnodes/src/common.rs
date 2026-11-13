@@ -224,10 +224,10 @@ pub fn decode_internal_message(
             let Some(n) = node else {
                 return Err(NetNodesError::InvalidDatagram);
             };
-            node = n.get_child_ex(idx).include_internal(true).done();
-            if node.is_none() {
-                godot_error!("path failed at node {:?}", n.get_path(),);
+            if n.get_child_count() <= idx as i32 {
+                return Err(NetNodesError::InvalidDatagram);
             }
+            node = n.get_child_ex(idx).include_internal(true).done();
         }
 
         if let Some(Ok(node)) = node.clone().map(Gd::try_cast) {
