@@ -1,7 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::doc_markdown)]
-// todo: split message handling to separate node, call deferred from common, server and client get scene access via this node
-// message applier just calls the usual handle_message, handle message shouldnt defer itself
 
 //! Low level networking library for the Godot engine.
 //!

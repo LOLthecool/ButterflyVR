@@ -490,7 +490,7 @@ impl TSCNParser {
 impl Drop for TSCNParser {
     fn drop(&mut self) {
         if !self.parsing_completed() {
-            godot_warn!("tried to drop parser but we never checked if parsing finished!")
+            godot_warn!("tried to drop parser but we never checked if parsing finished!");
         }
     }
 }

@@ -25,7 +25,6 @@ unsafe impl DirectlyReadable for u32 {}
 unsafe impl DirectlyReadable for u64 {}
 
 const VERSION: &[u32] = &[3, 4, 6];
-// todo: consider replacing this with a whitelist
 const BAD_EXTENSIONS: &[&str] = &[
     ".res",
     ".tres",

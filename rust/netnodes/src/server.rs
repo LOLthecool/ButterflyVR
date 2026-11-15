@@ -85,7 +85,6 @@ impl NetNodeServer {
     }
 
     pub fn get_next_object_id(&mut self) -> u16 {
-        // todo: should probably try to reuse object ids from removed nodes
         // if we manage to actually have no free ids, panicking is fine
         self.last_netnode_id.checked_add_assign(&1).unwrap();
         self.last_netnode_id
@@ -325,7 +324,6 @@ impl NetNodeServer {
 
         // this might be too aggressive,
         // but we really want to avoid congestion so we dont spike latency
-        // todo: track pacing per connection
         if self.networker.is_connection_pacing() {
             for client in self.clients.values_mut() {
                 if let ClientState::Connected(ref mut client) = client.state {

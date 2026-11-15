@@ -108,9 +108,13 @@ impl MessageHandler {
                     // message source is untrustworthy, ignore bad packets from clients
                     return (VarArray::new(), Array::new());
                 }
-                godot_error!("failed to decode message from the server.");
-                // todo: disconnect instead of panicking
-                panic!("failed to decode message from the server.");
+                godot_error!("failed to decode message from the server, disconnecting.");
+                let mut manager = self
+                    .base_mut()
+                    .get_node_as::<NetNodeManager>("/root/NetworkManager");
+
+                manager.bind_mut().stop();
+                return (VarArray::new(), Array::new());
             };
             values.push(&last_value);
             types.push(value_type);
