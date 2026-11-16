@@ -84,14 +84,16 @@ static func setup_object(root: Node, type: TypeHelper.ObjectType, state: SetupSt
 						@warning_ignore("unsafe_cast")
 						values.assign(node.get_meta(meta_item) as Dictionary)
 						values = marker.perform_migrations(values)
-						marker.setup(values, node, state, root)
+						@warning_ignore("redundant_await")
+						await marker.setup(values, node, state, root)
 			else:
 				if node.has_meta(marker.get_name()):
 					var values: Dictionary[String, Variant] = { }
 					@warning_ignore("unsafe_cast")
 					values.assign(node.get_meta(marker.get_name()) as Dictionary)
 					values = marker.perform_migrations(values)
-					marker.setup(values, node, state, root)
+					@warning_ignore("redundant_await")
+					await marker.setup(values, node, state, root)
 	
 	state.stages_completed += 1
 	root.add_child(event_handler)
@@ -242,7 +244,7 @@ static func setup_world(root: Node) -> WorldController:
 	var state: SetupState = SetupState.new()
 	state.stages_started += 1
 
-	setup_object(root, TypeHelper.ObjectType.world, state)
+	await setup_object(root, TypeHelper.ObjectType.world, state)
 	
 	state.stages_completed += 1
 	state.stages_started += 1
@@ -260,6 +262,7 @@ static func setup_world(root: Node) -> WorldController:
 	state.stages_completed += 1
 	if state.stages_started != state.stages_completed:
 		push_error("error while running world setup! started %s stages but only completed %s" % [state.stages_started, state.stages_completed])
+		world.queue_free()
 		return null
 
 	return world
@@ -281,7 +284,7 @@ static func setup_avatar(root: Node, player: Player) -> void:
 
 	state.state["player"] = player
 
-	setup_object(root, TypeHelper.ObjectType.avatar, state)
+	await setup_object(root, TypeHelper.ObjectType.avatar, state)
 	
 	state.stages_completed += 1
 	state.stages_started += 1
@@ -361,4 +364,5 @@ static func setup_avatar(root: Node, player: Player) -> void:
 	state.stages_completed += 1
 	if state.stages_started != state.stages_completed:
 		push_error("error while running avatar setup! started %s stages but only completed %s" % [state.stages_started, state.stages_completed])
-		player.free()
+		root.free()
+		player.free() # todo: check this dosent break everything

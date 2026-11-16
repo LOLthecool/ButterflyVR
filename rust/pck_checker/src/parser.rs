@@ -190,7 +190,7 @@ impl TSCNParser {
             nom::error::Error<&str>,
         >(str_slice));
 
-        let (str_slice, object_type) = handle_incomplete!(branch::alt((
+        let (str_slice, _) = handle_incomplete!(branch::alt((
             streaming::tag::<&str, &str, nom::error::Error<_>>("[sub_resource"),
             streaming::tag("[node"),
         ))(str_slice));
@@ -208,19 +208,12 @@ impl TSCNParser {
             let taken = result.1;
 
             if taken == "]" {
-                if object_type == "[sub_resource" {
-                    if resource_type.is_empty() {
-                        godot_warn!("found sub_resource with no type header");
-                        return Some(false);
-                    } else {
-                        if objects::ObjectWhitelist::iter()
-                            .all(|x| resource_type != x.to_string().as_str())
-                        {
-                            godot_warn!("found disallowed sub_resource type: {}", resource_type);
-                            return Some(false);
-                        }
-                    }
+                if objects::ObjectWhitelist::iter().all(|x| resource_type != x.to_string().as_str())
+                {
+                    godot_warn!("found disallowed object type: '{}'", resource_type);
+                    return Some(false);
                 }
+
                 *state = ParserState::ObjectValue;
                 *slice = &slice[slice.len() - str_slice.as_bytes().len()..];
                 return Some(true);
@@ -288,11 +281,18 @@ impl TSCNParser {
                 streaming::tag("\""),
             )),
             streaming::take_till(|x: char| {
-                if x == '"' && last.get() != '\\' {
-                    last.set(' ');
-                    return true;
+                if last.get() != '\\' {
+                    if x == '"' {
+                        last.set(' ');
+                        return true;
+                    }
                 }
-                last.set(x);
+                // ignore escaped \ when checking for escaped " (otherwise \\" parses as \\\")
+                if x == '\\' && last.get() == '\\' {
+                    last.set(' ');
+                } else {
+                    last.set(x);
+                }
                 false
             }),
             streaming::tag("\""),
@@ -431,17 +431,24 @@ impl TSCNParser {
         resource_type: &mut String,
     ) -> IResult<&'a str, &'a str> {
         let last = Cell::new(' ');
-        let resource_type_cell = Cell::new(std::mem::take(resource_type));
+        let resource_type_cell = Cell::new(String::new());
         let result = branch::alt((
             sequence::delimited(
                 streaming::tag(" type=\""),
                 streaming::take_till(|x: char| {
-                    if x == '"' && last.get() != '\\' {
-                        last.set(' ');
-                        return true;
+                    if last.get() != '\\' {
+                        if x == '"' {
+                            last.set(' ');
+                            return true;
+                        }
                     }
                     resource_type_cell.replace(resource_type_cell.take() + &x.to_string());
-                    last.set(x);
+                    // ignore escaped \ when checking for escaped " (otherwise \\" parses as \\\")
+                    if x == '\\' && last.get() == '\\' {
+                        last.set(' ');
+                    } else {
+                        last.set(x);
+                    }
                     false
                 }),
                 streaming::tag("\""),
@@ -453,11 +460,18 @@ impl TSCNParser {
                     streaming::tag(" id=\""),
                 )),
                 streaming::take_till(|x| {
-                    if x == '"' && last.get() != '\\' {
-                        last.set(' ');
-                        return true;
+                    if last.get() != '\\' {
+                        if x == '"' {
+                            last.set(' ');
+                            return true;
+                        }
                     }
-                    last.set(x);
+                    // ignore escaped \ when checking for escaped " (otherwise \\" parses as \\\")
+                    if x == '\\' && last.get() == '\\' {
+                        last.set(' ');
+                    } else {
+                        last.set(x);
+                    }
                     false
                 }),
                 streaming::tag("\""),
@@ -467,7 +481,10 @@ impl TSCNParser {
                 nom::character::streaming::digit1,
             ),
         ))(slice);
-        *resource_type = resource_type_cell.take();
+        let resource = resource_type_cell.into_inner();
+        if !resource.is_empty() {
+            *resource_type = resource;
+        }
         result
     }
 
