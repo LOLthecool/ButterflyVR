@@ -77,7 +77,7 @@ func load_world(world_id: UUID, instance_id: UUID = null) -> void:
 	# 1. world instantaited and setup (to connect signals in _init())
 	# 2. instance joined
 	# 3. world added to scene tree (to register with client in _ready())
-	var root: Node = SetupHelpers.setup_world(world.instantiate())
+	var root: Node = await SetupHelpers.setup_world(world.instantiate())
 
 	await get_tree().physics_frame
 
@@ -106,7 +106,7 @@ func load_world_server(world_id: UUID, bind_port: int) -> void:
 		get_tree().quit()
 		return
 
-	var root: Node = SetupHelpers.setup_world(world.instantiate())
+	var root: Node = await SetupHelpers.setup_world(world.instantiate())
 
 	# todo: this definetly shouldnt be here
 	# but we need this to happen after the world's _init but before it's _ready

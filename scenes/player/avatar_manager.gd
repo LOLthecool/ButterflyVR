@@ -114,7 +114,7 @@ func change_avatar(target_player: PackedByteArray, avatar: UUID) -> void:
 		await get_tree().physics_frame # dont have both avatars loaded at the same time
 
 	avatar_root = new_avatar.instantiate()
-	SetupHelpers.setup_avatar(avatar_root, player)
+	await SetupHelpers.setup_avatar(avatar_root, player)
 
 	get_parent().add_child(avatar_root)
 
