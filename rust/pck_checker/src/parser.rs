@@ -369,7 +369,7 @@ impl TSCNParser {
 
     fn parse_typed_container(slice: &str) -> IResult<&str, &str> {
         branch::alt((
-            combinator::recognize(sequence::tuple((
+            combinator::recognize((
                 streaming::tag("Array"),
                 sequence::delimited(
                     streaming::tag("["),
@@ -380,8 +380,8 @@ impl TSCNParser {
                     streaming::tag("]"),
                 ),
                 sequence::delimited(streaming::tag("("), Self::parse_array, streaming::tag(")")),
-            ))),
-            combinator::recognize(sequence::tuple((
+            )),
+            combinator::recognize((
                 streaming::tag("Dictionary"),
                 sequence::delimited(
                     streaming::tag("["),
@@ -403,7 +403,7 @@ impl TSCNParser {
                     Self::parse_dictionary,
                     streaming::tag(")"),
                 ),
-            ))),
+            )),
         ))
         .parse(slice)
     }
