@@ -1129,7 +1129,7 @@ impl ConnectionHandler {
         builder.set_pubkey(&pkey).unwrap();
 
         let basic_constraints = BasicConstraints::new().critical().ca().build().unwrap();
-        builder.append_extension(basic_constraints).unwrap();
+        builder.append_extension(&basic_constraints).unwrap();
 
         let ctx = builder.x509v3_context(None, None);
 
@@ -1138,7 +1138,7 @@ impl ConnectionHandler {
             .ip("127.0.0.1")
             .build(&ctx)
             .unwrap();
-        builder.append_extension(san).unwrap();
+        builder.append_extension(&san).unwrap();
 
         builder.sign(&pkey, MessageDigest::sha256()).unwrap();
 
