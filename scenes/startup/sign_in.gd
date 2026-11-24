@@ -110,6 +110,10 @@ func _on_sign_up_pressed() -> void:
 		[HTTPClient.RESPONSE_OK],
 		["token", "token_expires", "renewable"],
 	)
+	
+	cancel_button.disabled = false
+	continue_button.disabled = false
+	
 	if result[0]:
 		var data: Dictionary = result[4]
 		var token: Array[int] = []
@@ -137,11 +141,11 @@ func _on_sign_up_pressed() -> void:
 			banned_error.text = error_message
 			banned_error.visible = true
 		
-		generic_error_header.visible = true
-		if error_code != "":
-			generic_error_code.text = "Error Code: " + error_code
-			generic_error_code.visible = true
-		if error_message != "":
-			generic_error_message.text = "Error Message: " + error_message
-			generic_error_message.visible = true
-		return
+		if (!rate_limit_error.visible) and (!incorrect_error.visible) and (!banned_error.visible):
+			generic_error_header.visible = true
+			if error_code != "":
+				generic_error_code.text = "Error Code: " + error_code
+				generic_error_code.visible = true
+			if error_message != "":
+				generic_error_message.text = "Error Message: " + error_message
+				generic_error_message.visible = true

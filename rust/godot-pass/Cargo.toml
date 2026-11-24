@@ -7,5 +7,5 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-argon2 = "0.5.3"
-godot = { version = "0.5.5", features = ["experimental-threads"] }
+argon2 = "0.6.0"
+godot = { version = "0.5.6", features = ["experimental-threads"] }

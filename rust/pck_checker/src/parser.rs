@@ -1,7 +1,7 @@
 use godot::global::{godot_error, godot_warn};
 use nom::bytes::streaming;
-use nom::sequence;
 use nom::{self, IResult, character};
+use nom::{Parser, sequence};
 use nom::{branch, combinator};
 use std::cell::Cell;
 use std::{
@@ -170,7 +170,8 @@ impl TSCNParser {
         let result: IResult<&str, &str> = branch::alt((
             streaming::tag("[gd_scene format=4]"),
             streaming::tag("[gd_scene format=3]"),
-        ))(str_slice);
+        ))
+        .parse(str_slice);
 
         let (str_slice, _) = handle_incomplete!(result);
 
@@ -185,24 +186,29 @@ impl TSCNParser {
             return None;
         };
 
-        let (str_slice, _) = handle_incomplete!(character::streaming::multispace0::<
-            &str,
-            nom::error::Error<&str>,
-        >(str_slice));
+        let (str_slice, _) = handle_incomplete!(
+            character::streaming::multispace0::<&str, nom::error::Error<&str>>.parse(str_slice)
+        );
 
-        let (str_slice, _) = handle_incomplete!(branch::alt((
-            streaming::tag::<&str, &str, nom::error::Error<_>>("[sub_resource"),
-            streaming::tag("[node"),
-        ))(str_slice));
+        let (str_slice, _) = handle_incomplete!(
+            branch::alt((
+                streaming::tag::<&str, &str, nom::error::Error<_>>("[sub_resource"),
+                streaming::tag("[node"),
+            ))
+            .parse(str_slice)
+        );
 
         let mut str_slice = str_slice;
         let mut resource_type = String::new();
 
         loop {
-            let result = handle_incomplete!(branch::alt((
-                |str_slice| Self::parse_header_kv(str_slice, &mut resource_type),
-                streaming::tag("]"),
-            ))(str_slice));
+            let result = handle_incomplete!(
+                branch::alt((
+                    |str_slice| Self::parse_header_kv(str_slice, &mut resource_type),
+                    streaming::tag("]"),
+                ))
+                .parse(str_slice)
+            );
 
             str_slice = result.0;
             let taken = result.1;
@@ -227,12 +233,11 @@ impl TSCNParser {
             return None;
         };
 
-        let (str_slice, _) = handle_incomplete!(character::streaming::multispace0::<
-            &str,
-            nom::error::Error<&str>,
-        >(str_slice));
+        let (str_slice, _) = handle_incomplete!(
+            character::streaming::multispace0::<&str, nom::error::Error<&str>>.parse(str_slice)
+        );
 
-        match streaming::tag::<&str, &str, nom::error::Error<&str>>("[")(str_slice) {
+        match streaming::tag::<&str, &str, nom::error::Error<&str>>("[").parse(str_slice) {
             // dont update str_slice since header parsing expects leading [
             Ok((_, _)) => {
                 *state = ParserState::ObjectHeader;
@@ -245,20 +250,23 @@ impl TSCNParser {
             Err(_) => {}
         };
 
-        let (str_slice, _) = handle_incomplete!(combinator::recognize(sequence::terminated(
-            branch::alt((
-                combinator::recognize(nom::multi::many1(branch::alt((
-                    character::streaming::alphanumeric1::<&str, nom::error::Error<&str>>,
-                    streaming::tag("_"),
-                    streaming::tag("/"),
-                    streaming::tag("."),
-                )))),
-                combinator::recognize(Self::parse_string)
-            )),
-            streaming::tag(" = "),
-        ),)(str_slice));
+        let (str_slice, _) = handle_incomplete!(
+            combinator::recognize(sequence::terminated(
+                branch::alt((
+                    combinator::recognize(nom::multi::many1(branch::alt((
+                        character::streaming::alphanumeric1::<&str, nom::error::Error<&str>>,
+                        streaming::tag("_"),
+                        streaming::tag("/"),
+                        streaming::tag("."),
+                    )))),
+                    combinator::recognize(Self::parse_string)
+                )),
+                streaming::tag(" = "),
+            ),)
+            .parse(str_slice)
+        );
 
-        let (str_slice, _) = handle_incomplete!(Self::parse_value(str_slice));
+        let (str_slice, _) = handle_incomplete!(Self::parse_value.parse(str_slice));
 
         *slice = &slice[slice.len() - str_slice.as_bytes().len()..];
         return Some(true);
@@ -270,16 +278,17 @@ impl TSCNParser {
             Self::parse_container,
             Self::parse_number_literal,
             Self::parse_identifier,
-        ))(slice)
+        ))
+        .parse(slice)
     }
 
     fn parse_string(slice: &str) -> IResult<&str, &str> {
         let last = Cell::new(' ');
         sequence::delimited(
-            sequence::tuple((
+            (
                 combinator::opt(character::streaming::one_of("&^")),
                 streaming::tag("\""),
-            )),
+            ),
             streaming::take_till(|x: char| {
                 if last.get() != '\\' {
                     if x == '"' {
@@ -296,11 +305,12 @@ impl TSCNParser {
                 false
             }),
             streaming::tag("\""),
-        )(slice)
+        )
+        .parse(slice)
     }
 
     fn parse_container(slice: &str) -> IResult<&str, &str> {
-        branch::alt((Self::parse_array, Self::parse_dictionary))(slice)
+        branch::alt((Self::parse_array, Self::parse_dictionary)).parse(slice)
     }
 
     fn parse_array(slice: &str) -> IResult<&str, &str> {
@@ -311,7 +321,8 @@ impl TSCNParser {
                 Self::parse_value,
             ),
             sequence::pair(character::streaming::multispace0, streaming::tag("]")),
-        ))(slice)
+        ))
+        .parse(slice)
     }
 
     fn parse_dictionary(slice: &str) -> IResult<&str, &str> {
@@ -326,18 +337,20 @@ impl TSCNParser {
                 ),
             ),
             sequence::pair(character::streaming::multispace0, streaming::tag("}")),
-        ))(slice)
+        ))
+        .parse(slice)
     }
 
     fn parse_number_literal(slice: &str) -> IResult<&str, &str> {
-        combinator::recognize(sequence::tuple((
+        combinator::recognize((
             combinator::recognize(combinator::opt(streaming::tag("-"))),
             branch::alt((
                 streaming::tag("inf"),
                 streaming::tag("nan"),
                 nom::number::streaming::recognize_float,
             )),
-        )))(slice)
+        ))
+        .parse(slice)
     }
 
     fn parse_identifier(slice: &str) -> IResult<&str, &str> {
@@ -346,11 +359,12 @@ impl TSCNParser {
             Self::parse_bool_literal,
             Self::parse_typed_container,
             Self::parse_constructor,
-        ))(slice)
+        ))
+        .parse(slice)
     }
 
     fn parse_bool_literal(slice: &str) -> IResult<&str, &str> {
-        branch::alt((streaming::tag("true"), streaming::tag("false")))(slice)
+        branch::alt((streaming::tag("true"), streaming::tag("false"))).parse(slice)
     }
 
     fn parse_typed_container(slice: &str) -> IResult<&str, &str> {
@@ -390,7 +404,8 @@ impl TSCNParser {
                     streaming::tag(")"),
                 ),
             ))),
-        ))(slice)
+        ))
+        .parse(slice)
     }
 
     fn parse_constructor(slice: &str) -> IResult<&str, &str> {
@@ -414,7 +429,8 @@ impl TSCNParser {
                     combinator::recognize(nom::multi::many0_count(streaming::tag("="))),
                     streaming::tag("\")"),
                 ),
-            ))(str_slice),
+            ))
+            .parse(str_slice),
             _ => combinator::recognize(sequence::delimited(
                 streaming::tag("("),
                 nom::multi::separated_list0(
@@ -422,7 +438,8 @@ impl TSCNParser {
                     Self::parse_value,
                 ),
                 streaming::tag(")"),
-            ))(str_slice),
+            ))
+            .parse(str_slice),
         }
     }
 
@@ -480,7 +497,8 @@ impl TSCNParser {
                 streaming::tag(" unique_id="),
                 nom::character::streaming::digit1,
             ),
-        ))(slice);
+        ))
+        .parse(slice);
         let resource = resource_type_cell.into_inner();
         if !resource.is_empty() {
             *resource_type = resource;
